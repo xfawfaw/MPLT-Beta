@@ -31,7 +31,7 @@ export const AppContent: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#09090B] text-[#18181B] dark:text-[#F4F4F5] flex flex-col font-ui selection:bg-[#18181B] selection:text-white dark:selection:bg-white dark:selection:text-[#18181B] transition-colors">
+    <div className="min-h-screen bg-[#F9FAFB] text-[#18181B] flex flex-col font-ui selection:bg-[#18181B] selection:text-white">
       {/* Sticky Top Navbar */}
       <Navbar 
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
@@ -62,18 +62,18 @@ export const AppContent: React.FC = () => {
       />
 
       {/* Footer Info & Operational Mantra */}
-      <footer className="border-t border-[#E2E8F0] dark:border-[#27272A] bg-white dark:bg-[#121215] py-4 text-center text-[11px] text-[#71717A] dark:text-[#A1A1AA] font-ui transition-colors">
+      <footer className="border-t border-[#E2E8F0] bg-white py-4 text-center text-[11px] text-[#71717A] font-ui">
         <div className="max-w-[1440px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-            <span className="font-bold text-[#18181B] dark:text-[#F4F4F5] tracking-tight">MPLT ZERO</span>
-            <span className="text-[#71717A] dark:text-[#A1A1AA]">— Gamified Life Operations Workstation</span>
+            <span className="font-bold text-[#18181B] tracking-tight">MPLT ZERO</span>
+            <span className="text-[#71717A]">— Gamified Life Operations Workstation</span>
           </div>
           <div className="flex items-center gap-3 text-[10.5px] font-ui tracking-wide">
-            <span className="text-[#18181B] dark:text-[#F4F4F5] font-semibold">DISCIPLINE OVER MOTIVATION</span>
-            <span className="text-[#CBD5E1] dark:text-[#3F3F46]">•</span>
-            <span className="text-[#18181B] dark:text-[#F4F4F5] font-semibold">EXECUTE WITH PRECISION</span>
-            <span className="text-[#CBD5E1] dark:text-[#3F3F46]">•</span>
+            <span className="text-[#18181B] font-semibold">DISCIPLINE OVER MOTIVATION</span>
+            <span className="text-[#CBD5E1]">•</span>
+            <span className="text-[#18181B] font-semibold">EXECUTE WITH PRECISION</span>
+            <span className="text-[#CBD5E1]">•</span>
             <span className="text-[#10B981] font-bold">COMPOUND EVERY DAY</span>
           </div>
         </div>

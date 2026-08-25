@@ -33,7 +33,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
   const handleExportJSON = () => {
     sound.playClick();
     const stateData = {
-      version: 'MPLT ZERO v1.0',
+      version: 'MPLT ZERO',
       exportedAt: new Date().toISOString(),
       profile,
       habits,
@@ -117,29 +117,29 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4 animate-in fade-in duration-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-100">
       <div 
-        className="bg-white dark:bg-[#121215] border border-[#E2E8F0] dark:border-[#27272A] rounded-[12px] max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-100"
+        className="bg-white border border-[#E2E8F0] rounded-[12px] max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] dark:border-[#27272A]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
           <div className="flex items-center gap-2">
             <ShieldCheck size={18} className="text-[#10B981]" />
-            <h3 className="text-[16px] font-bold text-[#18181B] dark:text-[#F4F4F5] font-ui">
+            <h3 className="text-[16px] font-bold text-[#18181B] font-ui">
               Data Portability & Backup Center
             </h3>
           </div>
 
           <button 
             onClick={onClose}
-            className="p-1 rounded text-[#71717A] hover:text-[#18181B] dark:hover:text-white transition-colors"
+            className="p-1 rounded text-[#71717A] hover:text-[#18181B] transition-colors"
           >
             <X size={16} />
           </button>
         </div>
 
-        <p className="text-[12px] text-[#71717A] dark:text-[#A1A1AA] font-ui">
+        <p className="text-[12px] text-[#71717A] font-ui">
           All your operations state is stored locally with zero cloud telemetry. You can export a snapshot backup file anytime to sync across devices or keep safe.
         </p>
 
@@ -147,19 +147,19 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
         <div className="space-y-3">
           
           {/* Action 1: Export Full JSON */}
-          <div className="p-3.5 bg-[#F9FAFB] dark:bg-[#18181B] border border-[#E2E8F0] dark:border-[#27272A] rounded-[8px] flex items-center justify-between gap-3">
+          <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] flex items-center justify-between gap-3">
             <div>
-              <h4 className="text-[13px] font-bold text-[#18181B] dark:text-[#F4F4F5] font-ui">
+              <h4 className="text-[13px] font-bold text-[#18181B] font-ui">
                 Full Operations Backup (.JSON)
               </h4>
-              <p className="text-[11px] text-[#71717A] dark:text-[#A1A1AA]">
+              <p className="text-[11px] text-[#71717A]">
                 Includes Habits, Weekly Planner, Tasks, Goals, and 50/30/20 Ledger
               </p>
             </div>
 
             <button
               onClick={handleExportJSON}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#18181B] dark:bg-white text-white dark:text-[#18181B] text-[11.5px] font-bold font-ui hover:bg-[#27272A] dark:hover:bg-[#E4E4E7] transition-colors flex-shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#18181B] text-white text-[11.5px] font-bold font-ui hover:bg-[#27272A] transition-colors flex-shrink-0"
             >
               <Download size={13} />
               <span>Export JSON</span>
@@ -167,12 +167,12 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
           </div>
 
           {/* Action 2: Import JSON */}
-          <div className="p-3.5 bg-[#F9FAFB] dark:bg-[#18181B] border border-[#E2E8F0] dark:border-[#27272A] rounded-[8px] flex items-center justify-between gap-3">
+          <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] flex items-center justify-between gap-3">
             <div>
-              <h4 className="text-[13px] font-bold text-[#18181B] dark:text-[#F4F4F5] font-ui">
+              <h4 className="text-[13px] font-bold text-[#18181B] font-ui">
                 Restore Operations Backup
               </h4>
-              <p className="text-[11px] text-[#71717A] dark:text-[#A1A1AA]">
+              <p className="text-[11px] text-[#71717A]">
                 Upload and restore a previous `.json` backup file
               </p>
             </div>
@@ -187,7 +187,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[#E2E8F0] dark:border-[#3F3F46] hover:border-[#18181B] dark:hover:border-white bg-white dark:bg-[#27272A] text-[#18181B] dark:text-[#F4F4F5] text-[11.5px] font-bold font-ui transition-colors flex-shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[#CBD5E1] hover:border-[#18181B] bg-white text-[#18181B] text-[11.5px] font-bold font-ui transition-colors flex-shrink-0"
             >
               <Upload size={13} />
               <span>Restore File</span>
@@ -195,12 +195,12 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
           </div>
 
           {/* Action 3: Export Financial CSV */}
-          <div className="p-3.5 bg-[#F9FAFB] dark:bg-[#18181B] border border-[#E2E8F0] dark:border-[#27272A] rounded-[8px] flex items-center justify-between gap-3">
+          <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] flex items-center justify-between gap-3">
             <div>
-              <h4 className="text-[13px] font-bold text-[#18181B] dark:text-[#F4F4F5] font-ui">
+              <h4 className="text-[13px] font-bold text-[#18181B] font-ui">
                 Financial Transactions (.CSV)
               </h4>
-              <p className="text-[11px] text-[#71717A] dark:text-[#A1A1AA]">
+              <p className="text-[11px] text-[#71717A]">
                 Export tabular cash flow ledger for Excel or Google Sheets
               </p>
             </div>
@@ -220,7 +220,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
         <div className="pt-2 flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-[12px] font-medium border border-[#E2E8F0] dark:border-[#27272A] rounded-[6px] hover:bg-[#F4F4F5] dark:hover:bg-[#1C1C21] text-[#18181B] dark:text-[#F4F4F5]"
+            className="px-4 py-1.5 text-[12px] font-medium border border-[#E2E8F0] rounded-[6px] hover:bg-[#F4F4F5] text-[#18181B]"
           >
             Close
           </button>

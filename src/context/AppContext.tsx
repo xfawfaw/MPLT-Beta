@@ -54,10 +54,6 @@ interface AppContextType {
   // Toast notification for EXP / Points
   expToast: { visible: boolean; message: string; exp: number } | null;
   resetAllData: () => void;
-
-  // Theme Mode
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
 }
 
 const STORAGE_KEY = 'mplt_zero_state_v1';
@@ -319,12 +315,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
   });
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('mplt_theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return 'light';
-  });
-
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [selectedMonth, setSelectedMonth] = useState({ month: 0, year: 2026 }); // 0 = Jan 2026
 
@@ -335,19 +325,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [expToast, setExpToast] = useState<{ visible: boolean; message: string; exp: number } | null>(null);
 
-  // Sync theme to document class and localStorage
+  // Guarantee clean Light Mode
   useEffect(() => {
-    localStorage.setItem('mplt_theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-  };
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('mplt_theme');
+  }, []);
 
   // Sync to local storage
   useEffect(() => {
@@ -628,8 +610,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         closeLevelUpModal,
         expToast,
         resetAllData,
-        theme,
-        toggleTheme,
       }}
     >
       {children}

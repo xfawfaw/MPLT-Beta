@@ -1,48 +1,24 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 @layer base {
   :root {
     --canvas: #F9FAFB;
     --surface: #FFFFFF;
-    --surface-hover: #F4F4F5;
-    --surface-subtle: #F9FAFB;
-    --surface-inset: #FAFAFA;
-    --surface-pill: #F1F5F9;
-    --text-primary: #18181B;
-    --text-secondary: #71717A;
-    --text-muted: #A1A1AA;
+    --charcoal: #18181B;
+    --steel: #71717A;
     --border: #E2E8F0;
-    --border-subtle: #F1F5F9;
     --growth: #10B981;
     --rose: #E11D48;
   }
 
-  .dark {
-    --canvas: #09090B;
-    --surface: #121215;
-    --surface-hover: #1C1C21;
-    --surface-subtle: #18181B;
-    --surface-inset: #18181B;
-    --surface-pill: #27272A;
-    --text-primary: #F4F4F5;
-    --text-secondary: #A1A1AA;
-    --text-muted: #71717A;
-    --border: #27272A;
-    --border-subtle: #1F1F24;
-    --growth: #10B981;
-    --rose: #F43F5E;
-  }
-
   body {
-    background-color: var(--canvas);
-    color: var(--text-primary);
+    background-color: #F9FAFB !important;
+    color: #18181B !important;
     font-family: 'Geist Mono', monospace;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Custom scrollbar */
+  /* Custom high-density scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -53,17 +29,9 @@
     border-radius: 3px;
   }
 
-  .dark ::-webkit-scrollbar-track {
-    background: #18181B;
-  }
-
   ::-webkit-scrollbar-thumb {
     background: #CBD5E1;
     border-radius: 3px;
-  }
-
-  .dark ::-webkit-scrollbar-thumb {
-    background: #3F3F46;
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -80,17 +48,12 @@
   font-family: 'Geist Mono', monospace;
 }
 
-/* Card container standard */
+/* Card container standard - Crisp Analog Spreadsheet Precision */
 .mplt-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
   border-radius: 12px;
   box-shadow: none;
-}
-
-.dark .mplt-card {
-  background-color: #121215;
-  border-color: #27272A;
 }
 
 /* 24px x 24px habit matrix checkbox */
@@ -111,43 +74,22 @@
   color: #FFFFFF;
 }
 
-.dark .mplt-checkbox.checked {
-  background-color: #F4F4F5;
-  border-color: #F4F4F5;
-  color: #09090B;
-}
-
 .mplt-checkbox.unchecked {
   background-color: #FFFFFF;
   border-color: #E2E8F0;
-}
-
-.dark .mplt-checkbox.unchecked {
-  background-color: #18181B;
-  border-color: #27272A;
 }
 
 .mplt-checkbox:hover {
   border-color: #A1A1AA;
 }
 
-/* Force pure Light Mode when not in .dark */
-html:not(.dark) body {
-  background-color: #F9FAFB !important;
-  color: #18181B !important;
-}
-
-html:not(.dark) header {
+/* Base header and footer styling */
+header {
   background-color: #FFFFFF !important;
   border-color: #E2E8F0 !important;
 }
 
-html:not(.dark) footer {
-  background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-}
-
-html:not(.dark) .mplt-card {
+footer {
   background-color: #FFFFFF !important;
   border-color: #E2E8F0 !important;
 }

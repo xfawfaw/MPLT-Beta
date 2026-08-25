@@ -8,8 +8,6 @@ import {
   CheckSquare, 
   Target, 
   Wallet, 
-  Sun, 
-  Moon, 
   Volume2, 
   VolumeX, 
   Download, 
@@ -43,8 +41,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     weeklyTasks, 
     toggleWeeklyTask, 
     setCurrentTab, 
-    theme, 
-    toggleTheme, 
     resetAllData 
   } = useApp();
 
@@ -78,7 +74,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       subtitle: 'Overview & Mission Control',
       category: 'Navigation',
       icon: LayoutGrid,
-      action: () => { setCurrentTab('dashboard'); onClose(); }
+      action: () => { setCurrentTab('dashboard'); sound.playClick(); onClose(); }
     },
     {
       id: 'nav-habits',
@@ -86,7 +82,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       subtitle: '31-Day Habit Tracker & Velocity Curve',
       category: 'Navigation',
       icon: CalendarCheck2,
-      action: () => { setCurrentTab('habits'); onClose(); }
+      action: () => { setCurrentTab('habits'); sound.playClick(); onClose(); }
     },
     {
       id: 'nav-weekly',
@@ -94,7 +90,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       subtitle: '7-Day Sprint Board & Day Spotlight',
       category: 'Navigation',
       icon: CalendarRange,
-      action: () => { setCurrentTab('weekly'); onClose(); }
+      action: () => { setCurrentTab('weekly'); sound.playClick(); onClose(); }
     },
     {
       id: 'nav-tasks',
@@ -102,7 +98,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       subtitle: 'Table Ledger, Kanban & Priority Matrix',
       category: 'Navigation',
       icon: CheckSquare,
-      action: () => { setCurrentTab('tasks'); onClose(); }
+      action: () => { setCurrentTab('tasks'); sound.playClick(); onClose(); }
     },
     {
       id: 'nav-goals',
@@ -110,7 +106,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       subtitle: '6 Areas of Life Vision Cards & Milestones',
       category: 'Navigation',
       icon: Target,
-      action: () => { setCurrentTab('goals'); onClose(); }
+      action: () => { setCurrentTab('goals'); sound.playClick(); onClose(); }
     },
     {
       id: 'nav-finance',
@@ -118,7 +114,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       subtitle: 'Cash Flow & Transaction Ledger',
       category: 'Navigation',
       icon: Wallet,
-      action: () => { setCurrentTab('finance'); onClose(); }
+      action: () => { setCurrentTab('finance'); sound.playClick(); onClose(); }
     },
 
     // Habits (Today Quick Check)
@@ -156,14 +152,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
 
     // System Commands
     {
-      id: 'sys-theme',
-      title: `Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`,
-      subtitle: 'Toggle workstation theme',
-      category: 'System',
-      icon: theme === 'dark' ? Sun : Moon,
-      action: () => { toggleTheme(); sound.playClick(); onClose(); }
-    },
-    {
       id: 'sys-sound',
       title: `${isMuted ? 'Unmute' : 'Mute'} Audio Feedback`,
       subtitle: 'Mechanical click and game sound effects',
@@ -188,6 +176,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       action: () => {
         if (window.confirm('Reset all demo data to default state?')) {
           resetAllData();
+          sound.playClick();
           onClose();
         }
       }
@@ -232,26 +221,26 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/60 backdrop-blur-[2px] p-4 animate-in fade-in duration-100">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/50 p-4 animate-in fade-in duration-100">
       <div 
-        className="bg-white dark:bg-[#121215] border border-[#E2E8F0] dark:border-[#27272A] rounded-[12px] max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[480px] animate-in zoom-in-95 duration-100"
+        className="bg-white border border-[#E2E8F0] rounded-[12px] max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[480px] animate-in zoom-in-95 duration-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar */}
-        <div className="p-3.5 border-b border-[#E2E8F0] dark:border-[#27272A] flex items-center gap-3 bg-[#F9FAFB] dark:bg-[#18181B]">
-          <Search size={16} className="text-[#71717A] dark:text-[#A1A1AA]" />
+        <div className="p-3.5 border-b border-[#E2E8F0] flex items-center gap-3 bg-[#F9FAFB]">
+          <Search size={16} className="text-[#71717A]" />
           <input
             ref={inputRef}
             type="text"
-            placeholder="Type a command or search (e.g. 'habit', 'task', 'theme')..."
+            placeholder="Type a command or search (e.g. 'habit', 'task', 'finance')..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            className="w-full bg-transparent text-[13px] font-ui text-[#18181B] dark:text-[#F4F4F5] focus:outline-none placeholder:text-[#A1A1AA]"
+            className="w-full bg-transparent text-[13px] font-ui text-[#18181B] focus:outline-none placeholder:text-[#A1A1AA]"
           />
-          <kbd className="text-[10px] font-num px-1.5 py-0.5 rounded bg-white dark:bg-[#27272A] border border-[#E2E8F0] dark:border-[#3F3F46] text-[#71717A] dark:text-[#A1A1AA]">
+          <kbd className="text-[10px] font-num px-1.5 py-0.5 rounded bg-white border border-[#E2E8F0] text-[#71717A]">
             ESC
           </kbd>
         </div>
@@ -269,13 +258,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                 onMouseEnter={() => setSelectedIndex(idx)}
                 className={`p-2.5 rounded-[6px] flex items-center justify-between gap-3 cursor-pointer transition-colors ${
                   isSelected 
-                    ? 'bg-[#18181B] dark:bg-white text-white dark:text-[#18181B]' 
-                    : 'hover:bg-[#F4F4F5] dark:hover:bg-[#1C1C21] text-[#18181B] dark:text-[#F4F4F5]'
+                    ? 'bg-[#18181B] text-white font-semibold' 
+                    : 'hover:bg-[#F4F4F5] text-[#18181B]'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-6 h-6 rounded-[4px] flex items-center justify-center flex-shrink-0 ${
-                    isSelected ? 'bg-white/20 dark:bg-black/10' : 'bg-[#F1F5F9] dark:bg-[#27272A] text-[#71717A] dark:text-[#A1A1AA]'
+                    isSelected ? 'bg-white/20 text-white' : 'bg-[#F1F5F9] text-[#71717A]'
                   }`}>
                     <Icon size={13} />
                   </div>
@@ -286,7 +275,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     </span>
                     {cmd.subtitle && (
                       <span className={`text-[10.5px] truncate ${
-                        isSelected ? 'text-white/70 dark:text-black/60' : 'text-[#71717A] dark:text-[#A1A1AA]'
+                        isSelected ? 'text-white/70' : 'text-[#71717A]'
                       }`}>
                         {cmd.subtitle}
                       </span>
@@ -296,7 +285,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
 
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className={`text-[9.5px] uppercase font-ui px-1.5 py-0.2 rounded ${
-                    isSelected ? 'bg-white/20 dark:bg-black/10 text-white dark:text-black' : 'bg-[#F1F5F9] dark:bg-[#27272A] text-[#71717A] dark:text-[#A1A1AA]'
+                    isSelected ? 'bg-white/20 text-white' : 'bg-[#F1F5F9] text-[#71717A]'
                   }`}>
                     {cmd.category}
                   </span>
@@ -307,20 +296,20 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
           })}
 
           {filteredCommands.length === 0 && (
-            <div className="py-12 text-center text-[#71717A] dark:text-[#A1A1AA] font-ui text-[12px]">
+            <div className="py-12 text-center text-[#71717A] font-ui text-[12px]">
               No matching commands found.
             </div>
           )}
         </div>
 
         {/* Footer Shortcut Hints */}
-        <div className="p-2.5 px-4 border-t border-[#E2E8F0] dark:border-[#27272A] bg-[#FAFAFA] dark:bg-[#18181B] flex items-center justify-between text-[10.5px] text-[#71717A] dark:text-[#A1A1AA] font-num">
+        <div className="p-2.5 px-4 border-t border-[#E2E8F0] bg-[#FAFAFA] flex items-center justify-between text-[10.5px] text-[#71717A] font-num">
           <div className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
             <span>ESC Close</span>
           </div>
-          <span className="font-ui">MPLT Quick-Command</span>
+          <span className="font-ui font-medium text-[#18181B]">MPLT Quick-Command</span>
         </div>
 
       </div>
