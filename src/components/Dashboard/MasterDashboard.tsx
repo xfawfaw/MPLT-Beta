@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Check, 
@@ -8,30 +8,41 @@ import {
   Clock, 
   ShieldCheck, 
   ChevronRight,
-  PieChart as PieIcon
+  PieChart as PieIcon,
+  Zap,
+  Target,
+  Flame,
+  Award,
+  Sparkles,
+  DollarSign
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
 
 export const MasterDashboard: React.FC = () => {
   const { 
+    profile,
     habits, 
     toggleHabitLog, 
     weeklyTasks, 
     toggleWeeklyTask, 
+    tasks,
+    toggleTaskStatus,
+    goals,
     budget, 
     transactions,
     setCurrentTab
   } = useApp();
 
   // 1. Calculate Today Habit Completion (e.g. for day 26 or current active habits)
-  const currentDayNum = 26; // Simulated 26th Feb / current day in period
+  const currentDayNum = 26; // Simulated 26th Feb
   const habitsDoneCount = habits.filter(h => !!h.logs[currentDayNum]).length;
   const habitCompletionRate = habits.length > 0 
     ? ((habitsDoneCount / habits.length) * 100).toFixed(1) 
     : '0.0';
 
   // 2. Pending Tasks calculation
-  const pendingTasksCount = weeklyTasks.filter(t => !t.isCompleted).length;
+  const pendingWeeklyTasks = weeklyTasks.filter(t => !t.isCompleted);
+  const pendingTasksCount = pendingWeeklyTasks.length;
 
   // 3. Weekly Consistency
   const totalWeekly = weeklyTasks.length;
@@ -49,6 +60,51 @@ export const MasterDashboard: React.FC = () => {
   const totalSpent = needsSpent + wantsSpent;
   const spentPercent = totalIncome > 0 ? Math.round((totalSpent / totalIncome) * 100) : 32;
   const isUnderBudget = spentPercent <= (budget.needsRatio + budget.wantsRatio);
+  const remainingDaysInMonth = 4;
+  const safeDailyBurn = remainingDaysInMonth > 0 
+    ? Math.max(0, Math.round(((totalIncome * (budget.wantsRatio / 100)) - wantsSpent) / remainingDaysInMonth))
+    : 0;
+
+  // 5. Next Primary Quest Directive (Finds top uncompleted high-priority task)
+  const nextPrimaryQuest = useMemo(() => {
+    const highWeekly = pendingWeeklyTasks.find(t => t.priority === 'High');
+    if (highWeekly) return { source: 'weekly' as const, task: highWeekly };
+    
+    const uncompletedGeneral = tasks.find(t => t.status !== 'Completed' && t.priority === 'High');
+    if (uncompletedGeneral) return { source: 'task' as const, task: uncompletedGeneral };
+
+    const firstPending = pendingWeeklyTasks[0];
+    if (firstPending) return { source: 'weekly' as const, task: firstPending };
+
+    return null;
+  }, [pendingWeeklyTasks, tasks]);
+
+  // 6. 6-Domain Life Balance & Harmony Scores
+  const domainLifeBalance = useMemo(() => {
+    const domains: AreaOfLife[] = ['Health', 'Work', 'Money', 'Family', 'Personal Growth', 'Spirituality'];
+    return domains.map(domain => {
+      // Habit score in domain
+      const domainHabits = habits.filter(h => h.category === domain);
+      const habitsCompleted = domainHabits.filter(h => !!h.logs[currentDayNum]).length;
+      const habitScore = domainHabits.length > 0 ? (habitsCompleted / domainHabits.length) * 100 : 80;
+
+      // Task score in domain
+      const domainTasks = weeklyTasks.filter(t => t.category === domain);
+      const tasksCompleted = domainTasks.filter(t => t.isCompleted).length;
+      const taskScore = domainTasks.length > 0 ? (tasksCompleted / domainTasks.length) * 100 : 75;
+
+      const overallHealth = Math.round((habitScore * 0.5) + (taskScore * 0.5));
+      const statusText = overallHealth >= 80 ? 'Optimal' : overallHealth >= 60 ? 'Stable' : 'Needs Focus';
+      const statusColor = overallHealth >= 80 ? 'text-[#10B981] bg-[#10B981]/10' : overallHealth >= 60 ? 'text-amber-700 bg-amber-50' : 'text-[#E11D48] bg-rose-50';
+
+      return {
+        domain,
+        score: overallHealth,
+        statusText,
+        statusColor,
+      };
+    });
+  }, [habits, weeklyTasks, currentDayNum]);
 
   // Category EXP Distribution
   const categoryExpData: { name: AreaOfLife; value: number; color: string }[] = [
@@ -76,22 +132,69 @@ export const MasterDashboard: React.FC = () => {
     return `Rp ${val.toLocaleString('id-ID')}`;
   };
 
+  const expToNextLevel = profile.nextLevelExp - profile.currentExp;
+
   return (
     <div className="max-w-[1440px] mx-auto p-6 space-y-6">
       
       {/* ========================================================
-          TOP ROW (SPAN 12): DAILY VELOCITY BAR
+          TOP SECTION 1: MISSION CONTROL PRIMARY DIRECTIVE
+          ======================================================== */}
+      {nextPrimaryQuest && (
+        <section className="mplt-card p-4 bg-[#18181B] text-white border border-[#27272A] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-[8px] bg-white/10 border border-white/20 flex items-center justify-center text-[#10B981] flex-shrink-0">
+              <Zap size={20} className="fill-[#10B981]" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 text-[10.5px] font-ui uppercase tracking-widest text-[#A1A1AA]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                <span>Primary Operational Quest</span>
+                <span>•</span>
+                <span className="text-[#38BDF8] font-semibold">{nextPrimaryQuest.task.category}</span>
+              </div>
+              <h2 className="text-[15px] font-bold font-ui text-white mt-0.5">
+                {nextPrimaryQuest.task.title}
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 self-end md:self-auto">
+            <span className="font-num text-[12px] font-bold text-[#10B981] bg-[#10B981]/20 px-2.5 py-1 rounded-[5px]">
+              +{nextPrimaryQuest.task.expReward} EXP
+            </span>
+
+            <button
+              onClick={() => {
+                if (nextPrimaryQuest.source === 'weekly') {
+                  toggleWeeklyTask(nextPrimaryQuest.task.id);
+                } else {
+                  toggleTaskStatus(nextPrimaryQuest.task.id);
+                }
+              }}
+              className="px-4 py-2 rounded-[6px] bg-[#10B981] hover:bg-[#059669] text-white text-[12px] font-bold font-ui flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <Check size={14} className="stroke-[3]" />
+              <span>Complete Quest</span>
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* ========================================================
+          TOP SECTION 2: DAILY VELOCITY TELEMETRY
           ======================================================== */}
       <section className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0]">
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#E2E8F0]">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#10B981]" />
             <h2 className="text-[12px] font-bold tracking-wider uppercase text-[#18181B] font-ui">
-              DAILY VELOCITY & TELEMETRY
+              SYSTEM VELOCITY & TELEMETRY
             </h2>
           </div>
           <span className="text-[11px] text-[#71717A] font-num">
-            SYNCED: 26.02.2026 / 08:30 WIB
+            OPERATIONAL SPRINT • 26.02.2026
           </span>
         </div>
 
@@ -115,7 +218,7 @@ export const MasterDashboard: React.FC = () => {
             <div className="text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
               <span>Pending Tasks</span>
               <span className="text-[10px] font-num text-[#71717A] bg-[#F1F5F9] px-1.5 py-0.2 rounded">
-                This Week
+                Active Sprint
               </span>
             </div>
             <div className="text-[20px] font-bold text-[#18181B] font-num tracking-tight flex items-baseline gap-2">
@@ -150,12 +253,60 @@ export const MasterDashboard: React.FC = () => {
             </div>
             <div className="text-[20px] font-bold text-[#18181B] font-num tracking-tight">
               {isUnderBudget ? 'Under Budget' : 'Over Budget'}
-              <span className="text-[13px] font-normal text-[#71717A] ml-1.5">
+              <span className="text-[12px] font-normal text-[#71717A] ml-1.5">
                 ({spentPercent}% Spent)
               </span>
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* ========================================================
+          MIDDLE SECTION: 6-DOMAIN LIFE BALANCE & HARMONY MATRIX
+          ======================================================== */}
+      <section className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0]">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#E2E8F0]">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-[5px] bg-[#18181B] text-white flex items-center justify-center">
+              <Award size={13} />
+            </div>
+            <h3 className="text-[13px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
+              6-Domain Life Balance & Harmony Matrix
+            </h3>
+          </div>
+          <span className="text-[10.5px] text-[#71717A] font-ui">
+            Real-time holistic discipline telemetry
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {domainLifeBalance.map((item) => {
+            return (
+              <div key={item.domain} className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-ui font-bold text-[#18181B] truncate">{item.domain}</span>
+                  <span className={`text-[9.5px] font-num font-bold px-1.5 py-0.2 rounded ${item.statusColor}`}>
+                    {item.score}%
+                  </span>
+                </div>
+
+                <div className="w-full bg-[#E2E8F0] h-[5px] rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      item.score >= 80 ? 'bg-[#10B981]' : item.score >= 60 ? 'bg-[#18181B]' : 'bg-[#E11D48]'
+                    }`}
+                    style={{ width: `${item.score}%` }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-[#71717A] font-ui">
+                  <span>Pace:</span>
+                  <span className="font-semibold text-[#18181B]">{item.statusText}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -283,7 +434,6 @@ export const MasterDashboard: React.FC = () => {
                   ? Math.round((dayCompleted / dayTasks.length) * 100)
                   : 0;
                 
-                // SVG circular ring parameter
                 const radius = 22;
                 const circ = 2 * Math.PI * radius;
                 const offset = circ - (Math.min(100, percent) / 100) * circ;
@@ -303,7 +453,7 @@ export const MasterDashboard: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Central Circular Progress Ring (High contrast wireframe) */}
+                    {/* Central Circular Progress Ring */}
                     <div className="relative w-[56px] h-[56px] flex items-center justify-center my-1">
                       <svg className="w-full h-full -rotate-90" viewBox="0 0 56 56">
                         <circle
@@ -364,6 +514,66 @@ export const MasterDashboard: React.FC = () => {
             </div>
           </div>
 
+          {/* ACTIVE YEARLY GOALS RADAR SPOTLIGHT */}
+          <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0]">
+            <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-[#E2E8F0]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[6px] bg-[#18181B] text-white flex items-center justify-center">
+                  <Target size={15} />
+                </div>
+                <div>
+                  <h3 className="text-[14px] font-bold text-[#18181B] font-ui">
+                    Yearly Strategic Goals Progress
+                  </h3>
+                  <p className="text-[11px] text-[#71717A] -mt-0.5">
+                    Long-range milestone radar and vision tracking
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setCurrentTab('goals')}
+                className="flex items-center gap-1 text-[11px] font-medium text-[#18181B] hover:text-[#10B981] transition-colors"
+              >
+                <span>View All Goals</span>
+                <ChevronRight size={13} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              {goals.slice(0, 3).map((goal) => {
+                return (
+                  <div key={goal.id} className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] mb-1.5">
+                        <span className="font-bold uppercase px-1.5 py-0.2 rounded bg-[#18181B] text-white">
+                          {goal.areaOfLife}
+                        </span>
+                        <span className="font-num text-[#71717A]">{goal.deadline}</span>
+                      </div>
+                      <h4 className="text-[12.5px] font-bold font-ui text-[#18181B] leading-snug line-clamp-2">
+                        {goal.title}
+                      </h4>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-[#E2E8F0]">
+                      <div className="flex justify-between text-[10.5px] font-num mb-1">
+                        <span className="text-[#71717A]">Progress</span>
+                        <span className="font-bold text-[#18181B]">{goal.progressPercent}%</span>
+                      </div>
+                      <div className="w-full bg-[#E2E8F0] h-[5px] rounded-full overflow-hidden">
+                        <div
+                          className="bg-[#10B981] h-full rounded-full transition-all"
+                          style={{ width: `${goal.progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
 
         {/* ======================================================
@@ -371,7 +581,42 @@ export const MasterDashboard: React.FC = () => {
             ====================================================== */}
         <div className="lg:col-span-4 space-y-6">
           
-          {/* PANEL A: CATEGORY EXP DISTRIBUTION (1PX WIREFRAME DONUT) */}
+          {/* PANEL A: GAMIFICATION LEVEL & EXP TELEMETRY */}
+          <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0] space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-[#10B981]" />
+                <h3 className="text-[13px] font-bold text-[#18181B] font-ui">
+                  Player Operations Telemetry
+                </h3>
+              </div>
+              <span className="text-[10.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded">
+                LVL {profile.level}
+              </span>
+            </div>
+
+            <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2 text-[11px]">
+              <div className="flex justify-between items-center">
+                <span className="text-[#71717A] font-ui">EXP to Level {profile.level + 1}</span>
+                <span className="font-num font-bold text-[#18181B]">{expToNextLevel.toLocaleString()} EXP</span>
+              </div>
+              <div className="w-full bg-[#E2E8F0] h-[6px] rounded-full overflow-hidden">
+                <div
+                  className="bg-[#18181B] h-full rounded-full transition-all"
+                  style={{ width: `${Math.round((profile.currentExp / profile.nextLevelExp) * 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[10px] text-[#71717A] font-num pt-1">
+                <span>Total Points: {profile.totalPoints} PTS</span>
+                <span className="flex items-center gap-1 text-orange-600 font-bold">
+                  <Flame size={11} className="fill-orange-500" />
+                  {profile.streakDays} Day Streak
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* PANEL B: CATEGORY EXP DISTRIBUTION (1PX WIREFRAME DONUT) */}
           <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0]">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#E2E8F0]">
               <div className="flex items-center gap-2">
@@ -444,7 +689,7 @@ export const MasterDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* PANEL B: CASH FLOW QUICK-VIEW (50/30/20 RATIO INDICATOR) */}
+          {/* PANEL C: CASH FLOW QUICK-VIEW (50/30/20 RATIO & SAFE BURN) */}
           <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0]">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#E2E8F0]">
               <div className="flex items-center gap-2">
@@ -463,7 +708,7 @@ export const MasterDashboard: React.FC = () => {
             </div>
 
             {/* 50/30/20 Ratio Bars */}
-            <div className="space-y-3.5">
+            <div className="space-y-3">
               
               {/* Needs Bucket */}
               <div>
@@ -515,11 +760,14 @@ export const MasterDashboard: React.FC = () => {
 
             </div>
 
-            {/* Quick status summary chip */}
-            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px]">
-              <span className="text-[#71717A]">Remaining Net Cap</span>
+            {/* Safe Daily Burn Chip */}
+            <div className="mt-4 p-2.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[6px] flex items-center justify-between text-[11px]">
+              <span className="text-[#71717A] font-ui flex items-center gap-1">
+                <DollarSign size={12} className="text-[#10B981]" />
+                <span>Safe Daily Burn Pace:</span>
+              </span>
               <span className="font-num font-bold text-[#10B981]">
-                +{formatIDR(totalIncome - totalSpent)}
+                {formatIDR(safeDailyBurn)}/day
               </span>
             </div>
           </div>
