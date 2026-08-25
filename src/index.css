@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --canvas: #F9FAFB;
+    --surface: #FFFFFF;
+    --charcoal: #18181B;
+    --steel: #71717A;
+    --border: #E2E8F0;
+    --growth: #10B981;
+    --rose: #E11D48;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--charcoal);
+    font-family: 'Geist Mono', monospace;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom high-density scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #F1F5F9;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+}
+
+.font-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.font-ui {
+  font-family: 'Geist Mono', monospace;
+}
+
+/* Card container standard */
+.mplt-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+/* Subtle interactive feedback without glow or drop shadows */
+.mplt-btn {
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.mplt-btn:active {
+  transform: translateY(1px);
+}
+
+/* 24px x 24px checkbox */
+.mplt-checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+}
+
+.mplt-checkbox.checked {
+  background-color: #18181B;
+  border-color: #18181B;
+  color: #FFFFFF;
+}
+
+.mplt-checkbox.unchecked {
+  background-color: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+.mplt-checkbox:hover {
+  border-color: #A1A1AA;
+}
