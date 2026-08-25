@@ -32,20 +32,20 @@ export const AppContent: React.FC = () => {
       <LevelUpModal />
       <ExpToast />
 
-      {/* Footer Info & Architecture Signature */}
+      {/* Footer Info & Operational Mantra */}
       <footer className="border-t border-[#E2E8F0] bg-white py-4 text-center text-[11px] text-[#71717A] font-ui">
         <div className="max-w-[1440px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-            <span className="font-semibold text-[#18181B]">MPLT ZERO v2.4</span>
-            <span>— Gamified Personal Operations System</span>
+            <span className="font-bold text-[#18181B] tracking-tight">MPLT ZERO</span>
+            <span className="text-[#71717A]">— Gamified Life Operations Workstation</span>
           </div>
-          <div className="flex items-center gap-4 text-[10px] font-num">
-            <span>GEIST MONO & JETBRAINS MONO</span>
-            <span>•</span>
-            <span>ANALOG SPREADSHEET PRECISION</span>
-            <span>•</span>
-            <span className="text-[#10B981] font-bold">100% CLIENT OPTIMISTIC</span>
+          <div className="flex items-center gap-3 text-[10.5px] font-ui tracking-wide">
+            <span className="text-[#18181B] font-semibold">DISCIPLINE OVER MOTIVATION</span>
+            <span className="text-[#CBD5E1]">•</span>
+            <span className="text-[#18181B] font-semibold">EXECUTE WITH PRECISION</span>
+            <span className="text-[#CBD5E1]">•</span>
+            <span className="text-[#10B981] font-bold">COMPOUND EVERY DAY</span>
           </div>
         </div>
       </footer>
