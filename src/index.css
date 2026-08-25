@@ -6,7 +6,8 @@
     --surface: #FFFFFF;
     --surface-hover: #F4F4F5;
     --surface-subtle: #F9FAFB;
-    --charcoal: #18181B;
+    --surface-inset: #FAFAFA;
+    --surface-pill: #F1F5F9;
     --text-primary: #18181B;
     --text-secondary: #71717A;
     --text-muted: #A1A1AA;
@@ -21,7 +22,8 @@
     --surface: #121215;
     --surface-hover: #1C1C21;
     --surface-subtle: #18181B;
-    --charcoal: #F4F4F5;
+    --surface-inset: #18181B;
+    --surface-pill: #27272A;
     --text-primary: #F4F4F5;
     --text-secondary: #A1A1AA;
     --text-muted: #71717A;
@@ -32,26 +34,22 @@
   }
 
   body {
-    background-color: var(--canvas);
-    color: var(--text-primary);
+    background-color: var(--canvas) !important;
+    color: var(--text-primary) !important;
     font-family: 'Geist Mono', monospace;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  /* Custom high-density scrollbar */
+  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #F1F5F9;
+    background: var(--surface-pill);
     border-radius: 3px;
-  }
-
-  .dark ::-webkit-scrollbar-track {
-    background: #18181B;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -79,16 +77,11 @@
 
 /* Card container standard */
 .mplt-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background-color: var(--surface) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 12px;
   box-shadow: none;
   transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.dark .mplt-card {
-  background-color: #121215;
-  border-color: #27272A;
 }
 
 /* 24px x 24px habit matrix checkbox */
@@ -96,7 +89,7 @@
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -104,69 +97,32 @@
 }
 
 .mplt-checkbox.checked {
-  background-color: #18181B;
-  border-color: #18181B;
-  color: #FFFFFF;
-}
-
-.dark .mplt-checkbox.checked {
-  background-color: #F4F4F5;
-  border-color: #F4F4F5;
-  color: #09090B;
+  background-color: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--canvas);
 }
 
 .mplt-checkbox.unchecked {
-  background-color: #FFFFFF;
-  border-color: #E2E8F0;
-}
-
-.dark .mplt-checkbox.unchecked {
-  background-color: #18181B;
-  border-color: #27272A;
+  background-color: var(--surface);
+  border-color: var(--border);
 }
 
 .mplt-checkbox:hover {
-  border-color: #A1A1AA;
+  border-color: var(--text-muted);
 }
 
-/* ========================================================
-   DARK MODE COMPONENT OVERRIDES
-   ======================================================== */
-.dark .bg-\[\#FFFFFF\],
-.dark .bg-white {
-  background-color: #121215 !important;
+/* Base header and footer styling */
+header {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
 }
 
-.dark .bg-\[\#F9FAFB\],
-.dark .bg-\[\#FAFAFA\] {
-  background-color: #18181B !important;
+footer {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
 }
 
-.dark .bg-\[\#F1F5F9\] {
-  background-color: #27272A !important;
-}
-
-.dark .border-\[\#E2E8F0\],
-.dark .border-\[\#CBD5E1\] {
-  border-color: #27272A !important;
-}
-
-.dark .text-\[\#18181B\] {
-  color: #F4F4F5 !important;
-}
-
-.dark .text-\[\#71717A\] {
-  color: #A1A1AA !important;
-}
-
-.dark .text-\[\#94A3B8\] {
-  color: #71717A !important;
-}
-
-.dark .divide-\[\#E2E8F0\] > :not([hidden]) ~ :not([hidden]) {
-  border-color: #27272A !important;
-}
-
+/* Interactive elements in dark mode */
 .dark input,
 .dark select,
 .dark textarea {
@@ -178,23 +134,4 @@
 .dark input::placeholder,
 .dark textarea::placeholder {
   color: #71717A !important;
-}
-
-.dark header {
-  background-color: #121215 !important;
-  border-color: #27272A !important;
-}
-
-.dark footer {
-  background-color: #121215 !important;
-  border-color: #27272A !important;
-}
-
-.dark tr.hover\:bg-\[\#F9FAFB\]:hover,
-.dark tr.hover\:bg-\[\#FBFBFC\]:hover {
-  background-color: #1C1C21 !important;
-}
-
-.dark .hover\:bg-\[\#F4F4F5\]:hover {
-  background-color: #1C1C21 !important;
 }
