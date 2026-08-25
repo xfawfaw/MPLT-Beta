@@ -8,12 +8,14 @@ import {
   Target, 
   Wallet, 
   Flame, 
-  Sparkles,
-  RotateCcw
+  Sparkles, 
+  RotateCcw,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-  const { profile, currentTab, setCurrentTab, resetAllData } = useApp();
+  const { profile, currentTab, setCurrentTab, resetAllData, theme, toggleTheme } = useApp();
 
   const expPercentage = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
 
@@ -33,7 +35,7 @@ export const Navbar: React.FC = () => {
         {/* Left: Brand & Gamification Profile */}
         <div className="flex items-center gap-3 lg:gap-5 flex-shrink-0">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentTab('dashboard')}>
-            <div className="w-8 h-8 rounded-[6px] bg-[#18181B] text-white flex items-center justify-center font-bold text-xs tracking-tighter">
+            <div className="w-8 h-8 rounded-[6px] bg-[#18181B] dark:bg-white dark:text-[#18181B] text-white flex items-center justify-center font-bold text-xs tracking-tighter transition-colors">
               Z0
             </div>
             <div className="flex flex-col">
@@ -65,7 +67,7 @@ export const Navbar: React.FC = () => {
               </div>
               <div className="w-full bg-[#E2E8F0] h-[5px] rounded-full overflow-hidden">
                 <div 
-                  className="bg-[#18181B] h-full transition-all duration-300 rounded-full"
+                  className="bg-[#18181B] dark:bg-white h-full transition-all duration-300 rounded-full"
                   style={{ width: `${expPercentage}%` }}
                 />
               </div>
@@ -96,15 +98,30 @@ export const Navbar: React.FC = () => {
                 onClick={() => setCurrentTab(item.id)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] text-[11.5px] font-medium transition-all whitespace-nowrap ${
                   isActive
-                    ? 'bg-[#18181B] text-white border border-[#18181B]'
+                    ? 'bg-[#18181B] dark:bg-white dark:text-[#18181B] text-white border border-[#18181B] dark:border-white font-bold'
                     : 'text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] border border-transparent'
                 }`}
               >
-                <Icon size={13} className={isActive ? 'text-white' : 'text-[#71717A]'} />
+                <Icon size={13} className={isActive ? 'text-white dark:text-[#18181B]' : 'text-[#71717A]'} />
                 <span>{item.label}</span>
               </button>
             );
           })}
+
+          <div className="h-5 w-[1px] bg-[#E2E8F0] mx-1" />
+
+          {/* Theme Toggle Button (Light / Dark) */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            className="p-1.5 rounded-[6px] text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] dark:hover:bg-[#1C1C21] transition-colors border border-[#E2E8F0] flex items-center justify-center"
+          >
+            {theme === 'dark' ? (
+              <Sun size={14} className="text-amber-400 fill-amber-400" />
+            ) : (
+              <Moon size={14} className="text-[#18181B]" />
+            )}
+          </button>
 
           {/* Reset button */}
           <button
@@ -114,7 +131,7 @@ export const Navbar: React.FC = () => {
               }
             }}
             title="Reset to Initial Data"
-            className="p-1.5 ml-1 rounded-[6px] text-[#A1A1AA] hover:text-[#E11D48] hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-200"
+            className="p-1.5 rounded-[6px] text-[#A1A1AA] hover:text-[#E11D48] hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors border border-transparent hover:border-rose-200"
           >
             <RotateCcw size={14} />
           </button>

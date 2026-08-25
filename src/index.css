@@ -4,18 +4,39 @@
   :root {
     --canvas: #F9FAFB;
     --surface: #FFFFFF;
+    --surface-hover: #F4F4F5;
+    --surface-subtle: #F9FAFB;
     --charcoal: #18181B;
-    --steel: #71717A;
+    --text-primary: #18181B;
+    --text-secondary: #71717A;
+    --text-muted: #A1A1AA;
     --border: #E2E8F0;
+    --border-subtle: #F1F5F9;
     --growth: #10B981;
     --rose: #E11D48;
   }
 
+  html.dark {
+    --canvas: #09090B;
+    --surface: #121215;
+    --surface-hover: #1C1C21;
+    --surface-subtle: #18181B;
+    --charcoal: #F4F4F5;
+    --text-primary: #F4F4F5;
+    --text-secondary: #A1A1AA;
+    --text-muted: #71717A;
+    --border: #27272A;
+    --border-subtle: #1F1F24;
+    --growth: #10B981;
+    --rose: #F43F5E;
+  }
+
   body {
     background-color: var(--canvas);
-    color: var(--charcoal);
+    color: var(--text-primary);
     font-family: 'Geist Mono', monospace;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Custom high-density scrollbar */
@@ -29,9 +50,17 @@
     border-radius: 3px;
   }
 
+  .dark ::-webkit-scrollbar-track {
+    background: #18181B;
+  }
+
   ::-webkit-scrollbar-thumb {
     background: #CBD5E1;
     border-radius: 3px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #3F3F46;
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -54,20 +83,15 @@
   border: 1px solid #E2E8F0;
   border-radius: 12px;
   box-shadow: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-/* Subtle interactive feedback without glow or drop shadows */
-.mplt-btn {
-  border-radius: 6px;
-  border: 1px solid #E2E8F0;
-  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+.dark .mplt-card {
+  background-color: #121215;
+  border-color: #27272A;
 }
 
-.mplt-btn:active {
-  transform: translateY(1px);
-}
-
-/* 24px x 24px checkbox */
+/* 24px x 24px habit matrix checkbox */
 .mplt-checkbox {
   width: 24px;
   height: 24px;
@@ -85,11 +109,92 @@
   color: #FFFFFF;
 }
 
+.dark .mplt-checkbox.checked {
+  background-color: #F4F4F5;
+  border-color: #F4F4F5;
+  color: #09090B;
+}
+
 .mplt-checkbox.unchecked {
   background-color: #FFFFFF;
   border-color: #E2E8F0;
 }
 
+.dark .mplt-checkbox.unchecked {
+  background-color: #18181B;
+  border-color: #27272A;
+}
+
 .mplt-checkbox:hover {
   border-color: #A1A1AA;
+}
+
+/* ========================================================
+   DARK MODE COMPONENT OVERRIDES
+   ======================================================== */
+.dark .bg-\[\#FFFFFF\],
+.dark .bg-white {
+  background-color: #121215 !important;
+}
+
+.dark .bg-\[\#F9FAFB\],
+.dark .bg-\[\#FAFAFA\] {
+  background-color: #18181B !important;
+}
+
+.dark .bg-\[\#F1F5F9\] {
+  background-color: #27272A !important;
+}
+
+.dark .border-\[\#E2E8F0\],
+.dark .border-\[\#CBD5E1\] {
+  border-color: #27272A !important;
+}
+
+.dark .text-\[\#18181B\] {
+  color: #F4F4F5 !important;
+}
+
+.dark .text-\[\#71717A\] {
+  color: #A1A1AA !important;
+}
+
+.dark .text-\[\#94A3B8\] {
+  color: #71717A !important;
+}
+
+.dark .divide-\[\#E2E8F0\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #27272A !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #18181B !important;
+  border-color: #27272A !important;
+  color: #F4F4F5 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #71717A !important;
+}
+
+.dark header {
+  background-color: #121215 !important;
+  border-color: #27272A !important;
+}
+
+.dark footer {
+  background-color: #121215 !important;
+  border-color: #27272A !important;
+}
+
+.dark tr.hover\:bg-\[\#F9FAFB\]:hover,
+.dark tr.hover\:bg-\[\#FBFBFC\]:hover {
+  background-color: #1C1C21 !important;
+}
+
+.dark .hover\:bg-\[\#F4F4F5\]:hover {
+  background-color: #1C1C21 !important;
 }
