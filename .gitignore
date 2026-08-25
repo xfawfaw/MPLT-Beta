@@ -29,3 +29,8 @@ dist-ssr
 *.sln
 *.sw?
 Thumbs.db
+
+# Project specs & local agents
+PRD.md
+Tracker.pdf
+.agents
