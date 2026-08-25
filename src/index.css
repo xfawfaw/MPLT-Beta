@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --canvas: #F9FAFB;
@@ -17,7 +19,7 @@
     --rose: #E11D48;
   }
 
-  html.dark {
+  .dark {
     --canvas: #09090B;
     --surface: #121215;
     --surface-hover: #1C1C21;
@@ -34,11 +36,10 @@
   }
 
   body {
-    background-color: var(--canvas) !important;
-    color: var(--text-primary) !important;
+    background-color: var(--canvas);
+    color: var(--text-primary);
     font-family: 'Geist Mono', monospace;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Custom scrollbar */
@@ -48,8 +49,12 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--surface-pill);
+    background: #F1F5F9;
     border-radius: 3px;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: #18181B;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -77,11 +82,15 @@
 
 /* Card container standard */
 .mplt-card {
-  background-color: var(--surface) !important;
-  border: 1px solid var(--border) !important;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
   border-radius: 12px;
   box-shadow: none;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .mplt-card {
+  background-color: #121215;
+  border-color: #27272A;
 }
 
 /* 24px x 24px habit matrix checkbox */
@@ -89,7 +98,7 @@
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid #E2E8F0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,41 +106,48 @@
 }
 
 .mplt-checkbox.checked {
-  background-color: var(--text-primary);
-  border-color: var(--text-primary);
-  color: var(--canvas);
+  background-color: #18181B;
+  border-color: #18181B;
+  color: #FFFFFF;
+}
+
+.dark .mplt-checkbox.checked {
+  background-color: #F4F4F5;
+  border-color: #F4F4F5;
+  color: #09090B;
 }
 
 .mplt-checkbox.unchecked {
-  background-color: var(--surface);
-  border-color: var(--border);
+  background-color: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+.dark .mplt-checkbox.unchecked {
+  background-color: #18181B;
+  border-color: #27272A;
 }
 
 .mplt-checkbox:hover {
-  border-color: var(--text-muted);
+  border-color: #A1A1AA;
 }
 
-/* Base header and footer styling */
-header {
-  background-color: var(--surface) !important;
-  border-color: var(--border) !important;
+/* Force pure Light Mode when not in .dark */
+html:not(.dark) body {
+  background-color: #F9FAFB !important;
+  color: #18181B !important;
 }
 
-footer {
-  background-color: var(--surface) !important;
-  border-color: var(--border) !important;
+html:not(.dark) header {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
 }
 
-/* Interactive elements in dark mode */
-.dark input,
-.dark select,
-.dark textarea {
-  background-color: #18181B !important;
-  border-color: #27272A !important;
-  color: #F4F4F5 !important;
+html:not(.dark) footer {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
 }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: #71717A !important;
+html:not(.dark) .mplt-card {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
 }

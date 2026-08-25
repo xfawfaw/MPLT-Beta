@@ -141,27 +141,27 @@ export const MasterDashboard: React.FC = () => {
           TOP SECTION 1: MISSION CONTROL PRIMARY DIRECTIVE
           ======================================================== */}
       {nextPrimaryQuest && (
-        <section className="mplt-card p-4 bg-[#18181B] text-white border border-[#27272A] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <section className="mplt-card p-4 bg-white dark:bg-[#18181B] border border-[#E2E8F0] dark:border-[#27272A] text-[#18181B] dark:text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-[8px] bg-white/10 border border-white/20 flex items-center justify-center text-[#10B981] flex-shrink-0">
+            <div className="w-10 h-10 rounded-[8px] bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-[#10B981] flex-shrink-0">
               <Zap size={20} className="fill-[#10B981]" />
             </div>
 
             <div>
-              <div className="flex items-center gap-2 text-[10.5px] font-ui uppercase tracking-widest text-[#A1A1AA]">
+              <div className="flex items-center gap-2 text-[10.5px] font-ui uppercase tracking-widest text-[#71717A] dark:text-[#A1A1AA]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
                 <span>Primary Operational Quest</span>
                 <span>•</span>
-                <span className="text-[#38BDF8] font-semibold">{nextPrimaryQuest.task.category}</span>
+                <span className="text-[#10B981] font-semibold">{nextPrimaryQuest.task.category}</span>
               </div>
-              <h2 className="text-[15px] font-bold font-ui text-white mt-0.5">
+              <h2 className="text-[15px] font-bold font-ui text-[#18181B] dark:text-white mt-0.5">
                 {nextPrimaryQuest.task.title}
               </h2>
             </div>
           </div>
 
           <div className="flex items-center gap-3 self-end md:self-auto">
-            <span className="font-num text-[12px] font-bold text-[#10B981] bg-[#10B981]/20 px-2.5 py-1 rounded-[5px]">
+            <span className="font-num text-[12px] font-bold text-[#10B981] bg-[#10B981]/10 px-2.5 py-1 rounded-[5px]">
               +{nextPrimaryQuest.task.expReward} EXP
             </span>
 
