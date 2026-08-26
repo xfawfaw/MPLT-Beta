@@ -8,6 +8,7 @@ import {
   CheckSquare, 
   Target, 
   Wallet, 
+  BarChart3,
   Volume2, 
   VolumeX, 
   Download, 
@@ -115,6 +116,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       category: 'Navigation',
       icon: Wallet,
       action: () => { setCurrentTab('finance'); sound.playClick(); onClose(); }
+    },
+    {
+      id: 'nav-yearly',
+      title: 'Go to Yearly Statistics',
+      subtitle: '365-Day Discipline Heatmap & Annual Retrospective',
+      category: 'Navigation',
+      icon: BarChart3,
+      action: () => { setCurrentTab('yearly'); sound.playClick(); onClose(); }
     },
 
     // Habits (Today Quick Check)

@@ -7,6 +7,7 @@ import {
   CheckSquare, 
   Target, 
   Wallet, 
+  BarChart3,
   Flame, 
   Sparkles, 
   RotateCcw,
@@ -41,6 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
     { id: 'tasks', label: 'Task Manager', icon: CheckSquare },
     { id: 'goals', label: 'Goal Tracker', icon: Target },
     { id: 'finance', label: 'Finance Workstation', icon: Wallet },
+    { id: 'yearly', label: 'Yearly Stats', icon: BarChart3 },
   ];
 
   return (

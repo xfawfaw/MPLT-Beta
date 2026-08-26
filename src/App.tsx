@@ -7,6 +7,7 @@ import { WeeklyPlannerView } from './components/Weekly/WeeklyPlannerView';
 import { TaskManagerView } from './components/Tasks/TaskManagerView';
 import { GoalTrackerView } from './components/Goals/GoalTrackerView';
 import { MoneyTrackerView } from './components/Finance/MoneyTrackerView';
+import { YearlyStatsView } from './components/Analytics/YearlyStatsView';
 import { LevelUpModal } from './components/Common/LevelUpModal';
 import { ExpToast } from './components/Common/ExpToast';
 import { CommandPalette } from './components/Common/CommandPalette';
@@ -46,6 +47,7 @@ export const AppContent: React.FC = () => {
         {currentTab === 'tasks' && <TaskManagerView />}
         {currentTab === 'goals' && <GoalTrackerView />}
         {currentTab === 'finance' && <MoneyTrackerView />}
+        {currentTab === 'yearly' && <YearlyStatsView />}
       </main>
 
       {/* Floating System Modals & Telemetry Toasts */}
