@@ -40,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
     { id: 'weekly', label: 'Weekly To-Do', icon: CalendarRange },
     { id: 'tasks', label: 'Task Manager', icon: CheckSquare },
     { id: 'goals', label: 'Goal Tracker', icon: Target },
-    { id: 'finance', label: '50/30/20 Finance', icon: Wallet },
+    { id: 'finance', label: 'Finance Workstation', icon: Wallet },
   ];
 
   return (

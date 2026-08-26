@@ -132,6 +132,36 @@ export const MoneyTrackerView: React.FC = () => {
     <div className="max-w-[1440px] mx-auto p-6 space-y-6">
       
       {/* ========================================================
+          TOP SECTION 0: FINANCE WORKSTATION HEADER
+          ======================================================== */}
+      <section className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#18181B]" />
+              <h1 className="text-[22px] sm:text-[24px] font-bold text-[#18181B] font-ui tracking-tight">
+                FINANCE WORKSTATION
+              </h1>
+            </div>
+            <p className="text-[12px] text-[#71717A] font-ui">
+              50/30/20 Capital Allocation, Cash Flow Telemetry, and Dynamic Spending Burn Pace
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setShowAddModal(true);
+              sound.playClick();
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-[6px] bg-[#18181B] text-white text-[12px] font-bold font-ui hover:bg-[#27272A] transition-colors self-start sm:self-auto"
+          >
+            <Plus size={14} />
+            <span>Record Transaction</span>
+          </button>
+        </div>
+      </section>
+
+      {/* ========================================================
           TOP SECTION: 5 STRATEGIC FINANCIAL KPI METRIC CARDS
           ======================================================== */}
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">

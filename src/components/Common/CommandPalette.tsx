@@ -110,8 +110,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     },
     {
       id: 'nav-finance',
-      title: 'Go to 50/30/20 Finance',
-      subtitle: 'Cash Flow & Transaction Ledger',
+      title: 'Go to Finance Workstation',
+      subtitle: 'Cash Flow & 50/30/20 Transaction Ledger',
       category: 'Navigation',
       icon: Wallet,
       action: () => { setCurrentTab('finance'); sound.playClick(); onClose(); }
