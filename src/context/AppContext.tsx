@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
 import { 
   UserProfile, 
   Habit, 
@@ -9,6 +8,7 @@ import {
   BudgetConfig, 
   TransactionItem 
 } from '../types';
+import { sound } from '../utils/sound';
 
 interface AppContextType {
   profile: UserProfile;
@@ -29,7 +29,7 @@ interface AppContextType {
   
   // Feature Actions
   toggleHabitLog: (habitId: string, day: number) => void;
-  addHabit: (title: string, category: Habit['category']) => void;
+  addHabit: (title: string, category: Habit['category'], timeOfDay?: Habit['timeOfDay']) => void;
   deleteHabit: (habitId: string) => void;
   
   toggleWeeklyTask: (taskId: string) => void;
@@ -42,6 +42,7 @@ interface AppContextType {
   
   toggleGoalStatus: (goalId: string) => void;
   updateGoalProgress: (goalId: string, progress: number) => void;
+  toggleGoalMilestone: (goalId: string, milestoneId: string) => void;
   
   setBudgetConfig: React.Dispatch<React.SetStateAction<BudgetConfig>>;
   addTransaction: (tx: Omit<TransactionItem, 'id'>) => void;
@@ -70,7 +71,6 @@ const INITIAL_PROFILE: UserProfile = {
 const generateInitialHabitLogs = (fillRate: number) => {
   const logs: Record<number, boolean> = {};
   for (let day = 1; day <= 31; day++) {
-    // Generate deterministic pattern based on day and fillRate
     const pseudoRandom = ((day * 9301 + 49297) % 233280) / 233280;
     logs[day] = pseudoRandom < fillRate;
   }
@@ -84,7 +84,19 @@ const INITIAL_HABITS: Habit[] = [
     category: 'Health',
     ptsReward: 10,
     expReward: 25,
+    timeOfDay: 'Morning',
+    targetFrequency: 'Daily',
     logs: generateInitialHabitLogs(0.74),
+  },
+  {
+    id: 'h-4',
+    title: 'Zero Sugar & Whole Foods',
+    category: 'Health',
+    ptsReward: 10,
+    expReward: 25,
+    timeOfDay: 'Morning',
+    targetFrequency: 'Daily',
+    logs: generateInitialHabitLogs(0.65),
   },
   {
     id: 'h-2',
@@ -92,6 +104,8 @@ const INITIAL_HABITS: Habit[] = [
     category: 'Work',
     ptsReward: 15,
     expReward: 35,
+    timeOfDay: 'Deep Work',
+    targetFrequency: 'Mon-Fri',
     logs: generateInitialHabitLogs(0.81),
   },
   {
@@ -100,15 +114,9 @@ const INITIAL_HABITS: Habit[] = [
     category: 'Personal Growth',
     ptsReward: 10,
     expReward: 20,
+    timeOfDay: 'Deep Work',
+    targetFrequency: 'Daily',
     logs: generateInitialHabitLogs(0.68),
-  },
-  {
-    id: 'h-4',
-    title: 'Zero Sugar & Whole Foods',
-    category: 'Health',
-    ptsReward: 10,
-    expReward: 25,
-    logs: generateInitialHabitLogs(0.65),
   },
   {
     id: 'h-5',
@@ -116,6 +124,8 @@ const INITIAL_HABITS: Habit[] = [
     category: 'Money',
     ptsReward: 10,
     expReward: 25,
+    timeOfDay: 'Evening',
+    targetFrequency: 'Daily',
     logs: generateInitialHabitLogs(0.71),
   },
   {
@@ -124,6 +134,8 @@ const INITIAL_HABITS: Habit[] = [
     category: 'Spirituality',
     ptsReward: 10,
     expReward: 20,
+    timeOfDay: 'Evening',
+    targetFrequency: 'Daily',
     logs: generateInitialHabitLogs(0.61),
   },
 ];
@@ -203,7 +215,16 @@ const INITIAL_GOALS: GoalItem[] = [
     reward: 'Upgrade Macbook M3 Max Pro',
     deadline: '31 Des 2026',
     status: 'In Progress',
-    progressPercent: 68,
+    progressPercent: 60,
+    quarterTarget: 'Q4',
+    whyStatement: 'Financial cushion and freedom to take sovereign creative risks.',
+    milestones: [
+      { id: 'm-1-1', title: 'Buka akun sekuritas & RDN aktif', isCompleted: true, expReward: 30 },
+      { id: 'm-1-2', title: 'Capai 25 Juta pertama di instrumen low-risk', isCompleted: true, expReward: 35 },
+      { id: 'm-1-3', title: 'Capai 50 Juta & diversifikasi SBN / Index Fund', isCompleted: true, expReward: 40 },
+      { id: 'm-1-4', title: 'Investasi konsisten Rp 5.000.000 / bulan', isCompleted: false, expReward: 35 },
+      { id: 'm-1-5', title: 'Hit Rp 100.000.000 liquid capital', isCompleted: false, expReward: 50 },
+    ]
   },
   {
     id: 'g-2',
@@ -213,7 +234,16 @@ const INITIAL_GOALS: GoalItem[] = [
     reward: 'Honeymoon ke Swiss / Turki',
     deadline: '15 Okt 2026',
     status: 'In Progress',
-    progressPercent: 75,
+    progressPercent: 80,
+    quarterTarget: 'Q3',
+    whyStatement: 'Membangun peradaban dan keluarga sakinah mawaddah warahmah.',
+    milestones: [
+      { id: 'm-2-1', title: 'Khitbah & kesepakatan keluarga besar', isCompleted: true, expReward: 30 },
+      { id: 'm-2-2', title: 'Booking venue & vendor katering', isCompleted: true, expReward: 35 },
+      { id: 'm-2-3', title: 'Beli mahar & seserahan', isCompleted: true, expReward: 35 },
+      { id: 'm-2-4', title: 'Fitting busana & cetak undangan', isCompleted: true, expReward: 30 },
+      { id: 'm-2-5', title: 'Akad nikah & walimah berkah', isCompleted: false, expReward: 60 },
+    ]
   },
   {
     id: 'g-3',
@@ -223,7 +253,16 @@ const INITIAL_GOALS: GoalItem[] = [
     reward: 'Belanja Outfit & Gym Gear Baru',
     deadline: '30 Jun 2026',
     status: 'In Progress',
-    progressPercent: 82,
+    progressPercent: 60,
+    quarterTarget: 'Q2',
+    whyStatement: 'Peak energy, high testosterone, and razor-sharp focus for daily execution.',
+    milestones: [
+      { id: 'm-3-1', title: 'Hit gym konsisten 4x/minggu selama 3 bulan', isCompleted: true, expReward: 30 },
+      { id: 'm-3-2', title: 'Bench press tembus 60kg & Pull-up 10 reps', isCompleted: true, expReward: 35 },
+      { id: 'm-3-3', title: 'Body fat turun ke 15%', isCompleted: true, expReward: 35 },
+      { id: 'm-3-4', title: 'Bench press 80kg & Squat 100kg', isCompleted: false, expReward: 40 },
+      { id: 'm-3-5', title: 'Berat stabil 65kg dengan 12% body fat', isCompleted: false, expReward: 50 },
+    ]
   },
   {
     id: 'g-4',
@@ -233,7 +272,16 @@ const INITIAL_GOALS: GoalItem[] = [
     reward: 'Solo Trip Bali 1 Minggu',
     deadline: '31 Agu 2026',
     status: 'In Progress',
-    progressPercent: 55,
+    progressPercent: 40,
+    quarterTarget: 'Q3',
+    whyStatement: 'Building scalable cashflow from sovereign digital assets.',
+    milestones: [
+      { id: 'm-4-1', title: 'Design architecture & frontend v1.0', isCompleted: true, expReward: 35 },
+      { id: 'm-4-2', title: 'Beta testing dengan 20 user pertama', isCompleted: true, expReward: 35 },
+      { id: 'm-4-3', title: 'Setup payment gateway & subscription engine', isCompleted: false, expReward: 40 },
+      { id: 'm-4-4', title: 'Launch di Product Hunt & Twitter/X', isCompleted: false, expReward: 45 },
+      { id: 'm-4-5', title: '100 Active Paying Pro Customers', isCompleted: false, expReward: 60 },
+    ]
   },
   {
     id: 'g-5',
@@ -244,6 +292,14 @@ const INITIAL_GOALS: GoalItem[] = [
     deadline: '31 Des 2026',
     status: 'In Progress',
     progressPercent: 50,
+    quarterTarget: 'Q4',
+    whyStatement: 'Compound mental models from the greatest minds in history.',
+    milestones: [
+      { id: 'm-5-1', title: 'Selesaikan 6 buku Q1 & buat ringkasan Notion', isCompleted: true, expReward: 30 },
+      { id: 'm-5-2', title: 'Selesaikan 12 buku Q2', isCompleted: true, expReward: 35 },
+      { id: 'm-5-3', title: 'Selesaikan 18 buku Q3', isCompleted: false, expReward: 35 },
+      { id: 'm-5-4', title: 'Selesaikan 24 buku & rilis artikel takeaways', isCompleted: false, expReward: 50 },
+    ]
   },
   {
     id: 'g-6',
@@ -254,6 +310,15 @@ const INITIAL_GOALS: GoalItem[] = [
     deadline: '30 Nov 2026',
     status: 'In Progress',
     progressPercent: 40,
+    quarterTarget: 'Q4',
+    whyStatement: 'Bakti tertinggi kepada orang tua dan mendekatkan diri kepada Sang Pencipta.',
+    milestones: [
+      { id: 'm-6-1', title: 'Tabungan tiket & paket travel khusus lansia', isCompleted: true, expReward: 35 },
+      { id: 'm-6-2', title: 'Pembuatan paspor & vaksinasi lengkap', isCompleted: true, expReward: 30 },
+      { id: 'm-6-3', title: 'Manasik umrah intensif & hafalan doa', isCompleted: false, expReward: 35 },
+      { id: 'm-6-4', title: 'Pelaksanaan ibadah di Masjidil Haram & Nabawi', isCompleted: false, expReward: 50 },
+      { id: 'm-6-5', title: 'Khatam Quran di depan Ka\'bah', isCompleted: false, expReward: 60 },
+    ]
   },
 ];
 
@@ -267,14 +332,14 @@ const INITIAL_BUDGET: BudgetConfig = {
 };
 
 const INITIAL_TRANSACTIONS: TransactionItem[] = [
-  { id: 'tx-1', date: '2026-02-24', description: 'Gaji Pokok & Freelance Revenue', bucket: 'Savings', amount: 15000000, type: 'income' },
-  { id: 'tx-2', date: '2026-02-24', description: 'Sewa Kost / Apartemen & Listrik', bucket: 'Needs', amount: 2500000, type: 'expense' },
-  { id: 'tx-3', date: '2026-02-25', description: 'Belanja Supermarket & Protein', bucket: 'Needs', amount: 1250000, type: 'expense' },
-  { id: 'tx-4', date: '2026-02-25', description: 'Wifi Fiber & Paket Data', bucket: 'Needs', amount: 450000, type: 'expense' },
-  { id: 'tx-5', date: '2026-02-26', description: 'Dinner Cafe & Coffee Specialty', bucket: 'Wants', amount: 650000, type: 'expense' },
-  { id: 'tx-6', date: '2026-02-26', description: 'Langganan Software & Spotify/iCloud', bucket: 'Wants', amount: 450000, type: 'expense' },
-  { id: 'tx-7', date: '2026-02-26', description: 'Top-up Reksa Dana Indeks & Saham', bucket: 'Savings', amount: 2000000, type: 'expense' },
-  { id: 'tx-8', date: '2026-02-27', description: 'Baju Gym & Sepatu Running', bucket: 'Wants', amount: 1000000, type: 'expense' },
+  { id: 'tx-1', date: '2026-02-24', description: 'Gaji Pokok & Freelance Revenue', bucket: 'Savings', amount: 15000000, type: 'income', categoryTag: 'Income' },
+  { id: 'tx-2', date: '2026-02-24', description: 'Sewa Kost / Apartemen & Listrik', bucket: 'Needs', amount: 2500000, type: 'expense', categoryTag: 'Housing' },
+  { id: 'tx-3', date: '2026-02-25', description: 'Belanja Supermarket & Protein', bucket: 'Needs', amount: 1250000, type: 'expense', categoryTag: 'Groceries' },
+  { id: 'tx-4', date: '2026-02-25', description: 'Wifi Fiber & Paket Data', bucket: 'Needs', amount: 450000, type: 'expense', categoryTag: 'Utilities' },
+  { id: 'tx-5', date: '2026-02-26', description: 'Dinner Cafe & Coffee Specialty', bucket: 'Wants', amount: 650000, type: 'expense', categoryTag: 'Dining' },
+  { id: 'tx-6', date: '2026-02-26', description: 'Langganan Software & Spotify/iCloud', bucket: 'Wants', amount: 450000, type: 'expense', categoryTag: 'Subscriptions' },
+  { id: 'tx-7', date: '2026-02-26', description: 'Top-up Reksa Dana Indeks & Saham', bucket: 'Savings', amount: 2000000, type: 'expense', categoryTag: 'Investments' },
+  { id: 'tx-8', date: '2026-02-27', description: 'Baju Gym & Sepatu Running', bucket: 'Wants', amount: 1000000, type: 'expense', categoryTag: 'Lifestyle' },
 ];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -287,7 +352,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [habits, setHabits] = useState<Habit[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_habits`);
-    return saved ? JSON.parse(saved) : INITIAL_HABITS;
+    if (!saved) return INITIAL_HABITS;
+    try {
+      const parsed: Habit[] = JSON.parse(saved);
+      return parsed.map(h => {
+        const match = INITIAL_HABITS.find(ih => ih.id === h.id);
+        return {
+          ...h,
+          timeOfDay: h.timeOfDay || match?.timeOfDay || 'Morning',
+        };
+      });
+    } catch {
+      return INITIAL_HABITS;
+    }
   });
 
   const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>(() => {
@@ -302,7 +379,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [goals, setGoals] = useState<GoalItem[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_goals`);
-    return saved ? JSON.parse(saved) : INITIAL_GOALS;
+    if (!saved) return INITIAL_GOALS;
+    try {
+      const parsed: GoalItem[] = JSON.parse(saved);
+      return parsed.map(g => {
+        const match = INITIAL_GOALS.find(ig => ig.id === g.id);
+        return {
+          ...g,
+          quarterTarget: g.quarterTarget || match?.quarterTarget || 'Q4',
+          whyStatement: g.whyStatement || match?.whyStatement || '',
+          milestones: (g.milestones && g.milestones.length > 0) ? g.milestones : match?.milestones || [],
+        };
+      });
+    } catch {
+      return INITIAL_GOALS;
+    }
   });
 
   const [budget, setBudget] = useState<BudgetConfig>(() => {
@@ -360,43 +451,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(transactions));
   }, [transactions]);
 
-  // Gamification: Add EXP & Level Calculation
-  const addExp = (amount: number, reason: string = 'Completed Action') => {
-    setExpToast({ visible: true, message: reason, exp: amount });
-    setTimeout(() => {
-      setExpToast(null);
-    }, 2800);
-
+  // Gamification Engine
+  const addExp = (amount: number, reason: string = 'Action Completed') => {
     setProfile(prev => {
-      let nextExp = prev.currentExp + amount;
-      let nextLevel = prev.level;
-      let nextLevelThreshold = prev.nextLevelExp;
+      let newExp = prev.currentExp + amount;
+      let newLevel = prev.level;
+      let newNextExp = prev.nextLevelExp;
+      let didLevelUp = false;
 
-      if (nextExp >= nextLevelThreshold) {
-        nextLevel += 1;
-        nextExp = nextExp - nextLevelThreshold;
-        nextLevelThreshold = Math.round(nextLevelThreshold * 1.25);
-
-        // Trigger confetti!
-        try {
-          confetti({
-            particleCount: 80,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#10B981', '#18181B', '#E11D48', '#CBD5E1'],
-          });
-        } catch {
-          // ignore
-        }
-
-        setLevelUpModal({ isOpen: true, newLevel: nextLevel });
+      while (newExp >= newNextExp) {
+        newExp -= newNextExp;
+        newLevel += 1;
+        newNextExp = Math.round(newNextExp * 1.25);
+        didLevelUp = true;
       }
+
+      if (didLevelUp) {
+        setLevelUpModal({ isOpen: true, newLevel });
+        sound.playLevelUp();
+      }
+
+      setExpToast({ visible: true, message: reason, exp: amount });
+      setTimeout(() => {
+        setExpToast(null);
+      }, 3200);
 
       return {
         ...prev,
-        level: nextLevel,
-        currentExp: nextExp,
-        nextLevelExp: nextLevelThreshold,
+        level: newLevel,
+        currentExp: newExp,
+        nextLevelExp: newNextExp,
+        totalPoints: prev.totalPoints + Math.round(amount * 0.5),
       };
     });
   };
@@ -414,36 +499,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Habit Actions
   const toggleHabitLog = (habitId: string, day: number) => {
-    setHabits(prevHabits => {
-      return prevHabits.map(habit => {
-        if (habit.id === habitId) {
-          const currentlyCompleted = !!habit.logs[day];
-          const newLogs = { ...habit.logs, [day]: !currentlyCompleted };
-
-          if (!currentlyCompleted) {
-            // Earned points and EXP
-            addExp(habit.expReward, `Habit: ${habit.title}`);
-            addPoints(habit.ptsReward);
+    setHabits(prev =>
+      prev.map(h => {
+        if (h.id === habitId) {
+          const currentVal = !!h.logs[day];
+          const nextVal = !currentVal;
+          if (nextVal) {
+            addExp(h.expReward, `Habit Check: ${h.title}`);
+            addPoints(h.ptsReward);
+            sound.playPop();
+          } else {
+            sound.playClick();
           }
-
-          return { ...habit, logs: newLogs };
+          return {
+            ...h,
+            logs: {
+              ...h.logs,
+              [day]: nextVal,
+            },
+          };
         }
-        return habit;
-      });
-    });
+        return h;
+      })
+    );
   };
 
-  const addHabit = (title: string, category: Habit['category']) => {
+  const addHabit = (title: string, category: Habit['category'], timeOfDay: Habit['timeOfDay'] = 'Morning') => {
     const newHabit: Habit = {
       id: `h-${Date.now()}`,
       title,
       category,
       ptsReward: 10,
       expReward: 25,
+      timeOfDay,
+      targetFrequency: 'Daily',
       logs: {},
     };
     setHabits(prev => [...prev, newHabit]);
-    addExp(15, `Created New Habit`);
+    addExp(20, 'New Habit Formed');
   };
 
   const deleteHabit = (habitId: string) => {
@@ -453,28 +546,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Weekly Task Actions
   const toggleWeeklyTask = (taskId: string) => {
     setWeeklyTasks(prev =>
-      prev.map(task => {
-        if (task.id === taskId) {
-          const nextCompleted = !task.isCompleted;
+      prev.map(t => {
+        if (t.id === taskId) {
+          const nextCompleted = !t.isCompleted;
           if (nextCompleted) {
-            addExp(task.expReward, `Task: ${task.title}`);
+            addExp(t.expReward, `Weekly Task: ${t.title}`);
+            sound.playPop();
+          } else {
+            sound.playClick();
           }
-          return { ...task, isCompleted: nextCompleted };
+          return { ...t, isCompleted: nextCompleted };
         }
-        return task;
+        return t;
       })
     );
   };
 
   const addWeeklyTask = (dayIndex: number, title: string, priority: WeeklyTask['priority'], category: WeeklyTask['category']) => {
-    const days: WeeklyTask['dayName'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const dateStrs = ['23.02.2026', '24.02.2026', '25.02.2026', '26.02.2026', '27.02.2026', '28.02.2026', '01.03.2026'];
-    
+    const dayNames: WeeklyTask['dayName'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const newTask: WeeklyTask = {
       id: `wt-${Date.now()}`,
       dayIndex,
-      dayName: days[dayIndex] || 'Monday',
-      dateStr: dateStrs[dayIndex] || '23.02.2026',
+      dayName: dayNames[dayIndex] || 'Monday',
+      dateStr: '26.02.2026',
       title,
       priority,
       category,
@@ -482,21 +576,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       expReward: priority === 'High' ? 35 : priority === 'Med' ? 25 : 20,
     };
     setWeeklyTasks(prev => [...prev, newTask]);
-    addExp(10, 'Scheduled Weekly Task');
+    addExp(15, 'Sprint Task Scheduled');
   };
 
   const deleteWeeklyTask = (taskId: string) => {
     setWeeklyTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  // Task Manager Actions
+  // General Task Manager Actions
   const toggleTaskStatus = (taskId: string) => {
     setTasks(prev =>
       prev.map(t => {
         if (t.id === taskId) {
-          const nextStatus = t.status === 'Completed' ? 'In Progress' : 'Completed';
-          if (nextStatus === 'Completed') {
-            addExp(t.expReward, `Completed: ${t.title}`);
+          let nextStatus: TaskItem['status'] = 'Not Started';
+          if (t.status === 'Not Started') nextStatus = 'In Progress';
+          else if (t.status === 'In Progress') {
+            nextStatus = 'Completed';
+            addExp(t.expReward, `Task Completed: ${t.title}`);
+            sound.playPop();
+          } else {
+            nextStatus = 'Not Started';
+            sound.playClick();
           }
           return { ...t, status: nextStatus };
         }
@@ -505,28 +605,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const addTask = (task: Omit<TaskItem, 'id'>) => {
+  const addTask = (taskData: Omit<TaskItem, 'id'>) => {
     const newTask: TaskItem = {
-      ...task,
+      ...taskData,
       id: `t-${Date.now()}`,
     };
     setTasks(prev => [newTask, ...prev]);
-    addExp(10, 'Created Task');
+    addExp(20, 'Task Logged');
   };
 
   const deleteTask = (taskId: string) => {
     setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  // Goal Actions
+  // Goal Actions & Milestones
   const toggleGoalStatus = (goalId: string) => {
     setGoals(prev =>
       prev.map(g => {
         if (g.id === goalId) {
           const nextStatus = g.status === 'Achieved' ? 'In Progress' : 'Achieved';
           if (nextStatus === 'Achieved') {
-            addExp(100, `Achieved Goal: ${g.title}`);
-            addPoints(50);
+            addExp(150, `Goal Milestone Achieved: ${g.title}`);
+            sound.playLevelUp();
+          } else {
+            sound.playClick();
           }
           return { ...g, status: nextStatus, progressPercent: nextStatus === 'Achieved' ? 100 : g.progressPercent };
         }
@@ -543,6 +645,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return {
             ...g,
             progressPercent: Math.min(100, Math.max(0, progress)),
+            status: isAchieved ? 'Achieved' : 'In Progress',
+          };
+        }
+        return g;
+      })
+    );
+  };
+
+  const toggleGoalMilestone = (goalId: string, milestoneId: string) => {
+    setGoals(prev =>
+      prev.map(g => {
+        if (g.id === goalId && g.milestones) {
+          const updatedMilestones = g.milestones.map(m => {
+            if (m.id === milestoneId) {
+              const nextDone = !m.isCompleted;
+              if (nextDone) {
+                addExp(m.expReward, `Milestone: ${m.title}`);
+                sound.playPop();
+              } else {
+                sound.playClick();
+              }
+              return { ...m, isCompleted: nextDone };
+            }
+            return m;
+          });
+
+          const completedCount = updatedMilestones.filter(m => m.isCompleted).length;
+          const newPercent = Math.round((completedCount / updatedMilestones.length) * 100);
+          const isAchieved = newPercent >= 100;
+
+          if (isAchieved && g.status !== 'Achieved') {
+            addExp(100, `Major Goal Completed: ${g.title}`);
+            sound.playLevelUp();
+          }
+
+          return {
+            ...g,
+            milestones: updatedMilestones,
+            progressPercent: newPercent,
             status: isAchieved ? 'Achieved' : 'In Progress',
           };
         }
@@ -603,6 +744,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteTask,
         toggleGoalStatus,
         updateGoalProgress,
+        toggleGoalMilestone,
         setBudgetConfig: setBudget,
         addTransaction,
         deleteTransaction,

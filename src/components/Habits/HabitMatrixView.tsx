@@ -10,9 +10,16 @@ import {
   Zap,
   Activity,
   BarChart2,
-  Sparkles
+  Sparkles,
+  Sun,
+  Laptop,
+  Moon,
+  List,
+  Layers,
+  X
 } from 'lucide-react';
-import { AreaOfLife } from '../../types';
+import { AreaOfLife, Habit } from '../../types';
+import { sound } from '../../utils/sound';
 
 export const HabitMatrixView: React.FC = () => {
   const { habits, toggleHabitLog, addHabit, deleteHabit } = useApp();
@@ -21,7 +28,11 @@ export const HabitMatrixView: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState<AreaOfLife>('Health');
+  const [newTimeOfDay, setNewTimeOfDay] = useState<Habit['timeOfDay']>('Morning');
   
+  // View mode: 'table' (31-day ledger) | 'stack' (routine blocks)
+  const [viewMode, setViewMode] = useState<'table' | 'stack'>('table');
+
   // Interactive chart state
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [activeVelocityFilter, setActiveVelocityFilter] = useState<'all' | AreaOfLife>('all');
@@ -102,7 +113,23 @@ export const HabitMatrixView: React.FC = () => {
     return dailyTelemetry.filter(d => d.pct === 100).length;
   }, [dailyTelemetry]);
 
-  // Large SVG Chart coordinate geometry (1000px coordinate space for high detail)
+  // Habit Mastery Tier calculation helper
+  const getHabitMastery = (completedDays: number) => {
+    if (completedDays >= 25) return { tier: 'Platinum Legend', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+    if (completedDays >= 20) return { tier: 'Gold Master', color: 'bg-amber-100 text-amber-800 border-amber-300' };
+    if (completedDays >= 14) return { tier: 'Silver Elite', color: 'bg-sky-100 text-sky-800 border-sky-300' };
+    if (completedDays >= 7) return { tier: 'Bronze Practitioner', color: 'bg-orange-100 text-orange-800 border-orange-300' };
+    return { tier: 'Novice Initiate', color: 'bg-zinc-100 text-zinc-700 border-zinc-300' };
+  };
+
+  // Routine blocks grouping
+  const routineBlocks = [
+    { id: 'Morning', label: 'Morning Launch Protocol', icon: Sun, color: 'text-amber-500', desc: 'Prime energy, whole nutrition, physical velocity' },
+    { id: 'Deep Work', label: 'Deep Work Focus Block', icon: Laptop, color: 'text-sky-500', desc: 'Unbroken leverage, high cognitive output' },
+    { id: 'Evening', label: 'Evening Shutdown & Reflection', icon: Moon, color: 'text-indigo-500', desc: 'Financial audit, mental recovery, spiritual ground' },
+  ];
+
+  // Large SVG Chart coordinate geometry
   const chartGeometry = useMemo(() => {
     const width = 1000;
     const height = 150;
@@ -130,7 +157,8 @@ export const HabitMatrixView: React.FC = () => {
   const handleCreateHabit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-    addHabit(newTitle.trim(), newCategory);
+    sound.playPop();
+    addHabit(newTitle.trim(), newCategory, newTimeOfDay);
     setNewTitle('');
     setShowAddModal(false);
   };
@@ -176,39 +204,72 @@ export const HabitMatrixView: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Action & Filter Controls */}
+          {/* Right Action & View Mode Controls */}
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Filter Domain */}
+            {/* Domain Filter Pills */}
             <div className="flex items-center bg-[#F1F5F9] p-0.5 rounded-[6px] text-[11px] font-ui">
               <button
-                onClick={() => setActiveVelocityFilter('all')}
-                className={`px-2.5 py-1 rounded-[4px] font-medium transition-all ${
-                  activeVelocityFilter === 'all'
-                    ? 'bg-[#18181B] text-white'
-                    : 'text-[#71717A] hover:text-[#18181B]'
+                onClick={() => {
+                  setActiveVelocityFilter('all');
+                  sound.playClick();
+                }}
+                className={`px-2 py-1 rounded-[4px] font-medium transition-all ${
+                  activeVelocityFilter === 'all' ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
                 }`}
               >
-                All Domains
+                All
               </button>
-              {(['Work', 'Health', 'Money'] as AreaOfLife[]).map((cat) => (
+              {(['Health', 'Work', 'Money', 'Personal Growth'] as AreaOfLife[]).map(cat => (
                 <button
                   key={cat}
-                  onClick={() => setActiveVelocityFilter(cat)}
+                  onClick={() => {
+                    setActiveVelocityFilter(cat);
+                    sound.playClick();
+                  }}
                   className={`px-2 py-1 rounded-[4px] font-medium transition-all ${
-                    activeVelocityFilter === cat
-                      ? 'bg-[#18181B] text-white'
-                      : 'text-[#71717A] hover:text-[#18181B]'
+                    activeVelocityFilter === cat ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
                   }`}
                 >
-                  {cat}
+                  {cat.split(' ')[0]}
                 </button>
               ))}
             </div>
 
+            {/* View Mode Toggle: 31-Day Ledger vs Routine Stacking */}
+            <div className="flex items-center bg-[#F1F5F9] p-0.5 rounded-[6px] text-[11px] font-ui">
+              <button
+                onClick={() => {
+                  setViewMode('table');
+                  sound.playClick();
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] font-medium transition-all ${
+                  viewMode === 'table' ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
+                }`}
+              >
+                <List size={12} />
+                <span>31-Day Ledger</span>
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode('stack');
+                  sound.playClick();
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] font-medium transition-all ${
+                  viewMode === 'stack' ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
+                }`}
+              >
+                <Layers size={12} />
+                <span>Routine Stacking</span>
+              </button>
+            </div>
+
             {/* Add Habit Button */}
             <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all whitespace-nowrap shadow-none"
+              onClick={() => {
+                setShowAddModal(true);
+                sound.playClick();
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all whitespace-nowrap"
             >
               <Plus size={14} />
               <span>Add Habit</span>
@@ -273,12 +334,9 @@ export const HabitMatrixView: React.FC = () => {
 
         </div>
 
-        {/* ========================================================
-            LARGE HIGH-RESOLUTION VELOCITY TREND DIAGRAM
-            ======================================================== */}
+        {/* LARGE HIGH-RESOLUTION VELOCITY TREND DIAGRAM */}
         <div className="border border-[#E2E8F0] rounded-[10px] bg-[#FFFFFF] p-4 relative">
           
-          {/* Chart Title & Live Hover Telemetry Readout */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-2 border-b border-[#F1F5F9]">
             <div className="flex items-center gap-2">
               <BarChart2 size={15} className="text-[#18181B]" />
@@ -287,7 +345,6 @@ export const HabitMatrixView: React.FC = () => {
               </h3>
             </div>
 
-            {/* Hover readout indicator */}
             <div className="h-6 flex items-center">
               {activeHoveredData ? (
                 <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-[#18181B] text-white rounded-[5px] text-[11px] font-num animate-in fade-in duration-150">
@@ -311,7 +368,6 @@ export const HabitMatrixView: React.FC = () => {
               className="w-full h-[180px] sm:h-[210px] overflow-visible select-none"
             >
               <defs>
-                {/* Monochromatic Area Gradient */}
                 <linearGradient id="largeVelocityGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#18181B" stopOpacity="0.22" />
                   <stop offset="60%" stopColor="#18181B" stopOpacity="0.06" />
@@ -319,7 +375,7 @@ export const HabitMatrixView: React.FC = () => {
                 </linearGradient>
               </defs>
 
-              {/* Horizontal Reference Gridlines (0%, 25%, 50%, 75%, 100%) */}
+              {/* Gridlines */}
               {[100, 75, 50, 25, 0].map((level) => {
                 const y = chartGeometry.paddingTop + (1 - level / 100) * chartGeometry.plotHeight;
                 return (
@@ -345,7 +401,7 @@ export const HabitMatrixView: React.FC = () => {
                 );
               })}
 
-              {/* Week Vertical Dividing Guides */}
+              {/* Week Guides */}
               {weekGroups.map((wg, idx) => {
                 const pt = chartGeometry.points.find(p => p.day === wg.start);
                 if (!pt || idx === 0) return null;
@@ -371,10 +427,7 @@ export const HabitMatrixView: React.FC = () => {
                 );
               })}
 
-              {/* Fill Area */}
               <path d={chartGeometry.areaPath} fill="url(#largeVelocityGrad)" />
-
-              {/* 1.5px Stroke Wireframe Curve */}
               <path
                 d={chartGeometry.linePath}
                 fill="none"
@@ -384,7 +437,6 @@ export const HabitMatrixView: React.FC = () => {
                 strokeLinejoin="round"
               />
 
-              {/* Day Coordinate Points with Interactive Hover */}
               {chartGeometry.points.map((pt) => {
                 const isHovered = hoveredDay === pt.day;
                 const isPeak = pt.pct === 100;
@@ -396,7 +448,6 @@ export const HabitMatrixView: React.FC = () => {
                     onMouseLeave={() => setHoveredDay(null)}
                     className="cursor-pointer transition-all"
                   >
-                    {/* Transparent larger hit target for smooth hover */}
                     <rect
                       x={pt.x - 12}
                       y={chartGeometry.paddingTop}
@@ -405,7 +456,6 @@ export const HabitMatrixView: React.FC = () => {
                       fill="transparent"
                     />
 
-                    {/* Vertical hover crosshair line */}
                     {isHovered && (
                       <line
                         x1={pt.x}
@@ -418,7 +468,6 @@ export const HabitMatrixView: React.FC = () => {
                       />
                     )}
 
-                    {/* Outer pulse ring on hover */}
                     {isHovered && (
                       <circle
                         cx={pt.x}
@@ -429,7 +478,6 @@ export const HabitMatrixView: React.FC = () => {
                       />
                     )}
 
-                    {/* Data node circle */}
                     <circle
                       cx={pt.x}
                       cy={pt.y}
@@ -439,7 +487,6 @@ export const HabitMatrixView: React.FC = () => {
                       strokeWidth={isHovered ? '2' : '1.5'}
                     />
 
-                    {/* X-axis Day labels */}
                     <text
                       x={pt.x}
                       y={chartGeometry.height - 8}
@@ -459,254 +506,325 @@ export const HabitMatrixView: React.FC = () => {
               })}
             </svg>
           </div>
-
-          {/* Bottom legend note */}
-          <div className="flex items-center justify-between text-[10px] text-[#71717A] font-ui pt-2 border-t border-[#F1F5F9] mt-1">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-                <span>100% Target Met</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#18181B]" />
-                <span>Active Progress</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 bg-[#CBD5E1]" />
-                <span>100% Ceiling Grid</span>
-              </span>
-            </div>
-            <span className="font-num font-semibold text-[#18181B]">
-              VELOCITY RANGE: 0% — 100% (31 SAMPLES)
-            </span>
-          </div>
-
         </div>
 
       </section>
 
       {/* ========================================================
-          CENTER SECTION: FULL-WIDTH HABIT MATRIX TABLE
+          CENTER SECTION: VIEW 1 — FULL 31-DAY TABLE LEDGER
           ======================================================== */}
-      <section className="mplt-card bg-[#FFFFFF] border border-[#E2E8F0] overflow-hidden">
-        
-        <div className="overflow-x-auto no-scrollbar">
-          <table className="w-full border-collapse text-left select-none">
-            
-            {/* Table Header: Week Groups + Days Header */}
-            <thead>
-              {/* Top Week Groups Row */}
-              <tr className="border-b border-[#E2E8F0] bg-[#F9FAFB]">
-                <th className="sticky left-0 z-20 bg-[#F9FAFB] w-[260px] min-w-[260px] p-3 text-[11px] font-bold text-[#18181B] font-ui uppercase tracking-wider border-r border-[#E2E8F0]">
-                  Routine / Habit Item
-                </th>
-                
-                {weekGroups.map((wg, idx) => {
-                  const daysInGroup = wg.end - wg.start + 1;
-                  return (
-                    <th
-                      key={wg.name}
-                      colSpan={daysInGroup}
-                      className={`text-center p-2 text-[10px] font-bold font-ui text-[#71717A] tracking-wider uppercase border-r border-[#E2E8F0] ${
-                        idx % 2 === 0 ? 'bg-[#F9FAFB]' : 'bg-[#FFFFFF]'
-                      }`}
-                    >
-                      {wg.name}
-                    </th>
-                  );
-                })}
+      {viewMode === 'table' ? (
+        <section className="mplt-card bg-[#FFFFFF] border border-[#E2E8F0] overflow-hidden">
+          
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full border-collapse text-left select-none">
+              
+              <thead>
+                <tr className="border-b border-[#E2E8F0] bg-[#F9FAFB]">
+                  <th className="sticky left-0 z-20 bg-[#F9FAFB] w-[260px] min-w-[260px] p-3 text-[11px] font-bold text-[#18181B] font-ui uppercase tracking-wider border-r border-[#E2E8F0]">
+                    Routine / Habit Item
+                  </th>
+                  
+                  {weekGroups.map((wg, idx) => {
+                    const daysInGroup = wg.end - wg.start + 1;
+                    return (
+                      <th
+                        key={wg.name}
+                        colSpan={daysInGroup}
+                        className={`text-center p-2 text-[10px] font-bold font-ui text-[#71717A] tracking-wider uppercase border-r border-[#E2E8F0] ${
+                          idx % 2 === 0 ? 'bg-[#F9FAFB]' : 'bg-[#FFFFFF]'
+                        }`}
+                      >
+                        {wg.name}
+                      </th>
+                    );
+                  })}
 
-                <th className="w-[100px] min-w-[100px] p-2 text-center text-[10px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
-                  Success
-                </th>
-                <th className="w-[48px] min-w-[48px] p-2 text-center text-[10px] font-bold text-[#71717A] font-ui uppercase tracking-wider">
-                  Act
-                </th>
-              </tr>
+                  <th className="w-[120px] min-w-[120px] p-2 text-center text-[10px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
+                    Mastery Tier
+                  </th>
+                  <th className="w-[48px] min-w-[48px] p-2 text-center text-[10px] font-bold text-[#71717A] font-ui uppercase tracking-wider">
+                    Act
+                  </th>
+                </tr>
 
-              {/* Day Numbers Row (1 to 31) */}
-              <tr className="border-b border-[#E2E8F0] bg-[#FFFFFF]">
-                <th className="sticky left-0 z-20 bg-[#FFFFFF] p-2.5 text-[11px] font-medium text-[#71717A] border-r border-[#E2E8F0]">
-                  <span className="font-ui text-[10px] uppercase tracking-wider">Daily Matrix (31 Days)</span>
-                </th>
-                
-                {daysArray.map((day) => {
-                  const isWeekend = day % 7 === 6 || day % 7 === 0;
-                  const isHovered = hoveredDay === day;
+                <tr className="border-b border-[#E2E8F0] bg-[#FFFFFF]">
+                  <th className="sticky left-0 z-20 bg-[#FFFFFF] p-2.5 text-[11px] font-medium text-[#71717A] border-r border-[#E2E8F0]">
+                    <span className="font-ui text-[10px] uppercase tracking-wider">Daily Matrix (31 Days)</span>
+                  </th>
+                  
+                  {daysArray.map((day) => {
+                    const isWeekend = day % 7 === 6 || day % 7 === 0;
+                    const isHovered = hoveredDay === day;
 
-                  return (
-                    <th
-                      key={day}
-                      onMouseEnter={() => setHoveredDay(day)}
-                      onMouseLeave={() => setHoveredDay(null)}
-                      className={`p-0 text-center w-[30px] min-w-[30px] border-r border-[#F1F5F9] transition-colors cursor-pointer ${
-                        isHovered ? 'bg-[#18181B] text-white' : isWeekend ? 'bg-[#FAFAFA]' : 'bg-[#FFFFFF]'
-                      }`}
-                    >
-                      <span className={`text-[10px] font-num font-semibold block py-1.5 ${
-                        isHovered ? 'text-white' : 'text-[#18181B]'
-                      }`}>
-                        {day < 10 ? `0${day}` : day}
-                      </span>
-                    </th>
-                  );
-                })}
-
-                <th className="text-center p-2 text-[10px] font-num text-[#71717A] border-r border-[#E2E8F0]">
-                  Rate
-                </th>
-                <th className="text-center p-2 text-[10px] font-num text-[#71717A]">
-                  -
-                </th>
-              </tr>
-            </thead>
-
-            {/* Habit Rows Body */}
-            <tbody className="divide-y divide-[#E2E8F0]">
-              {habits.map((habit, habitIndex) => {
-                const completedDaysCount = daysArray.filter(d => habit.logs[d]).length;
-                const habitSuccessRate = Math.round((completedDaysCount / totalDays) * 100);
-
-                return (
-                  <tr key={habit.id} className="hover:bg-[#FBFBFC] transition-colors group">
-                    
-                    {/* Fixed Left Column (260px) */}
-                    <td className="sticky left-0 z-10 bg-[#FFFFFF] group-hover:bg-[#FBFBFC] p-3 border-r border-[#E2E8F0]">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex flex-col">
-                          <span className="text-[13px] font-bold text-[#18181B] font-ui leading-tight truncate max-w-[170px]">
-                            {habitIndex + 1}. {habit.title}
-                          </span>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-[9.5px] uppercase font-ui tracking-wider px-1.5 py-0.2 rounded bg-[#F1F5F9] text-[#71717A]">
-                              {habit.category}
-                            </span>
-                            <span className="text-[9.5px] font-num font-semibold text-[#10B981]">
-                              +{habit.ptsReward} pts
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <span className="text-[10px] font-num font-bold text-[#18181B] bg-[#F1F5F9] px-1.5 py-0.5 rounded">
-                          +{habit.expReward} EXP
+                    return (
+                      <th
+                        key={day}
+                        onMouseEnter={() => setHoveredDay(day)}
+                        onMouseLeave={() => setHoveredDay(null)}
+                        className={`p-0 text-center w-[30px] min-w-[30px] border-r border-[#F1F5F9] transition-colors cursor-pointer ${
+                          isHovered ? 'bg-[#18181B] text-white' : isWeekend ? 'bg-[#FAFAFA]' : 'bg-[#FFFFFF]'
+                        }`}
+                      >
+                        <span className={`text-[10px] font-num font-semibold block py-1.5 ${
+                          isHovered ? 'text-white' : 'text-[#18181B]'
+                        }`}>
+                          {day < 10 ? `0${day}` : day}
                         </span>
-                      </div>
-                    </td>
+                      </th>
+                    );
+                  })}
 
-                    {/* 31 Matrix Cells: Fixed 24px x 24px Checkbox */}
-                    {daysArray.map((day) => {
-                      const isChecked = !!habit.logs[day];
-                      const isHoveredCol = hoveredDay === day;
+                  <th className="text-center p-2 text-[10px] font-num text-[#71717A] border-r border-[#E2E8F0]">
+                    Rank & Rate
+                  </th>
+                  <th className="text-center p-2 text-[10px] font-num text-[#71717A]">
+                    -
+                  </th>
+                </tr>
+              </thead>
 
-                      return (
-                        <td
-                          key={day}
-                          onMouseEnter={() => setHoveredDay(day)}
-                          onMouseLeave={() => setHoveredDay(null)}
-                          className={`p-1 text-center w-[30px] min-w-[30px] border-r border-[#F1F5F9] transition-colors ${
-                            isHoveredCol ? 'bg-[#F4F4F5]' : ''
+              <tbody className="divide-y divide-[#E2E8F0]">
+                {habits.map((habit, habitIndex) => {
+                  const completedDaysCount = daysArray.filter(d => habit.logs[d]).length;
+                  const habitSuccessRate = Math.round((completedDaysCount / totalDays) * 100);
+                  const mastery = getHabitMastery(completedDaysCount);
+
+                  return (
+                    <tr key={habit.id} className="hover:bg-[#FBFBFC] transition-colors group">
+                      
+                      <td className="sticky left-0 z-10 bg-[#FFFFFF] group-hover:bg-[#FBFBFC] p-3 border-r border-[#E2E8F0]">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-col">
+                            <span className="text-[13px] font-bold text-[#18181B] font-ui leading-tight truncate max-w-[170px]">
+                              {habitIndex + 1}. {habit.title}
+                            </span>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-[9.5px] uppercase font-ui tracking-wider px-1.5 py-0.2 rounded bg-[#F1F5F9] text-[#71717A]">
+                                {habit.category}
+                              </span>
+                              {habit.timeOfDay && (
+                                <span className="text-[9px] font-ui text-[#71717A]">
+                                  • {habit.timeOfDay}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <span className="text-[10px] font-num font-bold text-[#18181B] bg-[#F1F5F9] px-1.5 py-0.5 rounded">
+                            +{habit.expReward} EXP
+                          </span>
+                        </div>
+                      </td>
+
+                      {daysArray.map((day) => {
+                        const isChecked = !!habit.logs[day];
+                        const isHoveredCol = hoveredDay === day;
+
+                        return (
+                          <td
+                            key={day}
+                            onMouseEnter={() => setHoveredDay(day)}
+                            onMouseLeave={() => setHoveredDay(null)}
+                            className={`p-1 text-center w-[30px] min-w-[30px] border-r border-[#F1F5F9] transition-colors ${
+                              isHoveredCol ? 'bg-[#F4F4F5]' : ''
+                            }`}
+                          >
+                            <div className="flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => toggleHabitLog(habit.id, day)}
+                                title={`Day ${day}: ${habit.title} (${isChecked ? 'Completed' : 'Pending'})`}
+                                className={`w-[24px] h-[24px] rounded-[4px] flex items-center justify-center transition-all ${
+                                  isChecked
+                                    ? 'bg-[#18181B] border border-[#18181B] text-white'
+                                    : 'bg-[#FFFFFF] border border-[#E2E8F0] hover:border-[#A1A1AA] hover:bg-[#F4F4F5]'
+                                }`}
+                              >
+                                {isChecked && <Check size={13} className="stroke-[3]" />}
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      })}
+
+                      <td className="p-2 text-center border-r border-[#E2E8F0]">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`text-[9px] font-ui font-bold px-1.5 py-0.5 rounded border ${mastery.color}`}>
+                            {mastery.tier.split(' ')[0]}
+                          </span>
+                          <span className="text-[10px] font-num font-semibold text-[#18181B]">
+                            {habitSuccessRate}% ({completedDaysCount}d)
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="p-2 text-center">
+                        <button
+                          onClick={() => {
+                            deleteHabit(habit.id);
+                            sound.playClick();
+                          }}
+                          className="p-1 rounded text-[#A1A1AA] hover:text-[#E11D48] hover:bg-rose-50 transition-colors"
+                          title="Delete Habit"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+
+                    </tr>
+                  );
+                })}
+              </tbody>
+
+              <tfoot>
+                <tr className="bg-[#18181B] text-white font-ui font-semibold text-[11px]">
+                  <td className="sticky left-0 z-20 bg-[#18181B] p-3 border-r border-[#3F3F46]">
+                    <div className="flex items-center justify-between">
+                      <span className="tracking-wider uppercase text-[10.5px]">DAILY COMPLETION</span>
+                      <span className="text-[10px] font-num text-[#10B981] font-bold">AVG: {monthCompletionRate}%</span>
+                    </div>
+                  </td>
+
+                  {dailyPercentages.map((pct, idx) => {
+                    const isHoveredCol = hoveredDay === idx + 1;
+                    return (
+                      <td
+                        key={idx}
+                        onMouseEnter={() => setHoveredDay(idx + 1)}
+                        onMouseLeave={() => setHoveredDay(null)}
+                        className={`p-1 text-center w-[30px] min-w-[30px] border-r border-[#3F3F46]/50 transition-colors ${
+                          isHoveredCol ? 'bg-[#27272A]' : ''
+                        }`}
+                      >
+                        <span 
+                          className={`text-[9.5px] font-num font-bold block ${
+                            pct >= 80 ? 'text-[#10B981]' : pct >= 50 ? 'text-white' : 'text-[#94A3B8]'
                           }`}
                         >
-                          <div className="flex items-center justify-center">
+                          {pct}%
+                        </span>
+                      </td>
+                    );
+                  })}
+
+                  <td className="text-center p-2 text-[11px] font-num text-[#10B981] font-bold border-r border-[#3F3F46]">
+                    {monthCompletionRate}%
+                  </td>
+                  <td className="text-center p-2">
+                    <Award size={13} className="text-[#10B981] mx-auto" />
+                  </td>
+                </tr>
+              </tfoot>
+
+            </table>
+          </div>
+
+        </section>
+      ) : (
+        /* ========================================================
+            CENTER SECTION: VIEW 2 — DAILY ROUTINE STACKING BLOCKS
+            ======================================================== */
+        <section className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {routineBlocks.map((block) => {
+              const BlockIcon = block.icon;
+              const blockHabits = habits.filter(h => (h.timeOfDay || 'Morning') === block.id);
+
+              return (
+                <div key={block.id} className="mplt-card p-5 bg-white border border-[#E2E8F0] rounded-[12px] space-y-4">
+                  <div className="pb-3 border-b border-[#E2E8F0] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BlockIcon size={18} className={block.color} />
+                      <div>
+                        <h3 className="text-[14px] font-bold text-[#18181B] font-ui">
+                          {block.label}
+                        </h3>
+                        <p className="text-[10.5px] text-[#71717A] font-ui">
+                          {block.desc}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10.5px] font-num font-bold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#18181B]">
+                      {blockHabits.length} Habits
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {blockHabits.map((habit) => {
+                      const isTodayChecked = !!habit.logs[26];
+                      const totalDone = daysArray.filter(d => habit.logs[d]).length;
+                      const mastery = getHabitMastery(totalDone);
+
+                      return (
+                        <div
+                          key={habit.id}
+                          className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] flex items-center justify-between gap-3 hover:border-[#18181B] transition-all"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
                             <button
-                              type="button"
-                              onClick={() => toggleHabitLog(habit.id, day)}
-                              title={`Day ${day}: ${habit.title} (${isChecked ? 'Completed' : 'Pending'})`}
-                              className={`w-[24px] h-[24px] rounded-[4px] flex items-center justify-center transition-all ${
-                                isChecked
-                                  ? 'bg-[#18181B] border border-[#18181B] text-white'
-                                  : 'bg-[#FFFFFF] border border-[#E2E8F0] hover:border-[#A1A1AA] hover:bg-[#F4F4F5]'
+                              onClick={() => toggleHabitLog(habit.id, 26)}
+                              className={`w-6 h-6 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all ${
+                                isTodayChecked 
+                                  ? 'bg-[#18181B] text-white border border-[#18181B]' 
+                                  : 'bg-white border border-[#CBD5E1] hover:border-[#18181B]'
                               }`}
                             >
-                              {isChecked && <Check size={13} className="stroke-[3]" />}
+                              {isTodayChecked && <Check size={14} className="stroke-[3]" />}
                             </button>
+
+                            <div className="flex flex-col min-w-0">
+                              <span className={`text-[12.5px] font-ui font-semibold truncate ${
+                                isTodayChecked ? 'line-through text-[#71717A]' : 'text-[#18181B]'
+                              }`}>
+                                {habit.title}
+                              </span>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className={`text-[8.5px] font-ui font-bold px-1.5 py-0.2 rounded border ${mastery.color}`}>
+                                  {mastery.tier}
+                                </span>
+                                <span className="text-[9.5px] font-num text-[#71717A]">
+                                  {totalDone}/31 Days Done
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </td>
+
+                          <span className="text-[10px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded flex-shrink-0">
+                            +{habit.expReward} EXP
+                          </span>
+                        </div>
                       );
                     })}
 
-                    {/* Success Rate Column */}
-                    <td className="p-2 text-center border-r border-[#E2E8F0]">
-                      <div className="flex flex-col items-center">
-                        <span className="text-[11px] font-num font-bold text-[#18181B]">
-                          {habitSuccessRate}%
-                        </span>
-                        <span className="text-[9px] font-num text-[#71717A]">
-                          {completedDaysCount}/{totalDays}
-                        </span>
+                    {blockHabits.length === 0 && (
+                      <div className="py-6 text-center text-[11px] text-[#71717A] font-ui">
+                        No habits assigned to this routine block yet.
                       </div>
-                    </td>
-
-                    {/* Delete action */}
-                    <td className="p-2 text-center">
-                      <button
-                        onClick={() => deleteHabit(habit.id)}
-                        className="p-1 rounded text-[#A1A1AA] hover:text-[#E11D48] hover:bg-rose-50 transition-colors"
-                        title="Delete Habit"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-
-                  </tr>
-                );
-              })}
-            </tbody>
-
-            {/* Bottom Summary Bar: Pinned daily completion row */}
-            <tfoot>
-              <tr className="bg-[#18181B] text-white font-ui font-semibold text-[11px]">
-                <td className="sticky left-0 z-20 bg-[#18181B] p-3 border-r border-[#3F3F46]">
-                  <div className="flex items-center justify-between">
-                    <span className="tracking-wider uppercase text-[10.5px]">DAILY COMPLETION</span>
-                    <span className="text-[10px] font-num text-[#10B981] font-bold">AVG: {monthCompletionRate}%</span>
+                    )}
                   </div>
-                </td>
-
-                {dailyPercentages.map((pct, idx) => {
-                  const isHoveredCol = hoveredDay === idx + 1;
-                  return (
-                    <td
-                      key={idx}
-                      onMouseEnter={() => setHoveredDay(idx + 1)}
-                      onMouseLeave={() => setHoveredDay(null)}
-                      className={`p-1 text-center w-[30px] min-w-[30px] border-r border-[#3F3F46]/50 transition-colors ${
-                        isHoveredCol ? 'bg-[#27272A]' : ''
-                      }`}
-                    >
-                      <span 
-                        className={`text-[9.5px] font-num font-bold block ${
-                          pct >= 80 ? 'text-[#10B981]' : pct >= 50 ? 'text-white' : 'text-[#94A3B8]'
-                        }`}
-                        title={`Day ${idx + 1}: ${pct}% completed`}
-                      >
-                        {pct}%
-                      </span>
-                    </td>
-                  );
-                })}
-
-                <td className="text-center p-2 text-[11px] font-num text-[#10B981] font-bold border-r border-[#3F3F46]">
-                  {monthCompletionRate}%
-                </td>
-                <td className="text-center p-2">
-                  <Award size={13} className="text-[#10B981] mx-auto" />
-                </td>
-              </tr>
-            </tfoot>
-
-          </table>
-        </div>
-
-      </section>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Add Habit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white border border-[#E2E8F0] rounded-[12px] max-w-md w-full p-6 shadow-xl animate-in zoom-in-95">
-            <h3 className="text-[16px] font-bold text-[#18181B] font-ui mb-4">
-              Add New Routine Habit
-            </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
+              <h3 className="text-[16px] font-bold text-[#18181B] font-ui">
+                Add New Routine Habit
+              </h3>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="p-1 rounded text-[#71717A] hover:text-[#18181B]"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
             <form onSubmit={handleCreateHabit} className="space-y-4">
               <div>
@@ -723,25 +841,43 @@ export const HabitMatrixView: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
-                  Area of Life Category
-                </label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value as AreaOfLife)}
-                  className="w-full px-3 py-2 text-[13px] border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
-                >
-                  <option value="Health">Health & Fitness</option>
-                  <option value="Work">Work & Deep Focus</option>
-                  <option value="Money">Money & Finances</option>
-                  <option value="Personal Growth">Personal Growth</option>
-                  <option value="Family">Family & Relationships</option>
-                  <option value="Spirituality">Spirituality & Mindfulness</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                    Area of Life
+                  </label>
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value as AreaOfLife)}
+                    className="w-full px-3 py-2 text-[12px] border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
+                  >
+                    <option value="Health">Health & Fitness</option>
+                    <option value="Work">Work & Deep Focus</option>
+                    <option value="Money">Money & Finances</option>
+                    <option value="Personal Growth">Personal Growth</option>
+                    <option value="Family">Family & Relationships</option>
+                    <option value="Spirituality">Spirituality & Mindfulness</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                    Routine Protocol
+                  </label>
+                  <select
+                    value={newTimeOfDay}
+                    onChange={(e) => setNewTimeOfDay(e.target.value as Habit['timeOfDay'])}
+                    className="w-full px-3 py-2 text-[12px] border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
+                  >
+                    <option value="Morning">🌅 Morning Protocol</option>
+                    <option value="Deep Work">💻 Deep Work Block</option>
+                    <option value="Evening">🌙 Evening Protocol</option>
+                    <option value="Anytime">⚡ Flexible Anytime</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-[#E2E8F0]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -753,7 +889,7 @@ export const HabitMatrixView: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 text-[12px] font-bold bg-[#18181B] text-white rounded-[6px] hover:bg-[#27272A]"
                 >
-                  Create Habit (+15 EXP)
+                  Create Habit (+20 EXP)
                 </button>
               </div>
             </form>

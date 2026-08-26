@@ -5,11 +5,16 @@ import {
   Trash2, 
   TrendingUp, 
   DollarSign,
-  Wallet,
   ArrowDownRight,
-  ArrowUpRight
+  ArrowUpRight,
+  ShieldCheck,
+  Flame,
+  CreditCard,
+  PieChart,
+  X
 } from 'lucide-react';
 import { BudgetConfig } from '../../types';
+import { sound } from '../../utils/sound';
 
 export const MoneyTrackerView: React.FC = () => {
   const { budget, setBudgetConfig, transactions, addTransaction, deleteTransaction } = useApp();
@@ -20,10 +25,14 @@ export const MoneyTrackerView: React.FC = () => {
   const [txBucket, setTxBucket] = useState<'Needs' | 'Wants' | 'Savings'>('Needs');
   const [txAmount, setTxAmount] = useState<number>(250000);
   const [txType, setTxType] = useState<'expense' | 'income'>('expense');
+  const [txCategoryTag, setTxCategoryTag] = useState('Groceries');
+  
+  // Transaction filter state
+  const [activeBucketFilter, setActiveBucketFilter] = useState<'All' | 'Needs' | 'Wants' | 'Savings' | 'Income'>('All');
 
   // Currency format helper
   const formatIDR = (num: number) => {
-    return `Rp ${num.toLocaleString('id-ID')}`;
+    return `Rp ${Math.round(num).toLocaleString('id-ID')}`;
   };
 
   // Calculations
@@ -34,6 +43,7 @@ export const MoneyTrackerView: React.FC = () => {
   
   const totalSpent = needsSpent + wantsSpent;
   const netCashFlow = totalIncome - totalSpent;
+  const effectiveSavingsRate = totalIncome > 0 ? Math.round((savingsActual / totalIncome) * 100) : 0;
 
   // Limits based on dynamic user ratio
   const needsLimit = totalIncome * (budget.needsRatio / 100);
@@ -44,8 +54,13 @@ export const MoneyTrackerView: React.FC = () => {
   const isWantsUnder = wantsSpent <= wantsLimit;
   const isSavingsMet = savingsActual >= savingsGoal;
 
+  // Safe daily spend calculation (assuming 4 days left in month)
+  const remainingWantsBudget = Math.max(0, wantsLimit - wantsSpent);
+  const safeDailySpend = Math.round(remainingWantsBudget / 4);
+
   // Preset switchers
   const handlePresetSelect = (preset: BudgetConfig['mode']) => {
+    sound.playClick();
     if (preset === '50/30/20') {
       setBudgetConfig(prev => ({ ...prev, mode: '50/30/20', needsRatio: 50, wantsRatio: 30, savingsRatio: 20 }));
     } else if (preset === '60/20/20') {
@@ -86,17 +101,26 @@ export const MoneyTrackerView: React.FC = () => {
     e.preventDefault();
     if (!txDesc.trim() || txAmount <= 0) return;
 
+    sound.playPop();
     addTransaction({
       date: txDate,
       description: txDesc.trim(),
       bucket: txBucket,
       amount: Number(txAmount),
       type: txType,
+      categoryTag: txCategoryTag,
     });
 
     setTxDesc('');
     setShowAddModal(false);
   };
+
+  // Filtered transactions
+  const filteredTransactions = transactions.filter(t => {
+    if (activeBucketFilter === 'All') return true;
+    if (activeBucketFilter === 'Income') return t.type === 'income';
+    return t.type === 'expense' && t.bucket === activeBucketFilter;
+  });
 
   // Donut chart calculations
   const totalExpenseAndSavings = needsSpent + wantsSpent + savingsActual || 1;
@@ -108,59 +132,81 @@ export const MoneyTrackerView: React.FC = () => {
     <div className="max-w-[1440px] mx-auto p-6 space-y-6">
       
       {/* ========================================================
-          TOP GRID: 3 EQUAL SUMMARY METRIC CARDS
+          TOP SECTION: 5 STRATEGIC FINANCIAL KPI METRIC CARDS
           ======================================================== */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         
-        {/* Metric 1: Income Goal */}
-        <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717A] text-[11px] font-ui uppercase tracking-wider mb-2">
-            <span>Income Goal</span>
-            <span className="p-1 rounded bg-[#F1F5F9] text-[#18181B]">
-              <DollarSign size={13} />
-            </span>
+        {/* Metric 1: Monthly Income Inflow */}
+        <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#71717A] text-[10.5px] font-ui uppercase tracking-wider mb-1">
+            <span>Income Inflow</span>
+            <DollarSign size={13} className="text-[#10B981]" />
           </div>
-          <div className="text-[22px] font-bold text-[#18181B] font-num tracking-tight">
-            {formatIDR(budget.incomeGoal)}
+          <div className="text-[17px] font-bold text-[#18181B] font-num tracking-tight">
+            {formatIDR(totalIncome)}
           </div>
-          <div className="mt-2 text-[11px] text-[#71717A] font-ui flex items-center gap-1.5">
-            <span className="text-[#10B981] font-semibold font-num">100%</span>
-            <span>Monthly target benchmark</span>
+          <span className="text-[10px] text-[#71717A] font-ui block mt-1">
+            Verified Inflow Target
+          </span>
+        </div>
+
+        {/* Metric 2: Needs Cap & Spent */}
+        <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#71717A] text-[10.5px] font-ui uppercase tracking-wider mb-1">
+            <span>Needs (50%)</span>
+            <ShieldCheck size={13} className="text-[#18181B]" />
+          </div>
+          <div className="text-[17px] font-bold text-[#18181B] font-num tracking-tight">
+            {formatIDR(needsSpent)}
+          </div>
+          <div className="flex items-center justify-between text-[10px] font-num text-[#71717A] mt-1">
+            <span>Cap: {formatIDR(needsLimit)}</span>
+            <span className="text-[#10B981] font-bold">56%</span>
           </div>
         </div>
 
-        {/* Metric 2: Current Balance */}
-        <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717A] text-[11px] font-ui uppercase tracking-wider mb-2">
-            <span>Current Balance</span>
-            <span className="p-1 rounded bg-[#F1F5F9] text-[#18181B]">
-              <Wallet size={13} />
-            </span>
+        {/* Metric 3: Wants Cap & Spent */}
+        <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#71717A] text-[10.5px] font-ui uppercase tracking-wider mb-1">
+            <span>Wants (30%)</span>
+            <CreditCard size={13} className="text-[#71717A]" />
           </div>
-          <div className="text-[22px] font-bold text-[#18181B] font-num tracking-tight">
-            {formatIDR(budget.startBalance)}
+          <div className="text-[17px] font-bold text-[#18181B] font-num tracking-tight">
+            {formatIDR(wantsSpent)}
           </div>
-          <div className="mt-2 text-[11px] text-[#71717A] font-ui flex items-center gap-1.5">
-            <span className="text-[#10B981] font-semibold font-num">Liquid</span>
-            <span>Checking & Operational accounts</span>
+          <div className="flex items-center justify-between text-[10px] font-num text-[#71717A] mt-1">
+            <span>Cap: {formatIDR(wantsLimit)}</span>
+            <span className="text-[#10B981] font-bold">46%</span>
           </div>
         </div>
 
-        {/* Metric 3: Net Cash Flow */}
-        <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#71717A] text-[11px] font-ui uppercase tracking-wider mb-2">
-            <span>Net Cash Flow</span>
-            <span className="p-1 rounded bg-[#10B981]/15 text-[#10B981]">
-              <TrendingUp size={13} />
-            </span>
+        {/* Metric 4: Savings & Investment Funded */}
+        <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[#71717A] text-[10.5px] font-ui uppercase tracking-wider mb-1">
+            <span>Savings (20%)</span>
+            <TrendingUp size={13} className="text-[#10B981]" />
           </div>
-          <div className="text-[22px] font-bold text-[#10B981] font-num tracking-tight">
-            +{formatIDR(netCashFlow)}
+          <div className="text-[17px] font-bold text-[#10B981] font-num tracking-tight">
+            {formatIDR(savingsActual)}
           </div>
-          <div className="mt-2 text-[11px] text-[#71717A] font-ui flex items-center gap-1.5">
-            <span className="text-[#10B981] font-semibold font-num">Positive</span>
-            <span>Surplus available for allocation</span>
+          <div className="flex items-center justify-between text-[10px] font-num text-[#71717A] mt-1">
+            <span>Rate: {effectiveSavingsRate}%</span>
+            <span className="text-[#10B981] font-bold">Funded</span>
           </div>
+        </div>
+
+        {/* Metric 5: Safe Daily Spending Allowance */}
+        <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between text-[#71717A] text-[10.5px] font-ui uppercase tracking-wider mb-1">
+            <span>Safe Daily Burn</span>
+            <Flame size={13} className="text-orange-500 fill-orange-500" />
+          </div>
+          <div className="text-[17px] font-bold text-[#18181B] font-num tracking-tight">
+            {formatIDR(safeDailySpend)}/day
+          </div>
+          <span className="text-[10px] text-[#10B981] font-ui font-semibold block mt-1">
+            Discretionary Allowance
+          </span>
         </div>
 
       </section>
@@ -178,7 +224,7 @@ export const MoneyTrackerView: React.FC = () => {
               <h3 className="text-[14px] font-bold text-[#18181B] font-ui">
                 Budget Allocation Configurator
               </h3>
-              <p className="text-[11px] text-[#71717A]">
+              <p className="text-[11px] text-[#71717A] font-ui">
                 Dynamic ratios recalculate thresholds and expense caps
               </p>
             </div>
@@ -346,13 +392,14 @@ export const MoneyTrackerView: React.FC = () => {
               <h3 className="text-[14px] font-bold text-[#18181B] font-ui">
                 Expense & Allocation Distribution
               </h3>
-              <p className="text-[11px] text-[#71717A]">
+              <p className="text-[11px] text-[#71717A] font-ui">
                 Actual real-world capital utilization
               </p>
             </div>
-            <span className="text-[11px] font-num font-bold text-[#18181B] bg-[#F1F5F9] px-2 py-0.5 rounded">
-              3-Bucket Matrix
-            </span>
+            <div className="flex items-center gap-1 text-[11px] font-num font-bold text-[#18181B] bg-[#F1F5F9] px-2 py-0.5 rounded">
+              <PieChart size={12} />
+              <span>3-Bucket Matrix</span>
+            </div>
           </div>
 
           {/* Donut Chart with central label */}
@@ -400,7 +447,7 @@ export const MoneyTrackerView: React.FC = () => {
               <span className="text-[15px] font-bold font-num text-[#18181B]">
                 {formatIDR(totalSpent)}
               </span>
-              <span className="text-[9.5px] font-num text-[#10B981] mt-0.5">
+              <span className="text-[9.5px] font-num text-[#10B981] mt-0.5 font-bold">
                 +{formatIDR(netCashFlow)} Net
               </span>
             </div>
@@ -427,27 +474,52 @@ export const MoneyTrackerView: React.FC = () => {
       </section>
 
       {/* ========================================================
-          BOTTOM SECTION: TRANSACTION LEDGER TABLE
+          BOTTOM SECTION: TRANSACTION LEDGER TABLE WITH FILTER TABS
           ======================================================== */}
-      <section className="mplt-card bg-[#FFFFFF] border border-[#E2E8F0] overflow-hidden">
+      <section className="mplt-card bg-[#FFFFFF] border border-[#E2E8F0] overflow-hidden space-y-3">
         
-        <div className="p-4 border-b border-[#E2E8F0] bg-[#F9FAFB] flex items-center justify-between">
+        <div className="p-4 border-b border-[#E2E8F0] bg-[#F9FAFB] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-[13px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
-              Transaction Ledger Table
+              Transaction Ledger & Cash Flow Stream
             </h3>
-            <span className="text-[11px] text-[#71717A]">
-              1px solid dividers, zero zebra striping, instant cash-flow sync
+            <span className="text-[11px] text-[#71717A] font-ui">
+              Live categorized ledger with real-time budget synchronization
             </span>
           </div>
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all"
-          >
-            <Plus size={14} />
-            <span>Add Transaction</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Filter Pills */}
+            <div className="flex items-center bg-white border border-[#E2E8F0] p-0.5 rounded-[6px] text-[11px] font-ui">
+              {(['All', 'Needs', 'Wants', 'Savings', 'Income'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => {
+                    setActiveBucketFilter(filter);
+                    sound.playClick();
+                  }}
+                  className={`px-2.5 py-1 rounded-[4px] font-medium transition-all ${
+                    activeBucketFilter === filter 
+                      ? 'bg-[#18181B] text-white font-bold' 
+                      : 'text-[#71717A] hover:text-[#18181B]'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                setShowAddModal(true);
+                sound.playClick();
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all whitespace-nowrap"
+            >
+              <Plus size={14} />
+              <span>Record Transaction</span>
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -456,14 +528,15 @@ export const MoneyTrackerView: React.FC = () => {
               <tr className="bg-[#FFFFFF] border-b border-[#E2E8F0] font-ui text-[10.5px] uppercase tracking-wider text-[#71717A]">
                 <th className="p-3">Date</th>
                 <th className="p-3">Description</th>
+                <th className="p-3">Category Tag</th>
                 <th className="p-3">Budget Bucket</th>
-                <th className="p-3">Type</th>
-                <th className="p-3 text-right">Amount</th>
+                <th className="p-3">Flow Type</th>
+                <th className="p-3 text-right">Amount (IDR)</th>
                 <th className="p-3 w-10 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E8F0]">
-              {transactions.map((tx) => {
+              {filteredTransactions.map((tx) => {
                 const isIncome = tx.type === 'income';
 
                 return (
@@ -474,6 +547,10 @@ export const MoneyTrackerView: React.FC = () => {
 
                     <td className="p-3 font-ui font-medium text-[#18181B]">
                       {tx.description}
+                    </td>
+
+                    <td className="p-3 font-ui text-[11px] text-[#71717A]">
+                      {tx.categoryTag || (isIncome ? 'Revenue' : 'Expense')}
                     </td>
 
                     <td className="p-3">
@@ -505,7 +582,10 @@ export const MoneyTrackerView: React.FC = () => {
 
                     <td className="p-3 text-center">
                       <button
-                        onClick={() => deleteTransaction(tx.id)}
+                        onClick={() => {
+                          deleteTransaction(tx.id);
+                          sound.playClick();
+                        }}
                         className="p-1 rounded text-[#A1A1AA] hover:text-[#E11D48] hover:bg-rose-50 transition-colors"
                         title="Delete Transaction"
                       >
@@ -516,10 +596,10 @@ export const MoneyTrackerView: React.FC = () => {
                 );
               })}
 
-              {transactions.length === 0 && (
+              {filteredTransactions.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-[#71717A] font-ui text-[12px]">
-                    No transactions recorded. Click "Add Transaction" above.
+                  <td colSpan={7} className="p-8 text-center text-[#71717A] font-ui text-[12px]">
+                    No transactions matching this filter.
                   </td>
                 </tr>
               )}
@@ -533,9 +613,17 @@ export const MoneyTrackerView: React.FC = () => {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white border border-[#E2E8F0] rounded-[12px] max-w-md w-full p-6 shadow-xl animate-in zoom-in-95">
-            <h3 className="text-[16px] font-bold text-[#18181B] font-ui mb-4">
-              Record New Cash Flow Transaction
-            </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
+              <h3 className="text-[16px] font-bold text-[#18181B] font-ui">
+                Record Cash Flow Transaction
+              </h3>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="p-1 rounded text-[#71717A] hover:text-[#18181B]"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
             <form onSubmit={handleAddTxSubmit} className="space-y-4">
               <div>
@@ -555,7 +643,7 @@ export const MoneyTrackerView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
-                    Type
+                    Flow Type
                   </label>
                   <select
                     value={txType}
@@ -601,19 +689,39 @@ export const MoneyTrackerView: React.FC = () => {
 
                 <div>
                   <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
-                    Transaction Date
+                    Category Tag
                   </label>
-                  <input
-                    type="date"
-                    required
-                    value={txDate}
-                    onChange={(e) => setTxDate(e.target.value)}
-                    className="w-full px-3 py-2 text-[13px] border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] font-num"
-                  />
+                  <select
+                    value={txCategoryTag}
+                    onChange={(e) => setTxCategoryTag(e.target.value)}
+                    className="w-full px-3 py-2 text-[13px] border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
+                  >
+                    <option value="Groceries">Groceries</option>
+                    <option value="Housing">Housing & Rent</option>
+                    <option value="Utilities">Utilities & Wifi</option>
+                    <option value="Dining">Dining & Cafe</option>
+                    <option value="Subscriptions">Subscriptions</option>
+                    <option value="Investments">Investments</option>
+                    <option value="Lifestyle">Lifestyle</option>
+                    <option value="Income">Salary / Client Pay</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div>
+                <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                  Transaction Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={txDate}
+                  onChange={(e) => setTxDate(e.target.value)}
+                  className="w-full px-3 py-2 text-[13px] border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] font-num"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-[#E2E8F0]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}

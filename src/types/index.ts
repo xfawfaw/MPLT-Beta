@@ -14,13 +14,21 @@ export interface UserProfile {
   streakDays: number;
 }
 
+export interface HabitMilestoneTier {
+  tierName: 'Novice' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum Legend';
+  minCompletions: number;
+  badgeColor: string;
+}
+
 export interface Habit {
   id: string;
   title: string;
   category: AreaOfLife;
   ptsReward: number;
   expReward: number;
-  // Logs keyed by ISO date YYYY-MM-DD or Day number (1-31)
+  timeOfDay?: 'Morning' | 'Deep Work' | 'Evening' | 'Anytime';
+  targetFrequency?: string; // e.g. "Daily", "5x / Week"
+  // Logs keyed by Day number (1-31)
   logs: Record<number, boolean>;
 }
 
@@ -48,6 +56,13 @@ export interface TaskItem {
   note?: string;
 }
 
+export interface GoalMilestone {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  expReward: number;
+}
+
 export interface GoalItem {
   id: string;
   areaOfLife: AreaOfLife;
@@ -58,6 +73,9 @@ export interface GoalItem {
   status: 'Not Started' | 'In Progress' | 'Achieved';
   progressPercent: number;
   imageUrl?: string;
+  quarterTarget?: 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Year-End';
+  milestones?: GoalMilestone[];
+  whyStatement?: string;
 }
 
 export interface BudgetConfig {
@@ -76,4 +94,5 @@ export interface TransactionItem {
   bucket: 'Needs' | 'Wants' | 'Savings';
   amount: number;
   type: 'expense' | 'income';
+  categoryTag?: string; // e.g. "Groceries", "Rent", "Investments", "Subscriptions"
 }
