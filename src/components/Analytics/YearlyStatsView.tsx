@@ -18,7 +18,8 @@ import {
   Layers, 
   Zap, 
   Download, 
-  PieChart 
+  PieChart,
+  BarChart2
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
@@ -29,15 +30,29 @@ export const YearlyStatsView: React.FC = () => {
   const [hoveredCell, setHoveredCell] = useState<{
     dateStr: string;
     dayOfYear: number;
+    weekIdx: number;
     completionPct: number;
     tasksDone: number;
     exp: number;
   } | null>(null);
 
-  const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
+  const [hoveredWeek, setHoveredWeek] = useState<number | null>(null);
 
-  // Month names
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // Month names and week starts mapping (52 weeks across 12 months)
+  const monthHeaders = [
+    { name: 'Jan', weekStart: 0, weekEnd: 4 },
+    { name: 'Feb', weekStart: 4, weekEnd: 8 },
+    { name: 'Mar', weekStart: 8, weekEnd: 13 },
+    { name: 'Apr', weekStart: 13, weekEnd: 17 },
+    { name: 'May', weekStart: 17, weekEnd: 21 },
+    { name: 'Jun', weekStart: 21, weekEnd: 26 },
+    { name: 'Jul', weekStart: 26, weekEnd: 30 },
+    { name: 'Aug', weekStart: 30, weekEnd: 34 },
+    { name: 'Sep', weekStart: 34, weekEnd: 39 },
+    { name: 'Oct', weekStart: 39, weekEnd: 43 },
+    { name: 'Nov', weekStart: 43, weekEnd: 47 },
+    { name: 'Dec', weekStart: 47, weekEnd: 52 },
+  ];
 
   // Currency format helper
   const formatIDR = (num: number) => {
@@ -47,10 +62,9 @@ export const YearlyStatsView: React.FC = () => {
   // Generate 365 Days Grid Data (52 weeks x 7 days)
   const heatmapData = useMemo(() => {
     const days = [];
-    // Start from Jan 1 2026 (which was a Thursday)
     const startDate = new Date(2026, 0, 1);
     
-    // Calculate current live habits completion for February
+    // Calculate live habit logs
     const febLogs = habits.reduce((acc, h) => {
       let count = 0;
       for (let d = 1; d <= 31; d++) {
@@ -58,9 +72,11 @@ export const YearlyStatsView: React.FC = () => {
       }
       return acc + count;
     }, 0);
-    const avgFebRate = habits.length > 0 ? febLogs / (habits.length * 28) : 0.8;
+    const avgRate = habits.length > 0 ? febLogs / (habits.length * 28) : 0.82;
 
-    for (let dayIdx = 0; dayIdx < 365; dayIdx++) {
+    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    for (let dayIdx = 0; dayIdx < 364; dayIdx++) { // 52 full weeks = 364 days
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + dayIdx);
       
@@ -69,20 +85,21 @@ export const YearlyStatsView: React.FC = () => {
       const dayOfWeek = (currentDate.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
       const weekIdx = Math.floor(dayIdx / 7);
 
-      // Deterministic simulation blended with live state
-      const seed = Math.sin(dayIdx * 997 + monthIdx * 37) * 10000;
-      const pseudoRandom = seed - Math.floor(seed);
+      // Deterministic dynamic distribution
+      const wave = Math.sin(dayIdx * 0.12) * 15;
+      const seed = Math.sin(dayIdx * 7919 + weekIdx * 53) * 10000;
+      const noise = (seed - Math.floor(seed)) * 30 - 15;
       
       let completionPct = 0;
-      if (monthIdx <= 1) { // Jan and Feb (Live and recent)
-        completionPct = Math.min(100, Math.round((avgFebRate * 85) + (pseudoRandom * 25)));
-      } else { // Q2 - Q4 projected / target discipline
-        completionPct = Math.min(100, Math.round(65 + (pseudoRandom * 35)));
+      if (weekIdx <= 8) { // Jan - Feb (Live active baseline)
+        completionPct = Math.min(100, Math.max(25, Math.round((avgRate * 90) + noise)));
+      } else {
+        completionPct = Math.min(100, Math.max(30, Math.round(75 + wave + noise)));
       }
 
-      // Format date
-      const dateStr = `${dateNum} ${months[monthIdx]} 2026`;
-      const tasksDone = Math.floor(pseudoRandom * 4) + (completionPct > 75 ? 2 : 0);
+      // Format date string
+      const dateStr = `${dateNum} ${monthsShort[monthIdx]} 2026`;
+      const tasksDone = Math.floor((completionPct / 100) * 4) + 1;
       const exp = Math.round(completionPct * 1.5 + tasksDone * 15);
 
       days.push({
@@ -100,27 +117,36 @@ export const YearlyStatsView: React.FC = () => {
     return days;
   }, [habits]);
 
-  // 12-Month Macro Velocity Data
-  const monthlyMacroData = useMemo(() => {
-    return months.map((monthName, idx) => {
-      const monthDays = heatmapData.filter(d => d.monthIdx === idx);
-      const avgConsistency = monthDays.length > 0 
-        ? Math.round(monthDays.reduce((acc, d) => acc + d.completionPct, 0) / monthDays.length)
+  // 52-Week Granular Trajectory Curve Data
+  const weeklyTrajectoryData = useMemo(() => {
+    const weeks = [];
+    for (let w = 0; w < 52; w++) {
+      const weekDays = heatmapData.filter(d => d.weekIdx === w);
+      const avgConsistency = weekDays.length > 0
+        ? Math.round(weekDays.reduce((acc, d) => acc + d.completionPct, 0) / weekDays.length)
         : 80;
-      
-      const totalTasks = monthDays.reduce((acc, d) => acc + d.tasksDone, 0);
-      const totalExp = monthDays.reduce((acc, d) => acc + d.exp, 0);
-      const monthlySavingsRate = Math.min(35, Math.round(18 + (idx * 0.8) + (avgConsistency > 80 ? 4 : 0)));
 
-      return {
-        month: monthName,
-        monthIndex: idx,
+      // Realistic peaks, recovery waves, and surges
+      const weekNumber = w + 1;
+      const quarter = weekNumber <= 13 ? 'Q1' : weekNumber <= 26 ? 'Q2' : weekNumber <= 39 ? 'Q3' : 'Q4';
+      const totalTasks = weekDays.reduce((acc, d) => acc + d.tasksDone, 0);
+      const totalExp = weekDays.reduce((acc, d) => acc + d.exp, 0);
+
+      // Date range label
+      const firstDay = weekDays[0];
+      const lastDay = weekDays[weekDays.length - 1];
+      const rangeLabel = firstDay && lastDay ? `${firstDay.dateStr.split(' ')[0]} ${firstDay.dateStr.split(' ')[1]} — ${lastDay.dateStr.split(' ')[0]} ${lastDay.dateStr.split(' ')[1]}` : `Week ${weekNumber}`;
+
+      weeks.push({
+        weekNumber,
+        quarter,
         consistency: avgConsistency,
         tasks: totalTasks,
         exp: totalExp,
-        savingsRate: monthlySavingsRate,
-      };
-    });
+        rangeLabel,
+      });
+    }
+    return weeks;
   }, [heatmapData]);
 
   // 6-Domain Life Balance Scores
@@ -163,20 +189,20 @@ export const YearlyStatsView: React.FC = () => {
     { title: 'Compound Mindset', subtitle: 'Level 14 Senior Sovereign Rank', icon: Sparkles, color: 'text-zinc-800 bg-zinc-100 border-zinc-300' },
   ];
 
-  // SVG Chart Geometry for 12-Month Macro Curve
+  // SVG Chart Geometry for 52-Week Granular Curve
   const chartGeometry = useMemo(() => {
     const width = 1000;
-    const height = 180;
+    const height = 200;
     const paddingLeft = 40;
-    const paddingRight = 30;
+    const paddingRight = 25;
     const paddingTop = 20;
-    const paddingBottom = 30;
+    const paddingBottom = 32;
 
     const plotWidth = width - paddingLeft - paddingRight;
     const plotHeight = height - paddingTop - paddingBottom;
-    const stepX = plotWidth / (monthlyMacroData.length - 1);
+    const stepX = plotWidth / (weeklyTrajectoryData.length - 1);
 
-    const points = monthlyMacroData.map((item, idx) => {
+    const points = weeklyTrajectoryData.map((item, idx) => {
       const x = paddingLeft + idx * stepX;
       const y = paddingTop + (1 - item.consistency / 100) * plotHeight;
       return { ...item, x, y };
@@ -186,15 +212,15 @@ export const YearlyStatsView: React.FC = () => {
     const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${height - paddingBottom} L ${points[0].x.toFixed(1)} ${height - paddingBottom} Z`;
 
     return { points, linePath, areaPath, width, height, paddingLeft, paddingRight, paddingTop, paddingBottom, plotHeight, plotWidth };
-  }, [monthlyMacroData]);
+  }, [weeklyTrajectoryData]);
 
-  // Color helper for Heatmap intensity
-  const getCellColor = (pct: number) => {
-    if (pct >= 95) return 'bg-[#18181B] text-white border-[#18181B]'; // 100% Perfect
-    if (pct >= 75) return 'bg-[#10B981] text-white border-[#10B981]'; // Emerald High
-    if (pct >= 50) return 'bg-[#6EE7B7] text-[#065F46] border-[#A7F3D0]'; // Mint Moderate
-    if (pct >= 25) return 'bg-[#D1FAE5] text-[#065F46] border-[#E2E8F0]'; // Light Mint
-    return 'bg-[#F1F5F9] text-[#71717A] border-[#E2E8F0]'; // Low / Rest
+  // High-Contrast Crisp Cell Color & Border Definition
+  const getCellStyles = (pct: number) => {
+    if (pct >= 90) return 'bg-[#18181B] border-[#09090B] text-white'; // 100% Sovereign (Black ink)
+    if (pct >= 75) return 'bg-[#10B981] border-[#059669] text-white'; // Emerald High
+    if (pct >= 50) return 'bg-[#6EE7B7] border-[#34D399] text-[#065F46]'; // Mint Moderate
+    if (pct >= 25) return 'bg-[#D1FAE5] border-[#A7F3D0] text-[#065F46]'; // Soft Mint Low
+    return 'bg-[#FFFFFF] border-[#CBD5E1] text-[#94A3B8]'; // Rest / Base Grid (Visible 1px border)
   };
 
   const handleExportAudit = () => {
@@ -220,7 +246,16 @@ export const YearlyStatsView: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const activeHoveredMonth = hoveredMonth !== null ? monthlyMacroData[hoveredMonth] : null;
+  const activeHoveredWeek = hoveredWeek !== null ? weeklyTrajectoryData[hoveredWeek] : null;
+
+  // Velocity peak and average calculations
+  const peakWeek = useMemo(() => {
+    return [...weeklyTrajectoryData].sort((a, b) => b.consistency - a.consistency)[0] || { weekNumber: 1, consistency: 95 };
+  }, [weeklyTrajectoryData]);
+
+  const avgYearlyConsistency = useMemo(() => {
+    return Math.round(weeklyTrajectoryData.reduce((acc, w) => acc + w.consistency, 0) / weeklyTrajectoryData.length);
+  }, [weeklyTrajectoryData]);
 
   return (
     <div className="max-w-[1440px] mx-auto p-6 space-y-6">
@@ -238,7 +273,7 @@ export const YearlyStatsView: React.FC = () => {
               </h1>
             </div>
             <p className="text-[12px] text-[#71717A] font-ui">
-              365-Day Discipline Heatmap, 12-Month Macro Velocity, Life Balance Equilibrium & Capital Telemetry
+              52-Week High-Definition Trajectory, 365-Day Discipline Heatmap, Life Balance & Capital Telemetry
             </p>
           </div>
 
@@ -259,10 +294,10 @@ export const YearlyStatsView: React.FC = () => {
           <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
             <div className="flex items-center gap-1.5 text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
               <Activity size={13} className="text-[#10B981]" />
-              <span>365-Day Consistency</span>
+              <span>52-Week Consistency</span>
             </div>
             <div className="text-[20px] font-num font-bold text-[#18181B]">
-              82.4% <span className="text-[11px] font-ui text-[#10B981] font-semibold">(248 Active Days)</span>
+              {avgYearlyConsistency}% <span className="text-[11px] font-ui text-[#10B981] font-semibold">(Peak: W{peakWeek.weekNumber} {peakWeek.consistency}%)</span>
             </div>
           </div>
 
@@ -300,7 +335,7 @@ export const YearlyStatsView: React.FC = () => {
       </section>
 
       {/* ========================================================
-          SECTION 1: 365-DAY GLOBAL ACTIVITY HEATMAP MATRIX
+          SECTION 1: 365-DAY HIGH-CONTRAST ACTIVITY HEATMAP
           ======================================================== */}
       <section className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
         
@@ -308,10 +343,10 @@ export const YearlyStatsView: React.FC = () => {
           <div>
             <h3 className="text-[14px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
               <Calendar size={15} className="text-[#18181B]" />
-              <span>365-Day Global Habit & Discipline Heatmap (52 Weeks)</span>
+              <span>365-Day Global Habit & Discipline Heatmap (52 Columns × 7 Rows)</span>
             </h3>
             <p className="text-[11px] text-[#71717A] font-ui mt-0.5">
-              Continuous quantified-self execution matrix with day-by-day density tracking
+              High-contrast analog matrix with clear 1px cell gridlines & quantified-self density tracking
             </p>
           </div>
 
@@ -319,30 +354,37 @@ export const YearlyStatsView: React.FC = () => {
           <div className="h-6 flex items-center">
             {hoveredCell ? (
               <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-[#18181B] text-white rounded-[5px] text-[11px] font-num animate-in fade-in duration-100">
-                <span className="font-bold">{hoveredCell.dateStr}:</span>
+                <span className="font-bold">{hoveredCell.dateStr} (W{hoveredCell.weekIdx + 1}):</span>
                 <span className="text-[#10B981] font-bold">{hoveredCell.completionPct}% Consistency</span>
                 <span className="text-[#94A3B8]">({hoveredCell.tasksDone} Tasks Closed)</span>
                 <span className="text-[#38BDF8] font-bold">+{hoveredCell.exp} EXP</span>
               </div>
             ) : (
               <span className="text-[11px] text-[#71717A] font-ui">
-                Hover any cell across 52 weeks for exact daily telemetry
+                Hover any cell across the 52-week matrix for exact daily telemetry
               </span>
             )}
           </div>
         </div>
 
-        {/* 52-Week Horizontal Calendar Grid */}
-        <div className="overflow-x-auto no-scrollbar pt-2">
-          <div className="min-w-[850px] space-y-1 select-none">
+        {/* 52-Week Horizontal Grid Container with Clear Grid Lines */}
+        <div className="overflow-x-auto no-scrollbar p-3 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px]">
+          <div className="min-w-[920px] space-y-1.5 select-none">
             
-            {/* Month Labels Bar */}
-            <div className="flex items-center text-[10px] font-ui font-semibold text-[#71717A] pl-8 mb-1">
-              {months.map(m => (
-                <div key={m} className="flex-1 text-left">
-                  {m}
-                </div>
-              ))}
+            {/* Month Labels Bar (Mapped to week boundaries) */}
+            <div className="flex items-center text-[10px] font-ui font-bold text-[#71717A] pl-8 mb-1.5 uppercase tracking-wider">
+              {monthHeaders.map(m => {
+                const weekSpan = m.weekEnd - m.weekStart;
+                return (
+                  <div 
+                    key={m.name} 
+                    style={{ flex: weekSpan }}
+                    className="text-left border-l border-[#CBD5E1] pl-1.5"
+                  >
+                    {m.name}
+                  </div>
+                );
+              })}
             </div>
 
             {/* 7 Rows (Mon to Sun) */}
@@ -350,17 +392,17 @@ export const YearlyStatsView: React.FC = () => {
               const dayCells = heatmapData.filter(d => d.dayOfWeek === dayOfWeek);
 
               return (
-                <div key={dayOfWeek} className="flex items-center gap-1">
+                <div key={dayOfWeek} className="flex items-center gap-1.5">
                   
                   {/* Row Day Label */}
-                  <span className="w-7 text-[9px] font-ui font-medium text-[#71717A]">
-                    {dayOfWeek === 0 ? 'Mon' : dayOfWeek === 2 ? 'Wed' : dayOfWeek === 4 ? 'Fri' : ''}
+                  <span className="w-6 text-[9px] font-ui font-bold text-[#71717A] text-right pr-1">
+                    {dayOfWeek === 0 ? 'Mon' : dayOfWeek === 2 ? 'Wed' : dayOfWeek === 4 ? 'Fri' : dayOfWeek === 6 ? 'Sun' : ''}
                   </span>
 
-                  {/* 52 Cells across row */}
-                  <div className="flex items-center gap-1 flex-1">
+                  {/* 52 Cells across row with explicit 1px border and 2px gap */}
+                  <div className="flex items-center gap-[3px] flex-1">
                     {dayCells.map(cell => {
-                      const colorClass = getCellColor(cell.completionPct);
+                      const styleClasses = getCellStyles(cell.completionPct);
                       const isHovered = hoveredCell?.dayOfYear === cell.dayOfYear;
 
                       return (
@@ -368,8 +410,10 @@ export const YearlyStatsView: React.FC = () => {
                           key={cell.dayOfYear}
                           onMouseEnter={() => setHoveredCell(cell)}
                           onMouseLeave={() => setHoveredCell(null)}
-                          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-[2.5px] border cursor-pointer transition-all ${colorClass} ${
-                            isHovered ? 'scale-125 z-10 ring-2 ring-[#18181B]' : 'hover:scale-110'
+                          className={`w-[13px] h-[13px] sm:w-[14px] sm:h-[14px] rounded-[2px] border transition-all cursor-pointer ${styleClasses} ${
+                            isHovered 
+                              ? 'scale-150 z-20 ring-2 ring-[#18181B] shadow-md' 
+                              : 'hover:scale-125'
                           }`}
                           title={`${cell.dateStr}: ${cell.completionPct}% (${cell.tasksDone} tasks, +${cell.exp} EXP)`}
                         />
@@ -385,76 +429,77 @@ export const YearlyStatsView: React.FC = () => {
         </div>
 
         {/* Heatmap Legend */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#E2E8F0] text-[10.5px] font-ui text-[#71717A]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 text-[11px] font-ui text-[#71717A]">
           <div className="flex items-center gap-2">
-            <span>Discipline Density:</span>
-            <div className="flex items-center gap-1 font-num">
-              <span className="text-[9px]">0%</span>
-              <div className="w-3 h-3 rounded-[2px] bg-[#F1F5F9] border border-[#E2E8F0]" />
-              <div className="w-3 h-3 rounded-[2px] bg-[#D1FAE5] border border-[#E2E8F0]" />
-              <div className="w-3 h-3 rounded-[2px] bg-[#6EE7B7] border border-[#A7F3D0]" />
-              <div className="w-3 h-3 rounded-[2px] bg-[#10B981] border border-[#10B981]" />
-              <div className="w-3 h-3 rounded-[2px] bg-[#18181B] border border-[#18181B]" />
-              <span className="text-[9px]">100%</span>
+            <span className="font-medium">Discipline Intensity:</span>
+            <div className="flex items-center gap-1.5 font-num">
+              <span className="text-[9.5px]">0% (Rest)</span>
+              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#FFFFFF] border border-[#CBD5E1]" />
+              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#D1FAE5] border border-[#A7F3D0]" />
+              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#6EE7B7] border border-[#34D399]" />
+              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#10B981] border border-[#059669]" />
+              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#18181B] border border-[#09090B]" />
+              <span className="text-[9.5px]">100% (Sovereign)</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3 font-num font-semibold text-[#18181B]">
-            <span>365 TOTAL DAYS EVALUATED</span>
+            <span>364 SAMPLES (52 WEEKS)</span>
             <span>•</span>
-            <span className="text-[#10B981]">248 SOVEREIGN EXECUTION DAYS</span>
+            <span className="text-[#10B981]">248 HIGH-INTENSITY SESSIONS</span>
           </div>
         </div>
 
       </section>
 
       {/* ========================================================
-          SECTION 2: 12-MONTH MACRO CURVE & 6-DOMAIN RADAR
+          SECTION 2: 52-WEEK HIGH-RESOLUTION VELOCITY TRAJECTORY
           ======================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left (Span 7): 12-Month Macro Velocity Curve */}
+        {/* Left (Span 7): 52-Week Detailed Granular Curve */}
         <div className="lg:col-span-7 mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
             <div>
               <h3 className="text-[13.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
-                <TrendingUp size={15} className="text-[#18181B]" />
-                <span>12-Month Macro Velocity Trajectory (Jan — Dec)</span>
+                <BarChart2 size={15} className="text-[#18181B]" />
+                <span>52-Week Granular Velocity Trajectory Curve</span>
               </h3>
               <p className="text-[11px] text-[#71717A] font-ui">
-                Quarterly output pacing and cumulative discipline momentum
+                Detailed 52-point progression tracking weekly discipline surges, dips & momentum
               </p>
             </div>
 
+            {/* Hover Tooltip Readout */}
             <div className="h-6 flex items-center">
-              {activeHoveredMonth ? (
-                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-[#18181B] text-white rounded-[5px] text-[11px] font-num">
-                  <span className="font-bold">{activeHoveredMonth.month}:</span>
-                  <span className="text-[#10B981] font-bold">{activeHoveredMonth.consistency}% Rate</span>
-                  <span className="text-[#38BDF8]">{activeHoveredMonth.tasks} Tasks</span>
-                  <span className="text-amber-400 font-bold">{activeHoveredMonth.savingsRate}% Sav</span>
+              {activeHoveredWeek ? (
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-[#18181B] text-white rounded-[5px] text-[11px] font-num animate-in fade-in duration-100">
+                  <span className="font-bold">Week {activeHoveredWeek.weekNumber} ({activeHoveredWeek.quarter}):</span>
+                  <span className="text-[#10B981] font-bold">{activeHoveredWeek.consistency}% Velocity</span>
+                  <span className="text-[#38BDF8]">{activeHoveredWeek.tasks} Tasks</span>
+                  <span className="text-amber-400 font-bold">+{activeHoveredWeek.exp} EXP</span>
                 </div>
               ) : (
-                <span className="text-[10.5px] text-[#71717A] font-ui">Hover points for monthly breakdown</span>
+                <span className="text-[10.5px] text-[#71717A] font-ui">Hover any of the 52 nodes for weekly stats</span>
               )}
             </div>
           </div>
 
-          {/* SVG Macro Diagram */}
+          {/* SVG 52-Week Granular Curve */}
           <div className="w-full relative overflow-hidden pt-1">
             <svg 
               viewBox={`0 0 ${chartGeometry.width} ${chartGeometry.height}`} 
-              className="w-full h-[180px] sm:h-[210px] overflow-visible select-none"
+              className="w-full h-[200px] sm:h-[220px] overflow-visible select-none"
             >
               <defs>
-                <linearGradient id="macroGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#18181B" stopOpacity="0.20" />
-                  <stop offset="60%" stopColor="#18181B" stopOpacity="0.05" />
+                <linearGradient id="granularGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#18181B" stopOpacity="0.22" />
+                  <stop offset="60%" stopColor="#18181B" stopOpacity="0.06" />
                   <stop offset="100%" stopColor="#18181B" stopOpacity="0.0" />
                 </linearGradient>
               </defs>
 
-              {/* Horizontal Guides */}
+              {/* Horizontal Reference Gridlines */}
               {[100, 75, 50, 25, 0].map((level) => {
                 const y = chartGeometry.paddingTop + (1 - level / 100) * chartGeometry.plotHeight;
                 return (
@@ -465,14 +510,14 @@ export const YearlyStatsView: React.FC = () => {
                       x2={chartGeometry.width - chartGeometry.paddingRight}
                       y2={y}
                       stroke={level === 100 ? '#CBD5E1' : '#F1F5F9'}
-                      strokeWidth="1"
+                      strokeWidth={level === 100 ? '1.5' : '1'}
                       strokeDasharray={level === 100 || level === 0 ? 'none' : '3 3'}
                     />
                     <text
                       x={chartGeometry.paddingLeft - 8}
                       y={y + 3.5}
                       textAnchor="end"
-                      className="text-[9.5px] font-num fill-[#71717A]"
+                      className="text-[9.5px] font-num fill-[#71717A] font-medium"
                     >
                       {level}%
                     </text>
@@ -480,7 +525,36 @@ export const YearlyStatsView: React.FC = () => {
                 );
               })}
 
-              <path d={chartGeometry.areaPath} fill="url(#macroGrad)" />
+              {/* Quarter Dividing Guides (W13, W26, W39) */}
+              {[13, 26, 39].map((qWeek, idx) => {
+                const pt = chartGeometry.points[qWeek - 1];
+                if (!pt) return null;
+                return (
+                  <g key={qWeek}>
+                    <line
+                      x1={pt.x}
+                      y1={chartGeometry.paddingTop}
+                      x2={pt.x}
+                      y2={chartGeometry.height - chartGeometry.paddingBottom}
+                      stroke="#CBD5E1"
+                      strokeWidth="1.5"
+                      strokeDasharray="2 2"
+                    />
+                    <text
+                      x={pt.x + 4}
+                      y={chartGeometry.paddingTop + 12}
+                      className="text-[9px] font-ui fill-[#18181B] font-bold tracking-wider"
+                    >
+                      Q{idx + 2} BOUNDARY
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Fill Area */}
+              <path d={chartGeometry.areaPath} fill="url(#granularGrad)" />
+
+              {/* Curve Stroke */}
               <path
                 d={chartGeometry.linePath}
                 fill="none"
@@ -490,53 +564,75 @@ export const YearlyStatsView: React.FC = () => {
                 strokeLinejoin="round"
               />
 
+              {/* 52 Week Nodes */}
               {chartGeometry.points.map((pt, idx) => {
-                const isHovered = hoveredMonth === idx;
+                const isHovered = hoveredWeek === idx;
+                const isQuarterMarker = pt.weekNumber % 13 === 0 || pt.weekNumber === 1;
+                const isPeak = pt.consistency >= 94;
 
                 return (
                   <g
-                    key={pt.month}
-                    onMouseEnter={() => setHoveredMonth(idx)}
-                    onMouseLeave={() => setHoveredMonth(null)}
+                    key={pt.weekNumber}
+                    onMouseEnter={() => setHoveredWeek(idx)}
+                    onMouseLeave={() => setHoveredWeek(null)}
                     className="cursor-pointer transition-all"
                   >
                     <rect
-                      x={pt.x - 20}
+                      x={pt.x - 9}
                       y={chartGeometry.paddingTop}
-                      width="40"
+                      width="18"
                       height={chartGeometry.plotHeight + 20}
                       fill="transparent"
                     />
 
                     {isHovered && (
+                      <line
+                        x1={pt.x}
+                        y1={chartGeometry.paddingTop}
+                        x2={pt.x}
+                        y2={chartGeometry.height - chartGeometry.paddingBottom}
+                        stroke="#18181B"
+                        strokeWidth="1.5"
+                        strokeDasharray="3 3"
+                      />
+                    )}
+
+                    {isHovered && (
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r="8"
+                        r="7"
                         fill="#18181B"
-                        fillOpacity="0.15"
+                        fillOpacity="0.18"
                       />
                     )}
 
                     <circle
                       cx={pt.x}
                       cy={pt.y}
-                      r={isHovered ? 5 : 3.5}
-                      fill={isHovered ? '#18181B' : '#10B981'}
-                      stroke="#FFFFFF"
-                      strokeWidth="2"
+                      r={isHovered ? 4.5 : isPeak ? 3.5 : 2}
+                      fill={isHovered ? '#18181B' : isPeak ? '#10B981' : '#FFFFFF'}
+                      stroke={isPeak ? '#10B981' : '#18181B'}
+                      strokeWidth={isHovered ? '2' : '1.5'}
                     />
 
-                    <text
-                      x={pt.x}
-                      y={chartGeometry.height - 8}
-                      textAnchor="middle"
-                      className={`text-[10px] font-ui ${
-                        isHovered ? 'fill-[#18181B] font-bold text-[11px]' : 'fill-[#71717A]'
-                      }`}
-                    >
-                      {pt.month}
-                    </text>
+                    {/* X-Axis Week Labels every 4 weeks */}
+                    {(pt.weekNumber % 4 === 0 || pt.weekNumber === 1 || pt.weekNumber === 52) && (
+                      <text
+                        x={pt.x}
+                        y={chartGeometry.height - 8}
+                        textAnchor="middle"
+                        className={`text-[9px] font-num ${
+                          isHovered 
+                            ? 'fill-[#18181B] font-bold text-[10px]' 
+                            : isQuarterMarker
+                            ? 'fill-[#18181B] font-semibold'
+                            : 'fill-[#71717A]'
+                        }`}
+                      >
+                        W{pt.weekNumber < 10 ? `0${pt.weekNumber}` : pt.weekNumber}
+                      </text>
+                    )}
                   </g>
                 );
               })}
@@ -546,10 +642,10 @@ export const YearlyStatsView: React.FC = () => {
           <div className="flex items-center justify-between text-[10.5px] text-[#71717A] font-ui pt-2 border-t border-[#E2E8F0]">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-              <span>Average Monthly Consistency: 82.4%</span>
+              <span>Average 52-Week Velocity: <strong>{avgYearlyConsistency}%</strong></span>
             </span>
             <span className="font-num font-semibold text-[#18181B]">
-              ANNUAL VELOCITY INDEX: 1.28x
+              52 SAMPLES (WEEK 01 — WEEK 52)
             </span>
           </div>
         </div>
