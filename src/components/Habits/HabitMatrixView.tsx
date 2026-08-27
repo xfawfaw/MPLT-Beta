@@ -115,11 +115,12 @@ export const HabitMatrixView: React.FC = () => {
 
   // Habit Mastery Tier calculation helper
   const getHabitMastery = (completedDays: number) => {
-    if (completedDays >= 25) return { tier: 'Platinum Legend', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
-    if (completedDays >= 20) return { tier: 'Gold Master', color: 'bg-amber-100 text-amber-800 border-amber-300' };
-    if (completedDays >= 14) return { tier: 'Silver Elite', color: 'bg-sky-100 text-sky-800 border-sky-300' };
-    if (completedDays >= 7) return { tier: 'Bronze Practitioner', color: 'bg-orange-100 text-orange-800 border-orange-300' };
-    return { tier: 'Novice Initiate', color: 'bg-zinc-100 text-zinc-700 border-zinc-300' };
+    if (completedDays >= 31) return { tier: '31-Day Streak', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+    if (completedDays >= 25) return { tier: 'Platinum', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+    if (completedDays >= 20) return { tier: 'Gold', color: 'bg-amber-100 text-amber-800 border-amber-300' };
+    if (completedDays >= 14) return { tier: 'Silver', color: 'bg-sky-100 text-sky-800 border-sky-300' };
+    if (completedDays >= 7) return { tier: 'Bronze', color: 'bg-orange-100 text-orange-800 border-orange-300' };
+    return { tier: 'Novice', color: 'bg-zinc-100 text-zinc-700 border-zinc-300' };
   };
 
   // Routine blocks grouping
@@ -651,7 +652,7 @@ export const HabitMatrixView: React.FC = () => {
                       <td className="p-2 text-center border-r border-[#E2E8F0]">
                         <div className="flex flex-col items-center gap-0.5">
                           <span className={`text-[9px] font-ui font-bold px-1.5 py-0.5 rounded border ${mastery.color}`}>
-                            {mastery.tier.split(' ')[0]}
+                            {mastery.tier}
                           </span>
                           <span className="text-[10px] font-num font-semibold text-[#18181B]">
                             {habitSuccessRate}% ({completedDaysCount}d)

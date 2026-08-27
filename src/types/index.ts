@@ -15,7 +15,7 @@ export interface UserProfile {
 }
 
 export interface HabitMilestoneTier {
-  tierName: 'Novice' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum Legend';
+  tierName: 'Novice' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | '31-Day Streak';
   minCompletions: number;
   badgeColor: string;
 }
