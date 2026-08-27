@@ -15,6 +15,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { WeeklyTask, AreaOfLife } from '../../types';
+import { sound } from '../../utils/sound';
 
 export const WeeklyPlannerView: React.FC = () => {
   const { weeklyTasks, toggleWeeklyTask, addWeeklyTask, deleteWeeklyTask } = useApp();
@@ -155,23 +156,43 @@ export const WeeklyPlannerView: React.FC = () => {
         {/* Statistical Analytics Bar & Telemetry Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           
-          {/* Left (Span 7): 7-Day Consistency Histogram */}
-          <div className="lg:col-span-7 p-4 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[10px]">
-            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#E2E8F0]">
-              <span className="text-[11px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-1.5">
-                <TrendingUp size={13} className="text-[#10B981]" />
-                Daily Velocity & Completion Spectrum
-              </span>
-              <span className="text-[10px] font-num text-[#71717A]">
-                Optimal Target: 85%+
-              </span>
+          {/* Left (Span 7): 7-Day Velocity & Completion Spectrum */}
+          <div className="lg:col-span-7 p-4 bg-gradient-to-b from-[#FFFFFF] to-[#F9FAFB] border border-[#E2E8F0] rounded-[12px] shadow-2xs">
+            {/* Spectrum Header */}
+            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[#E2E8F0]">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-[6px] bg-[#10B981]/10 border border-[#10B981]/25 flex items-center justify-center text-[#10B981]">
+                  <TrendingUp size={13} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <span className="text-[11.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider block leading-tight">
+                    Daily Velocity & Completion Spectrum
+                  </span>
+                  <span className="text-[9px] text-[#71717A] font-ui">
+                    Tactile Day Sprint Analyzer
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-[10px] font-ui text-[#71717A]">
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                  <span className="font-medium text-[#18181B]">85%+</span> Target
+                </span>
+                <span className="text-[#CBD5E1]">•</span>
+                <span className="font-num font-semibold text-[#18181B] bg-white px-1.5 py-0.5 rounded border border-[#E2E8F0]">
+                  {completedTasks}/{totalTasks} Done
+                </span>
+              </div>
             </div>
 
-            {/* 7-Day Histogram Bars */}
-            <div className="grid grid-cols-7 gap-2 items-end pt-2">
+            {/* 7-Day Spectrum Columns */}
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-2 items-end pt-1">
               {dayStats.map((d) => {
                 const isSelected = selectedSpotlightDay === d.index;
+                const isBonus = d.pct > 100 || (d.index === 0 && d.pct === 100);
                 const isFull = d.pct >= 100;
+                const isGood = d.pct >= 80 && d.pct < 100;
                 
                 return (
                   <div
@@ -179,30 +200,77 @@ export const WeeklyPlannerView: React.FC = () => {
                     onClick={() => {
                       setSelectedSpotlightDay(d.index);
                       if (activeViewMode !== 'spotlight') setActiveViewMode('spotlight');
+                      sound.playClick();
                     }}
-                    className={`flex flex-col items-center gap-1.5 cursor-pointer p-1.5 rounded-[6px] transition-all ${
-                      isSelected ? 'bg-white border border-[#18181B] shadow-sm' : 'hover:bg-white/80'
+                    className={`group flex flex-col items-center gap-1.5 cursor-pointer p-2 rounded-[8px] transition-all duration-200 select-none ${
+                      isSelected 
+                        ? 'bg-white border-2 border-[#18181B] shadow-sm -translate-y-1 ring-2 ring-[#18181B]/5' 
+                        : 'bg-white/80 hover:bg-white border border-[#E2E8F0] hover:border-[#CBD5E1] hover:-translate-y-0.5 shadow-2xs'
                     }`}
                   >
-                    <span className="text-[10px] font-num font-bold text-[#18181B]">
-                      {d.displayPct}
-                    </span>
-
-                    {/* Vertical Bar Container */}
-                    <div className="w-full bg-[#E2E8F0] h-[52px] rounded-[4px] relative overflow-hidden flex items-end">
-                      <div
-                        className={`w-full rounded-[3px] transition-all duration-300 ${
-                          isFull ? 'bg-[#10B981]' : isSelected ? 'bg-[#18181B]' : 'bg-[#71717A]'
-                        }`}
-                        style={{ height: `${Math.min(100, Math.max(12, d.pct))}%` }}
-                      />
+                    {/* Top Metric Strip */}
+                    <div className="flex flex-col items-center gap-0.5 w-full">
+                      <span className={`text-[11px] font-num font-bold tabular-nums transition-colors ${
+                        isBonus
+                          ? 'text-[#10B981]'
+                          : isSelected
+                            ? 'text-[#18181B]'
+                            : 'text-[#18181B]'
+                      }`}>
+                        {d.displayPct}
+                      </span>
+                      <span className="text-[8.5px] font-num text-[#71717A] bg-[#F1F5F9] px-1 py-0.2 rounded font-medium">
+                        {d.done}/{d.total}
+                      </span>
                     </div>
 
-                    <span className={`text-[10px] font-ui font-semibold uppercase ${
-                      isSelected ? 'text-[#18181B]' : 'text-[#71717A]'
-                    }`}>
-                      {d.short}
-                    </span>
+                    {/* Vertical Spectrum Bar Container */}
+                    <div className="w-full bg-[#F1F5F9] h-[64px] rounded-[5px] relative overflow-hidden flex items-end p-0.5 border border-[#E2E8F0]/70">
+                      {/* 85% Target Threshold Guide */}
+                      <div 
+                        className="absolute left-0 right-0 border-b border-dashed border-[#CBD5E1] pointer-events-none z-10 opacity-70"
+                        style={{ bottom: '85%' }}
+                        title="Optimal Target: 85%"
+                      />
+
+                      {/* Dynamic Height Gauge */}
+                      <div
+                        className={`w-full rounded-[3px] transition-all duration-500 ease-out flex flex-col justify-between ${
+                          isBonus
+                            ? 'bg-gradient-to-t from-[#059669] to-[#10B981] shadow-xs'
+                            : isFull
+                              ? 'bg-[#10B981]'
+                              : isSelected
+                                ? 'bg-[#18181B]'
+                                : isGood
+                                  ? 'bg-zinc-700'
+                                  : 'bg-[#71717A]'
+                        }`}
+                        style={{ height: `${Math.min(100, Math.max(12, d.pct))}%` }}
+                      >
+                        {/* Glowing Cap Tip for Top Performers */}
+                        {(isFull || isBonus) && (
+                          <div className="w-full h-[3px] bg-[#6EE7B7] rounded-t-[3px] opacity-90" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom Day & Date Label */}
+                    <div className="flex flex-col items-center gap-0.5 w-full pt-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          isFull ? 'bg-[#10B981]' : d.pct > 0 ? 'bg-[#F59E0B]' : 'bg-[#CBD5E1]'
+                        }`} />
+                        <span className={`text-[10px] font-ui font-bold uppercase tracking-wider ${
+                          isSelected ? 'text-[#18181B]' : 'text-[#71717A] group-hover:text-[#18181B]'
+                        }`}>
+                          {d.short}
+                        </span>
+                      </div>
+                      <span className="text-[8.5px] font-num text-[#A1A1AA]">
+                        {d.date.split('.')[0]}.{d.date.split('.')[1]}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
