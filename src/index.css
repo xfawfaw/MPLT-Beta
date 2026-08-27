@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+@theme {
+  --color-canvas: #F9FAFB;
+  --color-surface: #FFFFFF;
+  --color-charcoal: #18181B;
+  --color-steel: #71717A;
+  --color-border: #E2E8F0;
+  --color-growth: #10B981;
+  --color-rose: #E11D48;
+
+  --color-background: #F9FAFB;
+  --color-foreground: #18181B;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #18181B;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #18181B;
+  --color-primary: #18181B;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F4F4F5;
+  --color-secondary-foreground: #18181B;
+  --color-muted: #F4F4F5;
+  --color-muted-foreground: #71717A;
+  --color-accent: #F4F4F5;
+  --color-accent-foreground: #18181B;
+  --color-destructive: #E11D48;
+  --color-destructive-foreground: #FFFFFF;
+  --color-input: #E2E8F0;
+  --color-ring: #18181B;
+}
+
 @layer base {
   :root {
     --canvas: #F9FAFB;
