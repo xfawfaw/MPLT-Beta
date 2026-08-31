@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Plus, 
@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import { BudgetConfig } from '../../types';
 import { sound } from '../../utils/sound';
+import { dateUtils } from '../../utils/date';
 
 export const MoneyTrackerView: React.FC = () => {
   const { budget, setBudgetConfig, transactions, addTransaction, deleteTransaction } = useApp();
 
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [txDate, setTxDate] = useState('2026-02-27');
+  const [txDate, setTxDate] = useState(today.todayISO);
   const [txDesc, setTxDesc] = useState('');
   const [txBucket, setTxBucket] = useState<'Needs' | 'Wants' | 'Savings'>('Needs');
   const [txAmount, setTxAmount] = useState<number>(250000);
@@ -54,9 +56,9 @@ export const MoneyTrackerView: React.FC = () => {
   const isWantsUnder = wantsSpent <= wantsLimit;
   const isSavingsMet = savingsActual >= savingsGoal;
 
-  // Safe daily spend calculation (assuming 4 days left in month)
+  // Safe daily spend calculation (dynamic based on remaining days in month)
   const remainingWantsBudget = Math.max(0, wantsLimit - wantsSpent);
-  const safeDailySpend = Math.round(remainingWantsBudget / 4);
+  const safeDailySpend = Math.round(remainingWantsBudget / today.remainingDaysInMonth);
 
   // Preset switchers
   const handlePresetSelect = (preset: BudgetConfig['mode']) => {

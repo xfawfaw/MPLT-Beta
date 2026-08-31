@@ -20,35 +20,42 @@ import {
 } from 'lucide-react';
 import { AreaOfLife, Habit } from '../../types';
 import { sound } from '../../utils/sound';
+import { dateUtils } from '../../utils/date';
 
 export const HabitMatrixView: React.FC = () => {
   const { habits, toggleHabitLog, addHabit, deleteHabit } = useApp();
   
-  const selectedMonth = 'JANUARY 2026';
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
+  const selectedMonth = today.monthName;
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState<AreaOfLife>('Health');
   const [newTimeOfDay, setNewTimeOfDay] = useState<Habit['timeOfDay']>('Morning');
   
-  // View mode: 'table' (31-day ledger) | 'stack' (routine blocks)
+  // View mode: 'table' (monthly ledger) | 'stack' (routine blocks)
   const [viewMode, setViewMode] = useState<'table' | 'stack'>('table');
 
   // Interactive chart state
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [activeVelocityFilter, setActiveVelocityFilter] = useState<'all' | AreaOfLife>('all');
 
-  // Days in month (31 days for January)
-  const totalDays = 31;
+  // Days in month
+  const totalDays = today.daysInMonth;
   const daysArray = useMemo(() => Array.from({ length: totalDays }, (_, i) => i + 1), [totalDays]);
 
   // Weeks grouping
-  const weekGroups = [
-    { name: 'WEEK 1', start: 1, end: 7 },
-    { name: 'WEEK 2', start: 8, end: 14 },
-    { name: 'WEEK 3', start: 15, end: 21 },
-    { name: 'WEEK 4', start: 22, end: 28 },
-    { name: 'WEEK 5', start: 29, end: 31 },
-  ];
+  const weekGroups = useMemo(() => {
+    const groups = [
+      { name: 'WEEK 1', start: 1, end: 7 },
+      { name: 'WEEK 2', start: 8, end: 14 },
+      { name: 'WEEK 3', start: 15, end: 21 },
+      { name: 'WEEK 4', start: 22, end: 28 },
+    ];
+    if (totalDays > 28) {
+      groups.push({ name: 'WEEK 5', start: 29, end: totalDays });
+    }
+    return groups;
+  }, [totalDays]);
 
   // Filtered habits for velocity analysis
   const filteredHabits = useMemo(() => {

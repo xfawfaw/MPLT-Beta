@@ -17,12 +17,14 @@ import {
 } from 'lucide-react';
 import { WeeklyTask, AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
+import { dateUtils } from '../../utils/date';
 
 export const WeeklyPlannerView: React.FC = () => {
   const { weeklyTasks, toggleWeeklyTask, addWeeklyTask, deleteWeeklyTask } = useApp();
 
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [activeViewMode, setActiveViewMode] = useState<'grid' | 'spotlight' | 'agenda'>('grid');
-  const [selectedSpotlightDay, setSelectedSpotlightDay] = useState<number>(3); // Default Thursday (26.02)
+  const [selectedSpotlightDay, setSelectedSpotlightDay] = useState<number>(today.dayOfWeekIndex); // Default to today
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [activeDayModal, setActiveDayModal] = useState<number | null>(null);
   
@@ -32,15 +34,13 @@ export const WeeklyPlannerView: React.FC = () => {
   const [newTaskCategory, setNewTaskCategory] = useState<AreaOfLife>('Work');
   const [newTaskTimeEst, setNewTaskTimeEst] = useState('45m');
 
-  const daysConfig: { index: number; name: WeeklyTask['dayName']; date: string; short: string }[] = [
-    { index: 0, name: 'Monday', date: '23.02.2026', short: 'Mon' },
-    { index: 1, name: 'Tuesday', date: '24.02.2026', short: 'Tue' },
-    { index: 2, name: 'Wednesday', date: '25.02.2026', short: 'Wed' },
-    { index: 3, name: 'Thursday', date: '26.02.2026', short: 'Thu' },
-    { index: 4, name: 'Friday', date: '27.02.2026', short: 'Fri' },
-    { index: 5, name: 'Saturday', date: '28.02.2026', short: 'Sat' },
-    { index: 6, name: 'Sunday', date: '01.03.2026', short: 'Sun' },
-  ];
+  const daysConfig = useMemo(() => today.sprintDays.map(d => ({
+    index: d.index,
+    name: d.name,
+    date: d.dateStr,
+    short: d.short,
+    isToday: d.isToday
+  })), [today]);
 
   // Overall calculations
   const totalTasks = weeklyTasks.length;
@@ -103,7 +103,7 @@ export const WeeklyPlannerView: React.FC = () => {
             <div className="flex items-center gap-3 mt-1.5 flex-wrap">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[6px] text-[12px] font-medium font-ui text-[#18181B]">
                 <Calendar size={13} className="text-[#71717A]" />
-                <span>Week of Feb 23, 2026 — Mar 01, 2026</span>
+                <span>Sprint Week of {today.sprintWeekRangeStr}</span>
               </div>
               <div className="flex items-center gap-1">
                 <button className="p-1.5 border border-[#E2E8F0] rounded-[4px] bg-white hover:bg-[#F4F4F5] text-[#18181B]">

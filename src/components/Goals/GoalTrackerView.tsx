@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Trophy, 
@@ -22,10 +22,12 @@ import {
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
+import { dateUtils } from '../../utils/date';
 
 export const GoalTrackerView: React.FC = () => {
   const { goals, toggleGoalStatus, updateGoalProgress, toggleGoalMilestone, addExp } = useApp();
 
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [selectedArea, setSelectedArea] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -144,7 +146,7 @@ export const GoalTrackerView: React.FC = () => {
               <span>2026 Countdown</span>
             </div>
             <div className="text-[18px] font-num font-bold text-[#18181B]">
-              309 Days <span className="text-[11px] font-ui text-[#71717A]">Remaining</span>
+              {today.daysRemainingInYear} Days <span className="text-[11px] font-ui text-[#71717A]">Remaining</span>
             </div>
           </div>
 

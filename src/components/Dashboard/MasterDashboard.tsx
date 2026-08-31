@@ -17,6 +17,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
+import { dateUtils } from '../../utils/date';
 
 export const MasterDashboard: React.FC = () => {
   const { 
@@ -33,8 +34,10 @@ export const MasterDashboard: React.FC = () => {
     setCurrentTab
   } = useApp();
 
-  // 1. Calculate Today Habit Completion (e.g. for day 26 or current active habits)
-  const currentDayNum = 26; // Simulated 26th Feb
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
+
+  // 1. Calculate Today Habit Completion (e.g. for current active day of month)
+  const currentDayNum = today.dayOfMonth;
   const habitsDoneCount = habits.filter(h => !!h.logs[currentDayNum]).length;
   const habitCompletionRate = habits.length > 0 
     ? ((habitsDoneCount / habits.length) * 100).toFixed(1) 
@@ -60,7 +63,7 @@ export const MasterDashboard: React.FC = () => {
   const totalSpent = needsSpent + wantsSpent;
   const spentPercent = totalIncome > 0 ? Math.round((totalSpent / totalIncome) * 100) : 32;
   const isUnderBudget = spentPercent <= (budget.needsRatio + budget.wantsRatio);
-  const remainingDaysInMonth = 4;
+  const remainingDaysInMonth = today.remainingDaysInMonth;
   const safeDailyBurn = remainingDaysInMonth > 0 
     ? Math.max(0, Math.round(((totalIncome * (budget.wantsRatio / 100)) - wantsSpent) / remainingDaysInMonth))
     : 0;
@@ -193,8 +196,8 @@ export const MasterDashboard: React.FC = () => {
               SYSTEM VELOCITY & TELEMETRY
             </h2>
           </div>
-          <span className="text-[11px] text-[#71717A] font-num">
-            OPERATIONAL SPRINT • 26.02.2026
+          <span className="text-[11px] text-[#71717A] font-num font-semibold">
+            OPERATIONAL LOG • {today.formattedDisplay.toUpperCase()}
           </span>
         </div>
 
