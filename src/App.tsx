@@ -13,6 +13,8 @@ import { ExpToast } from './components/Common/ExpToast';
 import { CommandPalette } from './components/Common/CommandPalette';
 import { BackupModal } from './components/Common/BackupModal';
 
+import { motion, AnimatePresence } from 'framer-motion';
+
 export const AppContent: React.FC = () => {
   const { currentTab } = useApp();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -39,15 +41,25 @@ export const AppContent: React.FC = () => {
         onOpenBackup={() => setIsBackupModalOpen(true)}
       />
 
-      {/* Main Workspace Container */}
-      <main className="flex-1 pb-16">
-        {currentTab === 'dashboard' && <MasterDashboard />}
-        {currentTab === 'habits' && <HabitMatrixView />}
-        {currentTab === 'weekly' && <WeeklyPlannerView />}
-        {currentTab === 'tasks' && <TaskManagerView />}
-        {currentTab === 'goals' && <GoalTrackerView />}
-        {currentTab === 'finance' && <MoneyTrackerView />}
-        {currentTab === 'yearly' && <YearlyStatsView />}
+      {/* Main Workspace Container with Smooth Spring Transitions */}
+      <main className="flex-1 pb-16 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentTab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {currentTab === 'dashboard' && <MasterDashboard />}
+            {currentTab === 'habits' && <HabitMatrixView />}
+            {currentTab === 'weekly' && <WeeklyPlannerView />}
+            {currentTab === 'tasks' && <TaskManagerView />}
+            {currentTab === 'goals' && <GoalTrackerView />}
+            {currentTab === 'finance' && <MoneyTrackerView />}
+            {currentTab === 'yearly' && <YearlyStatsView />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Floating System Modals & Telemetry Toasts */}

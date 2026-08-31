@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -72,7 +73,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     if (!muted) sound.playPop();
   };
 
-  // Build command items list
   const commands: CommandItem[] = [
     // Navigation
     {
@@ -102,156 +102,151 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     {
       id: 'nav-tasks',
       title: 'Go to Task Manager',
-      subtitle: 'Table Ledger, Kanban & Priority Matrix',
+      subtitle: 'Workload & Due Date Tracker',
       category: 'Navigation',
       icon: CheckSquare,
       action: () => { setCurrentTab('tasks'); sound.playClick(); onClose(); }
     },
     {
       id: 'nav-goals',
-      title: 'Go to Goal Tracker',
-      subtitle: '6 Areas of Life Vision Cards & Milestones',
+      title: 'Go to Strategic Goals',
+      subtitle: 'Long-term Milestones & Vision',
       category: 'Navigation',
       icon: Target,
       action: () => { setCurrentTab('goals'); sound.playClick(); onClose(); }
     },
     {
       id: 'nav-finance',
-      title: 'Go to Finance Workstation',
-      subtitle: 'Cash Flow & 50/30/20 Transaction Ledger',
+      title: 'Go to Finance Hub',
+      subtitle: '50/30/20 Budget Ledger & Burn Rate',
       category: 'Navigation',
       icon: Wallet,
       action: () => { setCurrentTab('finance'); sound.playClick(); onClose(); }
     },
     {
       id: 'nav-yearly',
-      title: 'Go to Yearly Statistics',
-      subtitle: '365-Day Discipline Heatmap & Annual Retrospective',
+      title: 'Go to Yearly Analytics',
+      subtitle: '365-Day Heatmap & Trajectory',
       category: 'Navigation',
       icon: BarChart3,
       action: () => { setCurrentTab('yearly'); sound.playClick(); onClose(); }
     },
 
-    // Habits (Today Quick Check)
-    ...habits.map(h => {
-      const isChecked = !!h.logs[today.dayOfMonth];
-      return {
-        id: `habit-${h.id}`,
-        title: `${isChecked ? 'Uncheck' : 'Check'} Today's Habit: ${h.title}`,
-        subtitle: `${h.category} • Day ${today.dayOfMonth} • +${h.expReward} EXP`,
-        category: 'Habits' as const,
-        icon: isChecked ? Check : Zap,
-        action: () => {
-          toggleHabitLog(h.id, today.dayOfMonth);
-          sound.playPop();
-          onClose();
-        }
-      };
-    }),
-
-    // Weekly Tasks (Quick Toggle)
-    ...weeklyTasks.slice(0, 6).map(t => {
-      return {
-        id: `task-${t.id}`,
-        title: `${t.isCompleted ? 'Reopen' : 'Complete'} Sprint Task: ${t.title}`,
-        subtitle: `${t.dayName} • ${t.category} • +${t.expReward} EXP`,
-        category: 'Tasks' as const,
-        icon: t.isCompleted ? Check : CheckSquare,
-        action: () => {
-          toggleWeeklyTask(t.id);
-          sound.playPop();
-          onClose();
-        }
-      };
-    }),
-
-    // General Tasks (Quick Toggle)
-    ...tasks.slice(0, 4).map(t => {
-      const isDone = t.status === 'Completed';
-      return {
-        id: `gen-task-${t.id}`,
-        title: `${isDone ? 'Reopen' : 'Complete'} Task: ${t.title}`,
-        subtitle: `${t.category} • Priority: ${t.priority} • +${t.expReward} EXP`,
-        category: 'Tasks' as const,
-        icon: isDone ? Check : CheckSquare,
-        action: () => {
-          toggleTaskStatus(t.id);
-          sound.playPop();
-          onClose();
-        }
-      };
-    }),
-
-    // Strategic Goals (Quick Toggle)
-    ...goals.slice(0, 4).map(g => {
-      const isAchieved = g.status === 'Achieved';
-      return {
-        id: `goal-${g.id}`,
-        title: `${isAchieved ? 'Reopen' : 'Achieve'} Goal: ${g.title}`,
-        subtitle: `${g.areaOfLife} • ${g.targetMetric} • +150 EXP`,
-        category: 'Goals' as const,
-        icon: isAchieved ? Check : Target,
-        action: () => {
-          toggleGoalStatus(g.id);
-          sound.playPop();
-          onClose();
-        }
-      };
-    }),
-
-    // System Commands
+    // System
+    {
+      id: 'sys-backup',
+      title: 'Backup & Restore Data',
+      subtitle: 'Export JSON/CSV or import snapshot',
+      category: 'System',
+      icon: Download,
+      action: () => { onOpenBackup(); onClose(); }
+    },
     {
       id: 'sys-sound',
-      title: `${isMuted ? 'Unmute' : 'Mute'} Audio Feedback`,
-      subtitle: 'Mechanical click and game sound effects',
+      title: isMuted ? 'Unmute Audio Telemetry' : 'Mute Audio Telemetry',
+      subtitle: 'Toggle tactile UI sound effects',
       category: 'System',
       icon: isMuted ? VolumeX : Volume2,
       action: () => { toggleSoundMute(); onClose(); }
     },
     {
-      id: 'sys-backup',
-      title: 'Export / Import System Backup',
-      subtitle: 'JSON backup & CSV financial export',
-      category: 'System',
-      icon: Download,
-      action: () => { onClose(); onOpenBackup(); }
-    },
-    {
       id: 'sys-reset',
       title: 'Reset All Data to Default',
-      subtitle: 'Clear local state and restore demo configuration',
+      subtitle: 'Wipe local data and load default state',
       category: 'System',
       icon: RotateCcw,
       action: () => {
-        if (window.confirm('Reset all demo data to default state?')) {
+        if (confirm('Are you sure you want to reset all data to default? This cannot be undone.')) {
           resetAllData();
-          sound.playClick();
           onClose();
         }
       }
-    }
+    },
   ];
 
+  // Quick Action: Today's habits (toggle in place)
+  habits.forEach(habit => {
+    const isDone = !!habit.logs[today.dayOfMonth];
+    commands.push({
+      id: `habit-${habit.id}`,
+      title: `Habit: ${habit.title}`,
+      subtitle: isDone ? `Completed for today (${today.dayOfMonth})` : `Pending today — Click to complete (+${habit.expReward} EXP)`,
+      category: 'Habits',
+      icon: isDone ? Check : CalendarCheck2,
+      action: () => {
+        toggleHabitLog(habit.id, today.dayOfMonth);
+        onClose();
+      }
+    });
+  });
+
+  // Quick Action: Sprint tasks
+  weeklyTasks.slice(0, 8).forEach(task => {
+    commands.push({
+      id: `wtask-${task.id}`,
+      title: `Sprint [${task.dayName}]: ${task.title}`,
+      subtitle: `${task.priority} Priority • ${task.category} • ${task.isCompleted ? 'Done' : 'Pending'} (+${task.expReward} EXP)`,
+      category: 'Tasks',
+      icon: task.isCompleted ? Check : Zap,
+      action: () => {
+        toggleWeeklyTask(task.id);
+        onClose();
+      }
+    });
+  });
+
+  // Quick Action: General Tasks
+  tasks.filter(t => t.status !== 'Completed').slice(0, 6).forEach(task => {
+    commands.push({
+      id: `task-${task.id}`,
+      title: `Task: ${task.title}`,
+      subtitle: `Due: ${task.dueDate} • ${task.priority} • ${task.status} (+${task.expReward} EXP)`,
+      category: 'Tasks',
+      icon: CheckSquare,
+      action: () => {
+        toggleTaskStatus(task.id);
+        onClose();
+      }
+    });
+  });
+
+  // Quick Action: Goals
+  goals.filter(g => g.status !== 'Achieved').forEach(goal => {
+    commands.push({
+      id: `goal-${goal.id}`,
+      title: `Goal: ${goal.title}`,
+      subtitle: `${goal.areaOfLife} • ${goal.progressPercent}% • Target: ${goal.targetMetric}`,
+      category: 'Goals',
+      icon: Target,
+      action: () => {
+        toggleGoalStatus(goal.id);
+        onClose();
+      }
+    });
+  });
+
   // Filter commands by search query
-  const filteredCommands = commands.filter(c => 
-    c.title.toLowerCase().includes(query.toLowerCase()) || 
-    (c.subtitle && c.subtitle.toLowerCase().includes(query.toLowerCase())) ||
-    c.category.toLowerCase().includes(query.toLowerCase())
-  );
+  const filteredCommands = useMemo(() => {
+    if (!query.trim()) return commands;
+    const lower = query.toLowerCase();
+    return commands.filter(cmd => 
+      cmd.title.toLowerCase().includes(lower) || 
+      cmd.subtitle?.toLowerCase().includes(lower) ||
+      cmd.category.toLowerCase().includes(lower)
+    );
+  }, [query, commands]);
 
   // Keyboard navigation
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
+    if (!isOpen) return;
 
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedIndex(prev => (prev + 1) % (filteredCommands.length || 1));
-        sound.playClick();
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setSelectedIndex(prev => (prev - 1 + filteredCommands.length) % (filteredCommands.length || 1));
-        sound.playClick();
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filteredCommands[selectedIndex]) {
@@ -267,32 +262,39 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, filteredCommands, selectedIndex, onClose]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/50 p-4 animate-in fade-in duration-100">
-      <div 
-        className="bg-white border border-[#E2E8F0] rounded-[12px] max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[480px] animate-in zoom-in-95 duration-100"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Search Input Bar */}
-        <div className="p-3.5 border-b border-[#E2E8F0] flex items-center gap-3 bg-[#F9FAFB]">
-          <Search size={16} className="text-[#71717A]" />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Type a command or search (e.g. 'habit', 'task', 'finance')..."
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
-            className="w-full bg-transparent text-[13px] font-ui text-[#18181B] focus:outline-none placeholder:text-[#A1A1AA]"
-          />
-          <kbd className="text-[10px] font-num px-1.5 py-0.5 rounded bg-white border border-[#E2E8F0] text-[#71717A]">
-            ESC
-          </kbd>
-        </div>
+    <AnimatePresence>
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/50 p-4"
+          onClick={onClose}
+        >
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.96, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -8 }}
+            transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+            className="bg-white border border-[#E2E8F0] rounded-[12px] max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[480px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Input Bar */}
+            <div className="p-3.5 border-b border-[#E2E8F0] flex items-center gap-3 bg-[#F9FAFB]">
+              <Search size={16} className="text-[#71717A]" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Type a command or search (e.g. 'habit', 'task', 'finance')..."
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setSelectedIndex(0);
+                }}
+                className="w-full bg-transparent text-[13px] font-ui text-[#18181B] focus:outline-none placeholder:text-[#A1A1AA]"
+              />
+              <kbd className="text-[10px] font-num px-1.5 py-0.5 rounded bg-white border border-[#E2E8F0] text-[#71717A]">
+                ESC
+              </kbd>
+            </div>
 
         {/* Command Items List */}
         <div className="p-2 overflow-y-auto flex-1 space-y-1">
@@ -361,7 +363,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
           <span className="font-ui font-medium text-[#18181B]">MPLT Quick-Command</span>
         </div>
 
-      </div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };
