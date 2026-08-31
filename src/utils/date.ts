@@ -37,14 +37,13 @@ export const dateUtils = {
    * Get harmonized today information
    */
   getTodayInfo(): TodayInfo {
-    // We synchronize the baseline operational calendar to 2026
-    const year = 2026;
-    // Anchor to February (month 1 in 0-indexed JS Date) with active sprint
-    const monthIndex = 1; // February
-    const dayOfMonth = 26; // 26th Feb baseline Thursday
-
-    const date = new Date(year, monthIndex, dayOfMonth);
-    const dayOfWeekIndex = (date.getDay() + 6) % 7; // 0 = Mon, 3 = Thu, 6 = Sun
+    // 100% Dynamic Real-Time Clock
+    const now = new Date();
+    const year = now.getFullYear();
+    const monthIndex = now.getMonth(); // 0-11
+    const dayOfMonth = now.getDate(); // 1-31
+    const date = now;
+    const dayOfWeekIndex = (date.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
 
     const monthNames = [
       'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',

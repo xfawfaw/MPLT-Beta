@@ -23,10 +23,12 @@ import {
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
+import { dateUtils } from '../../utils/date';
 
 export const YearlyStatsView: React.FC = () => {
   const { profile, habits, tasks, goals, budget, transactions, addExp } = useApp();
 
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [hoveredCell, setHoveredCell] = useState<{
     dateStr: string;
     dayOfYear: number;
@@ -62,7 +64,7 @@ export const YearlyStatsView: React.FC = () => {
   // Generate 365 Days Grid Data (52 weeks x 7 days)
   const heatmapData = useMemo(() => {
     const days = [];
-    const startDate = new Date(2026, 0, 1);
+    const startDate = new Date(today.year, 0, 1);
     
     // Calculate live habit logs
     const febLogs = habits.reduce((acc, h) => {
@@ -98,7 +100,7 @@ export const YearlyStatsView: React.FC = () => {
       }
 
       // Format date string
-      const dateStr = `${dateNum} ${monthsShort[monthIdx]} 2026`;
+      const dateStr = `${dateNum} ${monthsShort[monthIdx]} ${today.year}`;
       const tasksDone = Math.floor((completionPct / 100) * 4) + 1;
       const exp = Math.round(completionPct * 1.5 + tasksDone * 15);
 
@@ -269,7 +271,7 @@ export const YearlyStatsView: React.FC = () => {
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2.5 h-2.5 rounded-full bg-[#18181B]" />
               <h1 className="text-[22px] sm:text-[24px] font-bold text-[#18181B] font-ui tracking-tight">
-                YEARLY STATISTICS — 2026 ANNUAL OPERATIONS RETROSPECTIVE
+                YEARLY STATISTICS — {today.year} ANNUAL OPERATIONS RETROSPECTIVE
               </h1>
             </div>
             <p className="text-[12px] text-[#71717A] font-ui">
