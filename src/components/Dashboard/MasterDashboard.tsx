@@ -82,21 +82,38 @@ export const MasterDashboard: React.FC = () => {
     return null;
   }, [pendingWeeklyTasks, tasks]);
 
-  // 6. 6-Domain Life Balance & Harmony Scores
+  // 6. 6-Domain Life Balance & Harmony Scores (Multi-source integration)
   const domainLifeBalance = useMemo(() => {
     const domains: AreaOfLife[] = ['Health', 'Work', 'Money', 'Family', 'Personal Growth', 'Spirituality'];
     return domains.map(domain => {
-      // Habit score in domain
+      // Habit score in domain (for current day)
       const domainHabits = habits.filter(h => h.category === domain);
       const habitsCompleted = domainHabits.filter(h => !!h.logs[currentDayNum]).length;
-      const habitScore = domainHabits.length > 0 ? (habitsCompleted / domainHabits.length) * 100 : 80;
+      const habitScore = domainHabits.length > 0 ? (habitsCompleted / domainHabits.length) * 100 : 75;
 
-      // Task score in domain
-      const domainTasks = weeklyTasks.filter(t => t.category === domain);
-      const tasksCompleted = domainTasks.filter(t => t.isCompleted).length;
-      const taskScore = domainTasks.length > 0 ? (tasksCompleted / domainTasks.length) * 100 : 75;
+      // Weekly tasks score in domain
+      const domainWeeklyTasks = weeklyTasks.filter(t => t.category === domain);
+      const weeklyTasksCompleted = domainWeeklyTasks.filter(t => t.isCompleted).length;
+      const weeklyScore = domainWeeklyTasks.length > 0 ? (weeklyTasksCompleted / domainWeeklyTasks.length) * 100 : 80;
 
-      const overallHealth = Math.round((habitScore * 0.5) + (taskScore * 0.5));
+      // General tasks score in domain
+      const domainTasks = tasks.filter(t => t.category === domain);
+      const tasksCompleted = domainTasks.filter(t => t.status === 'Completed').length;
+      const taskScore = domainTasks.length > 0 ? (tasksCompleted / domainTasks.length) * 100 : 70;
+
+      // Goals score in domain
+      const domainGoals = goals.filter(g => g.areaOfLife === domain);
+      const goalsAvgProgress = domainGoals.length > 0 
+        ? Math.round(domainGoals.reduce((acc, g) => acc + g.progressPercent, 0) / domainGoals.length)
+        : 60;
+
+      const overallHealth = Math.round(
+        (habitScore * 0.35) + 
+        (weeklyScore * 0.35) + 
+        (taskScore * 0.15) + 
+        (goalsAvgProgress * 0.15)
+      );
+
       const statusText = overallHealth >= 80 ? 'Optimal' : overallHealth >= 60 ? 'Stable' : 'Needs Focus';
       const statusColor = overallHealth >= 80 ? 'text-[#10B981] bg-[#10B981]/10' : overallHealth >= 60 ? 'text-amber-700 bg-amber-50' : 'text-[#E11D48] bg-rose-50';
 
@@ -107,29 +124,78 @@ export const MasterDashboard: React.FC = () => {
         statusColor,
       };
     });
-  }, [habits, weeklyTasks, currentDayNum]);
+  }, [habits, weeklyTasks, tasks, goals, currentDayNum]);
 
-  // Category EXP Distribution
-  const categoryExpData: { name: AreaOfLife; value: number; color: string }[] = [
-    { name: 'Work', value: 450, color: '#18181B' },
-    { name: 'Health', value: 320, color: '#10B981' },
-    { name: 'Personal Growth', value: 280, color: '#71717A' },
-    { name: 'Money', value: 190, color: '#94A3B8' },
-    { name: 'Spirituality', value: 140, color: '#CBD5E1' },
-    { name: 'Family', value: 110, color: '#E2E8F0' },
-  ];
+  // Dynamic Category EXP Distribution based on live completed work
+  const categoryExpData = useMemo(() => {
+    const domainColors: Record<AreaOfLife, string> = {
+      'Work': '#18181B',
+      'Health': '#10B981',
+      'Personal Growth': '#71717A',
+      'Money': '#94A3B8',
+      'Spirituality': '#CBD5E1',
+      'Family': '#E2E8F0',
+    };
+
+    const domains: AreaOfLife[] = ['Work', 'Health', 'Personal Growth', 'Money', 'Spirituality', 'Family'];
+
+    return domains.map(domain => {
+      // Habits exp
+      const habitsExp = habits
+        .filter(h => h.category === domain)
+        .reduce((acc, h) => {
+          const doneDays = Object.values(h.logs).filter(Boolean).length;
+          return acc + (doneDays * h.expReward);
+        }, 0);
+
+      // Weekly tasks exp
+      const weeklyExp = weeklyTasks
+        .filter(t => t.category === domain && t.isCompleted)
+        .reduce((acc, t) => acc + t.expReward, 0);
+
+      // General tasks exp
+      const tasksExp = tasks
+        .filter(t => t.category === domain && t.status === 'Completed')
+        .reduce((acc, t) => acc + t.expReward, 0);
+
+      // Goal milestones exp
+      const goalsExp = goals
+        .filter(g => g.areaOfLife === domain)
+        .flatMap(g => g.milestones || [])
+        .filter(m => m.isCompleted)
+        .reduce((acc, m) => acc + m.expReward, 0);
+
+      const totalVal = Math.max(30, habitsExp + weeklyExp + tasksExp + goalsExp);
+
+      return {
+        name: domain,
+        value: totalVal,
+        color: domainColors[domain],
+      };
+    });
+  }, [habits, weeklyTasks, tasks, goals]);
+
   const totalCategoryExp = categoryExpData.reduce((acc, c) => acc + c.value, 0);
 
-  // Weekly 7-day groups
-  const days = [
-    { index: 0, name: 'Monday', date: '23.02', expected: '120%' },
-    { index: 1, name: 'Tuesday', date: '24.02', expected: '86%' },
-    { index: 2, name: 'Wednesday', date: '25.02', expected: '100%' },
-    { index: 3, name: 'Thursday', date: '26.02', expected: '80%' },
-    { index: 4, name: 'Friday', date: '27.02', expected: '83%' },
-    { index: 5, name: 'Saturday', date: '28.02', expected: '100%' },
-    { index: 6, name: 'Sunday', date: '01.03', expected: '40%' },
-  ];
+  // Dynamic Weekly 7-day groups from sprint days & weekly tasks
+  const days = useMemo(() => {
+    return today.sprintDays.map(d => {
+      const dayTasks = weeklyTasks.filter(t => t.dayIndex === d.index || t.dateStr === d.dateStr);
+      const done = dayTasks.filter(t => t.isCompleted).length;
+      const pct = dayTasks.length > 0 ? Math.round((done / dayTasks.length) * 100) : 0;
+      const isBonus = d.index === 0 && pct === 100;
+      return {
+        index: d.index,
+        name: d.name,
+        date: d.dateStr.split('.').slice(0, 2).join('.'),
+        expected: isBonus ? '120%' : `${pct}%`,
+        pct,
+        done,
+        total: dayTasks.length,
+        isToday: d.isToday,
+      };
+    });
+  }, [today, weeklyTasks]);
 
   const formatIDR = (val: number) => {
     return `Rp ${val.toLocaleString('id-ID')}`;

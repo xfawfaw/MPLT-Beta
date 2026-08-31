@@ -178,5 +178,36 @@ export const dateUtils = {
       sprintWeekRangeStr: currentSprint.sprintWeekRangeStr,
       sprintDays: currentSprint.sprintDays,
     };
+  },
+
+  /**
+   * Calculate humanized relative days left for a due date
+   */
+  getDaysLeft(dueDate: string, isCompleted: boolean) {
+    if (isCompleted) {
+      return { text: 'Resolved', color: 'text-[#10B981] bg-[#10B981]/10', isOverdue: false, isDueToday: false };
+    }
+    const now = new Date();
+    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+    const todayISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    
+    if (dueDate === todayISO) {
+      return { text: 'Due today', color: 'text-amber-700 bg-amber-50 border border-amber-200', isOverdue: false, isDueToday: true };
+    }
+    
+    const parts = dueDate.split('-').map(Number);
+    const targetDate = new Date(parts[0] || now.getFullYear(), (parts[1] || 1) - 1, parts[2] || 1);
+    const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffTime = targetDate.getTime() - currentDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      const overdueDays = Math.abs(diffDays);
+      return { text: `Overdue ${overdueDays}d`, color: 'text-[#E11D48] bg-rose-50 border border-rose-200', isOverdue: true, isDueToday: false };
+    }
+    if (diffDays === 1) {
+      return { text: 'Tomorrow', color: 'text-amber-700 bg-amber-50', isOverdue: false, isDueToday: false };
+    }
+    return { text: `${diffDays} days left`, color: 'text-[#71717A] bg-[#F9FAFB]', isOverdue: false, isDueToday: false };
   }
 };

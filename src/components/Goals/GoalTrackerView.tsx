@@ -18,14 +18,22 @@ import {
   BookOpen, 
   Moon, 
   Compass,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
 
 export const GoalTrackerView: React.FC = () => {
-  const { goals, toggleGoalStatus, updateGoalProgress, toggleGoalMilestone, addExp } = useApp();
+  const { 
+    goals, 
+    toggleGoalStatus, 
+    updateGoalProgress, 
+    toggleGoalMilestone, 
+    addGoal, 
+    deleteGoal 
+  } = useApp();
 
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [selectedArea, setSelectedArea] = useState<string>('all');
@@ -75,7 +83,22 @@ export const GoalTrackerView: React.FC = () => {
     if (!newTitle.trim()) return;
 
     sound.playPop();
-    addExp(50, `Created Strategic Goal: ${newTitle}`);
+    addGoal({
+      title: newTitle.trim(),
+      areaOfLife: newArea,
+      targetMetric: newTargetMetric.trim() || 'Target Metric',
+      reward: newReward.trim() || 'Achievement Reward',
+      deadline: newDeadline.trim() || '31 Des 2026',
+      quarterTarget: newQuarter,
+      whyStatement: newWhy.trim() || undefined,
+      status: 'In Progress',
+      progressPercent: 0,
+      milestones: [
+        { id: `m-${Date.now()}-1`, title: 'Define execution roadmap', isCompleted: false, expReward: 30 },
+        { id: `m-${Date.now()}-2`, title: 'First major benchmark reached', isCompleted: false, expReward: 40 },
+        { id: `m-${Date.now()}-3`, title: 'Final milestone & goal achieved', isCompleted: false, expReward: 50 },
+      ]
+    });
     setIsAddModalOpen(false);
     setNewTitle('');
     setNewTargetMetric('');
@@ -233,17 +256,32 @@ export const GoalTrackerView: React.FC = () => {
                     )}
                   </div>
 
-                  <button
-                    onClick={() => toggleGoalStatus(goal.id)}
-                    className={`flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-[4px] font-ui transition-colors ${
-                      isAchieved
-                        ? 'bg-[#10B981] text-white'
-                        : 'bg-[#F1F5F9] text-[#71717A] hover:bg-[#18181B] hover:text-white'
-                    }`}
-                  >
-                    <CheckCircle2 size={11} />
-                    <span>{isAchieved ? 'ACHIEVED (+150 EXP)' : 'IN PROGRESS'}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => toggleGoalStatus(goal.id)}
+                      className={`flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-[4px] font-ui transition-colors ${
+                        isAchieved
+                          ? 'bg-[#10B981] text-white'
+                          : 'bg-[#F1F5F9] text-[#71717A] hover:bg-[#18181B] hover:text-white'
+                      }`}
+                    >
+                      <CheckCircle2 size={11} />
+                      <span>{isAchieved ? 'ACHIEVED (+150 EXP)' : 'IN PROGRESS'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Delete strategic goal "${goal.title}"?`)) {
+                          deleteGoal(goal.id);
+                          sound.playClick();
+                        }
+                      }}
+                      className="p-1 text-[#A1A1AA] hover:text-[#E11D48] hover:bg-rose-50 rounded transition-colors"
+                      title="Delete Goal"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Title & Why Statement */}

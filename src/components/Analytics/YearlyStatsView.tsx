@@ -151,18 +151,40 @@ export const YearlyStatsView: React.FC = () => {
     return weeks;
   }, [heatmapData]);
 
-  // 6-Domain Life Balance Scores
+  // 6-Domain Life Balance Scores (Dynamically interconnected with state)
   const domainScores = useMemo(() => {
-    const areas: { area: AreaOfLife; icon: any; score: number; color: string; desc: string }[] = [
-      { area: 'Work', icon: Briefcase, score: 94, color: 'text-sky-600 bg-sky-50 border-sky-200', desc: 'Keystone Engine: 12 Sprints closed' },
-      { area: 'Health', icon: ShieldCheck, score: 88, color: 'text-emerald-600 bg-emerald-50 border-emerald-200', desc: '82 Running sessions, 100% nutrition' },
-      { area: 'Money', icon: DollarSign, score: 86, color: 'text-amber-600 bg-amber-50 border-amber-200', desc: '50/30/20 Allocation followed consistently' },
-      { area: 'Personal Growth', icon: BookOpen, score: 82, color: 'text-indigo-600 bg-indigo-50 border-indigo-200', desc: '6 Books read & summarized' },
-      { area: 'Spirituality', icon: Moon, score: 80, color: 'text-purple-600 bg-purple-50 border-purple-200', desc: 'Daily evening reflection & focus' },
-      { area: 'Family', icon: HeartHandshake, score: 78, color: 'text-rose-600 bg-rose-50 border-rose-200', desc: 'Growth Area: schedule dedicated weekends' },
+    const domainConfigs: { area: AreaOfLife; icon: any; color: string; desc: string }[] = [
+      { area: 'Work', icon: Briefcase, color: 'text-sky-600 bg-sky-50 border-sky-200', desc: 'Keystone Engine: Sprint & Project execution' },
+      { area: 'Health', icon: ShieldCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200', desc: 'Physical conditioning & daily habits' },
+      { area: 'Money', icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-200', desc: '50/30/20 Allocation & wealth accumulation' },
+      { area: 'Personal Growth', icon: BookOpen, color: 'text-indigo-600 bg-indigo-50 border-indigo-200', desc: 'Continuous learning & skill compounding' },
+      { area: 'Spirituality', icon: Moon, color: 'text-purple-600 bg-purple-50 border-purple-200', desc: 'Daily reflection, gratitude & spiritual anchors' },
+      { area: 'Family', icon: HeartHandshake, color: 'text-rose-600 bg-rose-50 border-rose-200', desc: 'Relationship bonds & family commitments' },
     ];
-    return areas;
-  }, []);
+
+    return domainConfigs.map(cfg => {
+      const dHabits = habits.filter(h => h.category === cfg.area);
+      const totalLogs = dHabits.reduce((acc, h) => acc + Object.values(h.logs).filter(Boolean).length, 0);
+      const possibleLogs = Math.max(1, dHabits.length * 28);
+      const habitScore = dHabits.length > 0 ? Math.round((totalLogs / possibleLogs) * 100) : 75;
+
+      const dTasks = tasks.filter(t => t.category === cfg.area);
+      const completedTasks = dTasks.filter(t => t.status === 'Completed').length;
+      const taskScore = dTasks.length > 0 ? Math.round((completedTasks / dTasks.length) * 100) : 70;
+
+      const dGoals = goals.filter(g => g.areaOfLife === cfg.area);
+      const goalsScore = dGoals.length > 0
+        ? Math.round(dGoals.reduce((acc, g) => acc + g.progressPercent, 0) / dGoals.length)
+        : 60;
+
+      const dynamicScore = Math.min(100, Math.max(40, Math.round(habitScore * 0.4 + taskScore * 0.3 + goalsScore * 0.3)));
+
+      return {
+        ...cfg,
+        score: dynamicScore,
+      };
+    });
+  }, [habits, tasks, goals]);
 
   // Annual Financial Ledger Aggregate
   const annualFinance = useMemo(() => {

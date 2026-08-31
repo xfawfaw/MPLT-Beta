@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Search, 
@@ -19,6 +19,7 @@ import {
   LucideIcon
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
+import { dateUtils } from '../../utils/date';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -30,7 +31,7 @@ interface CommandItem {
   id: string;
   title: string;
   subtitle?: string;
-  category: 'Navigation' | 'Habits' | 'Tasks' | 'System';
+  category: 'Navigation' | 'Habits' | 'Tasks' | 'Goals' | 'System';
   icon: LucideIcon;
   action: () => void;
 }
@@ -41,10 +42,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     toggleHabitLog, 
     weeklyTasks, 
     toggleWeeklyTask, 
+    tasks,
+    toggleTaskStatus,
+    goals,
+    toggleGoalStatus,
     setCurrentTab, 
     resetAllData 
   } = useApp();
 
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
@@ -128,15 +134,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
 
     // Habits (Today Quick Check)
     ...habits.map(h => {
-      const isChecked = !!h.logs[26];
+      const isChecked = !!h.logs[today.dayOfMonth];
       return {
         id: `habit-${h.id}`,
-        title: `${isChecked ? 'Uncheck' : 'Check'} Habit: ${h.title}`,
-        subtitle: `${h.category} • +${h.expReward} EXP`,
+        title: `${isChecked ? 'Uncheck' : 'Check'} Today's Habit: ${h.title}`,
+        subtitle: `${h.category} • Day ${today.dayOfMonth} • +${h.expReward} EXP`,
         category: 'Habits' as const,
         icon: isChecked ? Check : Zap,
         action: () => {
-          toggleHabitLog(h.id, 26);
+          toggleHabitLog(h.id, today.dayOfMonth);
           sound.playPop();
           onClose();
         }
@@ -144,15 +150,49 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     }),
 
     // Weekly Tasks (Quick Toggle)
-    ...weeklyTasks.slice(0, 8).map(t => {
+    ...weeklyTasks.slice(0, 6).map(t => {
       return {
         id: `task-${t.id}`,
-        title: `${t.isCompleted ? 'Reopen' : 'Complete'} Task: ${t.title}`,
+        title: `${t.isCompleted ? 'Reopen' : 'Complete'} Sprint Task: ${t.title}`,
         subtitle: `${t.dayName} • ${t.category} • +${t.expReward} EXP`,
         category: 'Tasks' as const,
         icon: t.isCompleted ? Check : CheckSquare,
         action: () => {
           toggleWeeklyTask(t.id);
+          sound.playPop();
+          onClose();
+        }
+      };
+    }),
+
+    // General Tasks (Quick Toggle)
+    ...tasks.slice(0, 4).map(t => {
+      const isDone = t.status === 'Completed';
+      return {
+        id: `gen-task-${t.id}`,
+        title: `${isDone ? 'Reopen' : 'Complete'} Task: ${t.title}`,
+        subtitle: `${t.category} • Priority: ${t.priority} • +${t.expReward} EXP`,
+        category: 'Tasks' as const,
+        icon: isDone ? Check : CheckSquare,
+        action: () => {
+          toggleTaskStatus(t.id);
+          sound.playPop();
+          onClose();
+        }
+      };
+    }),
+
+    // Strategic Goals (Quick Toggle)
+    ...goals.slice(0, 4).map(g => {
+      const isAchieved = g.status === 'Achieved';
+      return {
+        id: `goal-${g.id}`,
+        title: `${isAchieved ? 'Reopen' : 'Achieve'} Goal: ${g.title}`,
+        subtitle: `${g.areaOfLife} • ${g.targetMetric} • +150 EXP`,
+        category: 'Goals' as const,
+        icon: isAchieved ? Check : Target,
+        action: () => {
+          toggleGoalStatus(g.id);
           sound.playPop();
           onClose();
         }

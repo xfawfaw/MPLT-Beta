@@ -5,6 +5,7 @@ import {
   WeeklyTask, 
   TaskItem, 
   GoalItem, 
+  GoalMilestone,
   BudgetConfig, 
   TransactionItem 
 } from '../types';
@@ -43,6 +44,10 @@ interface AppContextType {
   toggleGoalStatus: (goalId: string) => void;
   updateGoalProgress: (goalId: string, progress: number) => void;
   toggleGoalMilestone: (goalId: string, milestoneId: string) => void;
+  addGoal: (goal: Omit<GoalItem, 'id'>) => void;
+  deleteGoal: (goalId: string) => void;
+  addGoalMilestone: (goalId: string, milestone: Omit<GoalMilestone, 'id'>) => void;
+  deleteGoalMilestone: (goalId: string, milestoneId: string) => void;
   
   setBudgetConfig: React.Dispatch<React.SetStateAction<BudgetConfig>>;
   addTransaction: (tx: Omit<TransactionItem, 'id'>) => void;
@@ -700,6 +705,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const addGoal = (goalData: Omit<GoalItem, 'id'>) => {
+    const newGoal: GoalItem = {
+      ...goalData,
+      id: `g-${Date.now()}`,
+      status: goalData.status || 'In Progress',
+      progressPercent: goalData.progressPercent || 0,
+      milestones: goalData.milestones || [],
+    };
+    setGoals(prev => [newGoal, ...prev]);
+    addExp(50, `Created Strategic Goal: ${newGoal.title}`);
+  };
+
+  const deleteGoal = (goalId: string) => {
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+  };
+
+  const addGoalMilestone = (goalId: string, milestoneData: Omit<GoalMilestone, 'id'>) => {
+    setGoals(prev =>
+      prev.map(g => {
+        if (g.id === goalId) {
+          const newMilestone: GoalMilestone = {
+            ...milestoneData,
+            id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          };
+          const updated = [...(g.milestones || []), newMilestone];
+          const completedCount = updated.filter(m => m.isCompleted).length;
+          const newPercent = updated.length > 0 ? Math.round((completedCount / updated.length) * 100) : 0;
+          return {
+            ...g,
+            milestones: updated,
+            progressPercent: newPercent,
+            status: newPercent >= 100 ? 'Achieved' : 'In Progress',
+          };
+        }
+        return g;
+      })
+    );
+    addExp(20, 'Goal Milestone Added');
+  };
+
+  const deleteGoalMilestone = (goalId: string, milestoneId: string) => {
+    setGoals(prev =>
+      prev.map(g => {
+        if (g.id === goalId && g.milestones) {
+          const updated = g.milestones.filter(m => m.id !== milestoneId);
+          const completedCount = updated.filter(m => m.isCompleted).length;
+          const newPercent = updated.length > 0 ? Math.round((completedCount / updated.length) * 100) : 0;
+          return {
+            ...g,
+            milestones: updated,
+            progressPercent: newPercent,
+            status: newPercent >= 100 ? 'Achieved' : 'In Progress',
+          };
+        }
+        return g;
+      })
+    );
+  };
+
   // Finance Actions
   const addTransaction = (tx: Omit<TransactionItem, 'id'>) => {
     const newTx: TransactionItem = {
@@ -753,6 +817,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleGoalStatus,
         updateGoalProgress,
         toggleGoalMilestone,
+        addGoal,
+        deleteGoal,
+        addGoalMilestone,
+        deleteGoalMilestone,
         setBudgetConfig: setBudget,
         addTransaction,
         deleteTransaction,

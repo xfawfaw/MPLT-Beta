@@ -15,10 +15,12 @@ import {
   Sparkles
 } from 'lucide-react';
 import { TaskItem, AreaOfLife } from '../../types';
+import { dateUtils } from '../../utils/date';
 
 export const TaskManagerView: React.FC = () => {
   const { tasks, toggleTaskStatus, addTask, deleteTask } = useApp();
 
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [viewMode, setViewMode] = useState<'table' | 'kanban' | 'matrix'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -30,7 +32,7 @@ export const TaskManagerView: React.FC = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState<AreaOfLife>('Work');
   const [newPriority, setNewPriority] = useState<TaskItem['priority']>('High');
-  const [newDueDate, setNewDueDate] = useState('2026-02-28');
+  const [newDueDate, setNewDueDate] = useState(today.todayISO);
   const [newNote, setNewNote] = useState('');
 
   // Calculations
@@ -38,8 +40,8 @@ export const TaskManagerView: React.FC = () => {
   const completedTasks = tasks.filter(t => t.status === 'Completed').length;
   const inProgressTasks = tasks.filter(t => t.status === 'In Progress').length;
   const notStartedTasks = tasks.filter(t => t.status === 'Not Started').length;
-  const dueTodayTasks = tasks.filter(t => t.dueDate === '2026-02-26').length;
-  const overdueTasks = tasks.filter(t => t.dueDate < '2026-02-26' && t.status !== 'Completed').length;
+  const dueTodayTasks = tasks.filter(t => t.dueDate === today.todayISO).length;
+  const overdueTasks = tasks.filter(t => t.dueDate < today.todayISO && t.status !== 'Completed').length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const totalAvailableExp = tasks.reduce((acc, t) => acc + t.expReward, 0);
 
@@ -53,11 +55,11 @@ export const TaskManagerView: React.FC = () => {
       const matchesStatus = filterStatus === 'all' || 
                             (filterStatus === 'completed' && task.status === 'Completed') ||
                             (filterStatus === 'pending' && task.status !== 'Completed') ||
-                            (filterStatus === 'today' && task.dueDate === '2026-02-26') ||
-                            (filterStatus === 'overdue' && task.dueDate < '2026-02-26' && task.status !== 'Completed');
+                            (filterStatus === 'today' && task.dueDate === today.todayISO) ||
+                            (filterStatus === 'overdue' && task.dueDate < today.todayISO && task.status !== 'Completed');
       return matchesSearch && matchesCategory && matchesPriority && matchesStatus;
     });
-  }, [tasks, searchQuery, filterCategory, filterPriority, filterStatus]);
+  }, [tasks, searchQuery, filterCategory, filterPriority, filterStatus, today]);
 
   // Categories metrics
   const categories: AreaOfLife[] = ['Health', 'Work', 'Money', 'Family', 'Personal Growth', 'Spirituality'];
@@ -95,13 +97,7 @@ export const TaskManagerView: React.FC = () => {
   };
 
   const getDaysLeft = (dueDate: string, isCompleted: boolean) => {
-    if (isCompleted) return { text: 'Resolved', color: 'text-[#10B981] bg-[#10B981]/10' };
-    const today = '2026-02-26';
-    if (dueDate === today) return { text: 'Due today', color: 'text-amber-700 bg-amber-50 border border-amber-200' };
-    if (dueDate < today) return { text: 'Overdue 13 days', color: 'text-[#E11D48] bg-rose-50 border border-rose-200' };
-    if (dueDate === '2026-02-28') return { text: '2 days left', color: 'text-[#18181B] bg-[#F1F5F9]' };
-    if (dueDate === '2026-03-15') return { text: '17 days left', color: 'text-[#71717A] bg-[#F9FAFB]' };
-    return { text: '51 days left', color: 'text-[#71717A] bg-[#F9FAFB]' };
+    return dateUtils.getDaysLeft(dueDate, isCompleted);
   };
 
   // Kanban groups
