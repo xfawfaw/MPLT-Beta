@@ -248,7 +248,10 @@ export const TaskManagerView: React.FC = () => {
             return (
               <button
                 key={cat.name}
-                onClick={() => setFilterCategory(isSelected ? 'all' : cat.name)}
+                onClick={() => {
+                  setFilterCategory(isSelected ? 'all' : cat.name);
+                  sound.playClick();
+                }}
                 className={`p-2.5 rounded-[6px] border text-left transition-all ${
                   isSelected 
                     ? 'bg-[#18181B] text-white border-[#18181B] shadow-sm' 

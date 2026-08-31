@@ -359,6 +359,7 @@ export const WeeklyPlannerView: React.FC = () => {
                     onClick={() => {
                       setSelectedSpotlightDay(d.index);
                       setActiveViewMode('spotlight');
+                      sound.playClick();
                     }}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] text-[11px] font-ui font-medium border transition-all ${
                       isSelected

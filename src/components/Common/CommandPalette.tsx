@@ -74,165 +74,184 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     if (!muted) sound.playPop();
   };
 
-  const commands: CommandItem[] = [
-    // Navigation
-    {
-      id: 'nav-dashboard',
-      title: 'Go to Master Dashboard',
-      subtitle: 'Overview & Mission Control',
-      category: 'Navigation',
-      icon: LayoutGrid,
-      action: () => { setCurrentTab('dashboard'); sound.playClick(); onClose(); }
-    },
-    {
-      id: 'nav-habits',
-      title: 'Go to Habit Matrix',
-      subtitle: '31-Day Habit Tracker & Velocity Curve',
-      category: 'Navigation',
-      icon: CalendarCheck2,
-      action: () => { setCurrentTab('habits'); sound.playClick(); onClose(); }
-    },
-    {
-      id: 'nav-weekly',
-      title: 'Go to Weekly To-Do',
-      subtitle: '7-Day Sprint Board & Day Spotlight',
-      category: 'Navigation',
-      icon: CalendarRange,
-      action: () => { setCurrentTab('weekly'); sound.playClick(); onClose(); }
-    },
-    {
-      id: 'nav-tasks',
-      title: 'Go to Task Manager',
-      subtitle: 'Workload & Due Date Tracker',
-      category: 'Navigation',
-      icon: CheckSquare,
-      action: () => { setCurrentTab('tasks'); sound.playClick(); onClose(); }
-    },
-    {
-      id: 'nav-goals',
-      title: 'Go to Strategic Goals',
-      subtitle: 'Long-term Milestones & Vision',
-      category: 'Navigation',
-      icon: Target,
-      action: () => { setCurrentTab('goals'); sound.playClick(); onClose(); }
-    },
-    {
-      id: 'nav-finance',
-      title: 'Go to Finance Hub',
-      subtitle: '50/30/20 Budget Ledger & Burn Rate',
-      category: 'Navigation',
-      icon: Wallet,
-      action: () => { setCurrentTab('finance'); sound.playClick(); onClose(); }
-    },
-    {
-      id: 'nav-yearly',
-      title: 'Go to Yearly Analytics',
-      subtitle: '365-Day Heatmap & Trajectory',
-      category: 'Navigation',
-      icon: BarChart3,
-      action: () => { setCurrentTab('yearly'); sound.playClick(); onClose(); }
-    },
-    {
-      id: 'nav-automations',
-      title: 'Go to Life Pipelines (Automations)',
-      subtitle: '[Locked in Beta v0.1] Flow Graph & Reactive Logic Rules Engine',
-      category: 'Navigation',
-      icon: Workflow,
-      action: () => { setCurrentTab('automations'); sound.playClick(); onClose(); }
-    },
+  const commands: CommandItem[] = useMemo(() => {
+    const list: CommandItem[] = [
+      // Navigation
+      {
+        id: 'nav-dashboard',
+        title: 'Go to Master Dashboard',
+        subtitle: 'Overview & Mission Control',
+        category: 'Navigation',
+        icon: LayoutGrid,
+        action: () => { setCurrentTab('dashboard'); sound.playClick(); onClose(); }
+      },
+      {
+        id: 'nav-habits',
+        title: 'Go to Habit Matrix',
+        subtitle: '31-Day Habit Tracker & Velocity Curve',
+        category: 'Navigation',
+        icon: CalendarCheck2,
+        action: () => { setCurrentTab('habits'); sound.playClick(); onClose(); }
+      },
+      {
+        id: 'nav-weekly',
+        title: 'Go to Weekly To-Do',
+        subtitle: '7-Day Sprint Board & Day Spotlight',
+        category: 'Navigation',
+        icon: CalendarRange,
+        action: () => { setCurrentTab('weekly'); sound.playClick(); onClose(); }
+      },
+      {
+        id: 'nav-tasks',
+        title: 'Go to Task Manager',
+        subtitle: 'Workload & Due Date Tracker',
+        category: 'Navigation',
+        icon: CheckSquare,
+        action: () => { setCurrentTab('tasks'); sound.playClick(); onClose(); }
+      },
+      {
+        id: 'nav-goals',
+        title: 'Go to Strategic Goals',
+        subtitle: 'Long-term Milestones & Vision',
+        category: 'Navigation',
+        icon: Target,
+        action: () => { setCurrentTab('goals'); sound.playClick(); onClose(); }
+      },
+      {
+        id: 'nav-finance',
+        title: 'Go to Finance Hub',
+        subtitle: '50/30/20 Budget Ledger & Burn Rate',
+        category: 'Navigation',
+        icon: Wallet,
+        action: () => { setCurrentTab('finance'); sound.playClick(); onClose(); }
+      },
+      {
+        id: 'nav-yearly',
+        title: 'Go to Yearly Analytics',
+        subtitle: '365-Day Heatmap & Trajectory',
+        category: 'Navigation',
+        icon: BarChart3,
+        action: () => { setCurrentTab('yearly'); sound.playClick(); onClose(); }
+      },
+      {
+        id: 'nav-automations',
+        title: 'Go to Life Pipelines (Automations)',
+        subtitle: '[Locked in Beta v0.1] Flow Graph & Reactive Logic Rules Engine',
+        category: 'Navigation',
+        icon: Workflow,
+        action: () => { setCurrentTab('automations'); sound.playClick(); onClose(); }
+      },
 
-    // System
-    {
-      id: 'sys-backup',
-      title: 'Backup & Restore Data',
-      subtitle: 'Export JSON/CSV or import snapshot',
-      category: 'System',
-      icon: Download,
-      action: () => { onOpenBackup(); onClose(); }
-    },
-    {
-      id: 'sys-sound',
-      title: isMuted ? 'Unmute Audio Telemetry' : 'Mute Audio Telemetry',
-      subtitle: 'Toggle tactile UI sound effects',
-      category: 'System',
-      icon: isMuted ? VolumeX : Volume2,
-      action: () => { toggleSoundMute(); onClose(); }
-    },
-    {
-      id: 'sys-reset',
-      title: 'Reset All Data to Default',
-      subtitle: 'Wipe local data and load default state',
-      category: 'System',
-      icon: RotateCcw,
-      action: () => {
-        if (confirm('Are you sure you want to reset all data to default? This cannot be undone.')) {
-          resetAllData();
+      // System
+      {
+        id: 'sys-backup',
+        title: 'Backup & Restore Data',
+        subtitle: 'Export JSON/CSV or import snapshot',
+        category: 'System',
+        icon: Download,
+        action: () => { onOpenBackup(); onClose(); }
+      },
+      {
+        id: 'sys-sound',
+        title: isMuted ? 'Unmute Audio Telemetry' : 'Mute Audio Telemetry',
+        subtitle: 'Toggle tactile UI sound effects',
+        category: 'System',
+        icon: isMuted ? VolumeX : Volume2,
+        action: () => { toggleSoundMute(); onClose(); }
+      },
+      {
+        id: 'sys-reset',
+        title: 'Reset All Data to Default',
+        subtitle: 'Wipe local data and load default state',
+        category: 'System',
+        icon: RotateCcw,
+        action: () => {
+          if (confirm('Are you sure you want to reset all data to default? This cannot be undone.')) {
+            resetAllData();
+            onClose();
+          }
+        }
+      },
+    ];
+
+    // Quick Action: Today's habits (toggle in place)
+    habits.forEach(habit => {
+      const isDone = !!habit.logs[today.dayOfMonth];
+      list.push({
+        id: `habit-${habit.id}`,
+        title: `Habit: ${habit.title}`,
+        subtitle: isDone ? `Completed for today (${today.dayOfMonth})` : `Pending today — Click to complete (+${habit.expReward} EXP)`,
+        category: 'Habits',
+        icon: isDone ? Check : CalendarCheck2,
+        action: () => {
+          toggleHabitLog(habit.id, today.dayOfMonth);
           onClose();
         }
-      }
-    },
-  ];
-
-  // Quick Action: Today's habits (toggle in place)
-  habits.forEach(habit => {
-    const isDone = !!habit.logs[today.dayOfMonth];
-    commands.push({
-      id: `habit-${habit.id}`,
-      title: `Habit: ${habit.title}`,
-      subtitle: isDone ? `Completed for today (${today.dayOfMonth})` : `Pending today — Click to complete (+${habit.expReward} EXP)`,
-      category: 'Habits',
-      icon: isDone ? Check : CalendarCheck2,
-      action: () => {
-        toggleHabitLog(habit.id, today.dayOfMonth);
-        onClose();
-      }
+      });
     });
-  });
 
-  // Quick Action: Sprint tasks
-  weeklyTasks.slice(0, 8).forEach(task => {
-    commands.push({
-      id: `wtask-${task.id}`,
-      title: `Sprint [${task.dayName}]: ${task.title}`,
-      subtitle: `${task.priority} Priority • ${task.category} • ${task.isCompleted ? 'Done' : 'Pending'} (+${task.expReward} EXP)`,
-      category: 'Tasks',
-      icon: task.isCompleted ? Check : Zap,
-      action: () => {
-        toggleWeeklyTask(task.id);
-        onClose();
-      }
+    // Quick Action: Sprint tasks
+    weeklyTasks.slice(0, 8).forEach(task => {
+      list.push({
+        id: `wtask-${task.id}`,
+        title: `Sprint [${task.dayName}]: ${task.title}`,
+        subtitle: `${task.priority} Priority • ${task.category} • ${task.isCompleted ? 'Done' : 'Pending'} (+${task.expReward} EXP)`,
+        category: 'Tasks',
+        icon: task.isCompleted ? Check : Zap,
+        action: () => {
+          toggleWeeklyTask(task.id);
+          onClose();
+        }
+      });
     });
-  });
 
-  // Quick Action: General Tasks
-  tasks.filter(t => t.status !== 'Completed').slice(0, 6).forEach(task => {
-    commands.push({
-      id: `task-${task.id}`,
-      title: `Task: ${task.title}`,
-      subtitle: `Due: ${task.dueDate} • ${task.priority} • ${task.status} (+${task.expReward} EXP)`,
-      category: 'Tasks',
-      icon: CheckSquare,
-      action: () => {
-        toggleTaskStatus(task.id);
-        onClose();
-      }
+    // Quick Action: General Tasks
+    tasks.filter(t => t.status !== 'Completed').slice(0, 6).forEach(task => {
+      list.push({
+        id: `task-${task.id}`,
+        title: `Task: ${task.title}`,
+        subtitle: `Due: ${task.dueDate} • ${task.priority} • ${task.status} (+${task.expReward} EXP)`,
+        category: 'Tasks',
+        icon: CheckSquare,
+        action: () => {
+          toggleTaskStatus(task.id);
+          onClose();
+        }
+      });
     });
-  });
 
-  // Quick Action: Goals
-  goals.filter(g => g.status !== 'Achieved').forEach(goal => {
-    commands.push({
-      id: `goal-${goal.id}`,
-      title: `Goal: ${goal.title}`,
-      subtitle: `${goal.areaOfLife} • ${goal.progressPercent}% • Target: ${goal.targetMetric}`,
-      category: 'Goals',
-      icon: Target,
-      action: () => {
-        toggleGoalStatus(goal.id);
-        onClose();
-      }
+    // Quick Action: Goals
+    goals.filter(g => g.status !== 'Achieved').forEach(goal => {
+      list.push({
+        id: `goal-${goal.id}`,
+        title: `Goal: ${goal.title}`,
+        subtitle: `${goal.areaOfLife} • ${goal.progressPercent}% • Target: ${goal.targetMetric}`,
+        category: 'Goals',
+        icon: Target,
+        action: () => {
+          toggleGoalStatus(goal.id);
+          onClose();
+        }
+      });
     });
-  });
+
+    return list;
+  }, [
+    habits,
+    weeklyTasks,
+    tasks,
+    goals,
+    isMuted,
+    today,
+    setCurrentTab,
+    onClose,
+    onOpenBackup,
+    resetAllData,
+    toggleHabitLog,
+    toggleWeeklyTask,
+    toggleTaskStatus,
+    toggleGoalStatus,
+  ]);
 
   // Filter commands by search query
   const filteredCommands = useMemo(() => {
