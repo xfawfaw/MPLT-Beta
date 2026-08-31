@@ -6,13 +6,14 @@ import {
   Trash2, 
   Calendar, 
   ChevronLeft, 
-  ChevronRight,
-  TrendingUp,
-  Flame,
-  LayoutGrid,
-  Clock,
-  ListFilter,
-  ArrowRight
+  ChevronRight, 
+  TrendingUp, 
+  Flame, 
+  LayoutGrid, 
+  Clock, 
+  ListFilter, 
+  ArrowUpRight, 
+  CheckCircle2 
 } from 'lucide-react';
 import { WeeklyTask, AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
@@ -55,6 +56,8 @@ export const WeeklyPlannerView: React.FC = () => {
       const pct = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
       const isBonus = day.index === 0 && pct === 100;
       const displayPct = isBonus ? '120%' : `${pct}%`;
+      const expEarned = tasks.filter(t => t.isCompleted).reduce((acc, t) => acc + t.expReward, 0);
+      const totalExp = tasks.reduce((acc, t) => acc + t.expReward, 0);
       return {
         ...day,
         tasks,
@@ -62,6 +65,8 @@ export const WeeklyPlannerView: React.FC = () => {
         done,
         pct,
         displayPct,
+        expEarned,
+        totalExp,
       };
     });
   }, [weeklyTasks, daysConfig]);
@@ -334,138 +339,174 @@ export const WeeklyPlannerView: React.FC = () => {
           </div>
 
           {/* Responsive Comfortable Multi-Column Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3.5 items-stretch">
             {dayStats.map((day) => {
-              const radius = 26;
-              const circ = 2 * Math.PI * radius;
-              const offset = circ - (Math.min(100, day.pct) / 100) * circ;
+              const isToday = day.index === 3;
+              const isAllCompleted = day.total > 0 && day.done === day.total;
 
               return (
                 <div
                   key={day.index}
-                  className="mplt-card bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] overflow-hidden flex flex-col min-h-[480px] hover:border-[#CBD5E1] transition-colors"
+                  className={`bg-white border rounded-[12px] overflow-hidden flex flex-col min-h-[500px] transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)] relative group/column ${
+                    isToday
+                      ? 'border-[#18181B] ring-1 ring-[#18181B]/15 shadow-sm'
+                      : isAllCompleted
+                      ? 'border-emerald-200 hover:border-emerald-300'
+                      : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
+                  }`}
                 >
-                  {/* Column Header: Black container (#18181B fill, #FFFFFF text) */}
-                  <div className="bg-[#18181B] text-[#FFFFFF] p-3 text-center border-b border-[#27272A] flex items-center justify-between">
-                    <div className="text-left">
-                      <h3 className="text-[12.5px] font-bold uppercase tracking-wider font-ui block">
-                        {day.name}
-                      </h3>
-                      <span className="text-[10px] font-num text-[#A1A1AA] block mt-0.5">
-                        {day.date}
-                      </span>
+                  {/* Top accent highlight bar */}
+                  {isToday && (
+                    <div className="h-[3px] w-full bg-[#18181B] absolute top-0 left-0" />
+                  )}
+                  {!isToday && isAllCompleted && (
+                    <div className="h-[3px] w-full bg-[#10B981] absolute top-0 left-0" />
+                  )}
+
+                  {/* Column Header */}
+                  <div className="p-3.5 border-b border-[#F1F5F9] bg-[#FFFFFF] flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h3 className="text-[13px] font-bold tracking-tight text-[#18181B] font-ui truncate">
+                          {day.name}
+                        </h3>
+                        <span className="text-[11px] font-num text-[#71717A] flex-shrink-0">
+                          {day.date.split('.').slice(0, 2).join('.')}
+                        </span>
+                        {isToday && (
+                          <span className="bg-[#18181B] text-white text-[8.5px] font-bold font-ui px-1.5 py-0.5 rounded-[3px] tracking-wide flex-shrink-0">
+                            TODAY
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <button
+                          onClick={() => setActiveDayModal(day.index)}
+                          className="p-1 rounded-[4px] text-[#71717A] hover:text-[#18181B] hover:bg-[#F1F5F9] transition-colors"
+                          title={`Add task to ${day.name}`}
+                        >
+                          <Plus size={13} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedSpotlightDay(day.index);
+                            setActiveViewMode('spotlight');
+                            sound.playClick();
+                          }}
+                          className="p-1 rounded-[4px] text-[#71717A] hover:text-[#18181B] hover:bg-[#F1F5F9] transition-colors"
+                          title="Open Day Spotlight"
+                        >
+                          <ArrowUpRight size={13} />
+                        </button>
+                      </div>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        setSelectedSpotlightDay(day.index);
-                        setActiveViewMode('spotlight');
-                      }}
-                      className="p-1 rounded bg-white/10 hover:bg-white/20 text-white transition-colors"
-                      title="Open in Spotlight View"
-                    >
-                      <ArrowRight size={13} />
-                    </button>
-                  </div>
+                    {/* Integrated Progress Bar & Stats */}
+                    <div>
+                      <div className="w-full h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden flex">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            day.pct >= 100 ? 'bg-[#10B981]' : day.pct > 0 ? 'bg-[#18181B]' : 'bg-transparent'
+                          }`}
+                          style={{ width: `${Math.min(100, Math.max(0, day.pct))}%` }}
+                        />
+                      </div>
 
-                  {/* 64px Circular Progress Ring Indicator */}
-                  <div className="py-3 px-3 flex flex-col items-center justify-center border-b border-[#F1F5F9] bg-[#FAFAFA]">
-                    <div className="relative w-[60px] h-[60px] flex items-center justify-center">
-                      <svg className="w-full h-full -rotate-90" viewBox="0 0 60 60">
-                        <circle
-                          cx="30"
-                          cy="30"
-                          r={radius}
-                          stroke="#E2E8F0"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <circle
-                          cx="30"
-                          cy="30"
-                          r={radius}
-                          stroke={day.pct >= 100 ? '#10B981' : '#18181B'}
-                          strokeWidth="4"
-                          strokeDasharray={circ}
-                          strokeDashoffset={offset}
-                          strokeLinecap="round"
-                          fill="none"
-                          className="transition-all duration-300"
-                        />
-                      </svg>
-                      <span className="absolute text-[12.5px] font-num font-bold text-[#18181B]">
-                        {day.displayPct}
-                      </span>
+                      <div className="flex items-center justify-between mt-1.5 text-[10px]">
+                        <span className="font-num text-[#71717A]">
+                          {day.done}/{day.total} Done
+                        </span>
+                        <span className={`font-num font-bold flex items-center gap-1 ${
+                          day.pct >= 100 ? 'text-[#10B981]' : day.pct > 0 ? 'text-[#18181B]' : 'text-[#A1A1AA]'
+                        }`}>
+                          {day.pct >= 100 && <CheckCircle2 size={11} className="stroke-[2.5]" />}
+                          <span>{day.displayPct}</span>
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-num text-[#71717A] mt-1 font-medium">
-                      {day.done} of {day.total} Completed
-                    </span>
                   </div>
 
                   {/* Task Card Stack */}
-                  <div className="p-3 flex-1 space-y-2.5 overflow-y-auto max-h-[360px]">
+                  <div className="p-2.5 flex-1 space-y-2 overflow-y-auto max-h-[380px] bg-[#FAFAFC]/40">
                     {day.tasks.map((task) => {
                       return (
                         <div
                           key={task.id}
                           onClick={() => toggleWeeklyTask(task.id)}
-                          className={`group p-2.5 rounded-[6px] border text-left transition-all cursor-pointer select-none ${
+                          className={`group/card p-2.5 rounded-[8px] border text-left transition-all duration-150 cursor-pointer select-none relative ${
                             task.isCompleted
-                              ? 'bg-[#F9FAFB] border-[#E2E8F0]'
-                              : 'bg-[#FFFFFF] border-[#E2E8F0] hover:border-[#18181B] hover:bg-[#FAFAFA]'
+                              ? 'bg-[#F9FAFB]/90 border-[#E2E8F0]/80 opacity-75 hover:opacity-100'
+                              : 'bg-[#FFFFFF] border-[#E2E8F0] hover:border-[#18181B] hover:shadow-[0_2px_6px_rgba(0,0,0,0.03)]'
                           }`}
                         >
-                          <div className="flex items-start gap-2.5">
-                            {/* Outline square checkbox */}
+                          <div className="flex items-start gap-2">
+                            {/* Tactile Checkbox */}
                             <div
-                              className={`w-4 h-4 rounded-[3px] border mt-0.5 flex-shrink-0 flex items-center justify-center transition-colors ${
+                              className={`w-4 h-4 rounded-[3.5px] border mt-0.5 flex-shrink-0 flex items-center justify-center transition-all ${
                                 task.isCompleted
-                                  ? 'bg-[#18181B] border-[#18181B] text-white'
-                                  : 'bg-white border-[#18181B] group-hover:border-[#000000]'
+                                  ? 'bg-[#18181B] border-[#18181B] text-white shadow-xs'
+                                  : 'bg-white border-[#CBD5E1] group-hover/card:border-[#18181B]'
                               }`}
                             >
                               {task.isCompleted && <Check size={11} className="stroke-[3]" />}
                             </div>
 
-                            {/* Task label in Geist Mono 13px */}
+                            {/* Task Content */}
                             <div className="flex-1 min-w-0">
-                              <p className={`text-[12.5px] font-ui leading-snug break-words ${
+                              <p className={`text-[12px] font-ui leading-snug break-words ${
                                 task.isCompleted
-                                  ? 'line-through text-[#71717A]'
-                                  : 'text-[#18181B] font-medium'
+                                  ? 'line-through text-[#94A3B8]'
+                                  : 'text-[#18181B] font-medium group-hover/card:text-black'
                               }`}>
                                 {task.title}
                               </p>
 
-                              {/* Badges: Priority + Category Tag */}
-                              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                                <span className={`text-[9px] font-num font-bold px-1.5 py-0.2 rounded uppercase ${
+                              {/* Meta Tags Row */}
+                              <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[9px]">
+                                <span className={`font-num font-bold px-1.5 py-0.5 rounded-[3.5px] flex items-center gap-1 uppercase ${
                                   task.priority === 'High'
-                                    ? 'bg-rose-50 text-[#E11D48] border border-rose-200'
+                                    ? 'bg-rose-50 text-[#E11D48] border border-rose-200/70'
                                     : task.priority === 'Med'
-                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                    : 'bg-[#F1F5F9] text-[#71717A]'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200/70'
+                                    : 'bg-[#F1F5F9] text-[#71717A] border border-[#E2E8F0]'
                                 }`}>
+                                  <span className={`w-1 h-1 rounded-full ${
+                                    task.priority === 'High'
+                                      ? 'bg-[#E11D48]'
+                                      : task.priority === 'Med'
+                                      ? 'bg-amber-500'
+                                      : 'bg-[#71717A]'
+                                  }`} />
                                   {task.priority}
                                 </span>
 
-                                <span className="text-[9px] font-ui px-1.5 py-0.2 rounded bg-[#F1F5F9] text-[#71717A]">
+                                <span className="font-ui font-medium px-1.5 py-0.5 rounded-[3.5px] bg-[#F1F5F9] text-[#71717A] border border-[#E2E8F0]/50">
                                   {task.category}
                                 </span>
 
-                                <span className="text-[9px] font-num text-[#10B981] ml-auto font-medium">
+                                {task.timeEstimate && (
+                                  <span className="font-num text-[#71717A] flex items-center gap-0.5 ml-auto sm:ml-0">
+                                    <Clock size={9.5} className="text-[#A1A1AA]" />
+                                    {task.timeEstimate}
+                                  </span>
+                                )}
+
+                                <span className="font-num text-[#10B981] font-semibold ml-auto">
                                   +{task.expReward}xp
                                 </span>
                               </div>
                             </div>
 
-                            {/* Delete on hover */}
+                            {/* Delete Action on Hover */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteWeeklyTask(task.id);
+                                sound.playClick();
                               }}
-                              className="opacity-0 group-hover:opacity-100 text-[#A1A1AA] hover:text-[#E11D48] p-0.5 transition-opacity"
+                              className="opacity-0 group-hover/card:opacity-100 text-[#A1A1AA] hover:text-[#E11D48] p-1 hover:bg-rose-50 rounded transition-all flex-shrink-0"
+                              title="Delete task"
                             >
                               <Trash2 size={12} />
                             </button>
@@ -475,21 +516,40 @@ export const WeeklyPlannerView: React.FC = () => {
                     })}
 
                     {day.tasks.length === 0 && (
-                      <div className="py-8 text-center text-[#A1A1AA] text-[11px] font-ui">
-                        No tasks scheduled
+                      <div className="py-7 px-3 text-center rounded-[8px] border border-dashed border-[#E2E8F0] bg-white my-1 flex flex-col items-center justify-center gap-1.5">
+                        <Calendar size={16} className="text-[#CBD5E1]" />
+                        <span className="text-[11px] text-[#A1A1AA] font-ui">
+                          No tasks scheduled
+                        </span>
+                        <button
+                          onClick={() => setActiveDayModal(day.index)}
+                          className="text-[10.5px] text-[#18181B] font-medium hover:underline flex items-center gap-1 mt-0.5 font-ui"
+                        >
+                          <Plus size={11} />
+                          <span>Add first task</span>
+                        </button>
                       </div>
                     )}
                   </div>
 
-                  {/* Add Task Trigger */}
-                  <div className="p-2.5 border-t border-[#E2E8F0] bg-[#FFFFFF]">
+                  {/* Column Footer */}
+                  <div className="p-2.5 border-t border-[#F1F5F9] bg-[#FFFFFF] flex flex-col gap-1.5">
                     <button
                       onClick={() => setActiveDayModal(day.index)}
-                      className="w-full py-1.5 px-2 rounded-[5px] border border-dashed border-[#CBD5E1] hover:border-[#18181B] text-[11px] font-medium text-[#71717A] hover:text-[#18181B] flex items-center justify-center gap-1 transition-colors"
+                      className="w-full py-1.5 px-2.5 rounded-[6px] border border-dashed border-[#CBD5E1] hover:border-[#18181B] hover:bg-[#F8FAFC] text-[11px] font-medium text-[#71717A] hover:text-[#18181B] flex items-center justify-center gap-1.5 transition-all duration-150 group/add font-ui"
                     >
-                      <Plus size={12} />
+                      <Plus size={12} className="text-[#A1A1AA] group-hover/add:text-[#18181B] group-hover/add:scale-110 transition-transform" />
                       <span>Add Task</span>
                     </button>
+
+                    {day.tasks.length > 0 && (
+                      <div className="flex items-center justify-between text-[9.5px] font-num text-[#A1A1AA] px-0.5 pt-0.5">
+                        <span>EXP Yield</span>
+                        <span className="text-[#10B981] font-medium">
+                          +{day.expEarned} / +{day.totalExp} XP
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                 </div>
