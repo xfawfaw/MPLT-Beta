@@ -23,6 +23,9 @@ export const WeeklyPlannerView: React.FC = () => {
   const { weeklyTasks, toggleWeeklyTask, addWeeklyTask, deleteWeeklyTask } = useApp();
 
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
+  const [weekOffset, setWeekOffset] = useState<number>(0);
+  const sprintWeek = useMemo(() => dateUtils.getSprintWeekInfo(weekOffset), [weekOffset]);
+
   const [activeViewMode, setActiveViewMode] = useState<'grid' | 'spotlight' | 'agenda'>('grid');
   const [selectedSpotlightDay, setSelectedSpotlightDay] = useState<number>(today.dayOfWeekIndex); // Default to today
   const [filterPriority, setFilterPriority] = useState<string>('all');
@@ -34,24 +37,20 @@ export const WeeklyPlannerView: React.FC = () => {
   const [newTaskCategory, setNewTaskCategory] = useState<AreaOfLife>('Work');
   const [newTaskTimeEst, setNewTaskTimeEst] = useState('45m');
 
-  const daysConfig = useMemo(() => today.sprintDays.map(d => ({
+  const daysConfig = useMemo(() => sprintWeek.sprintDays.map(d => ({
     index: d.index,
     name: d.name,
     date: d.dateStr,
     short: d.short,
     isToday: d.isToday
-  })), [today]);
-
-  // Overall calculations
-  const totalTasks = weeklyTasks.length;
-  const completedTasks = weeklyTasks.filter(t => t.isCompleted).length;
-  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  const totalWeeklyExp = weeklyTasks.filter(t => t.isCompleted).reduce((acc, t) => acc + t.expReward, 0);
+  })), [sprintWeek]);
 
   // Day-by-day statistics
   const dayStats = useMemo(() => {
     return daysConfig.map(day => {
-      const tasks = weeklyTasks.filter(t => t.dayIndex === day.index);
+      const tasks = weeklyTasks.filter(t => 
+        t.dateStr === day.date || (!t.dateStr && weekOffset === 0 && t.dayIndex === day.index)
+      );
       const done = tasks.filter(t => t.isCompleted).length;
       const pct = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
       const isBonus = day.index === 0 && pct === 100;
@@ -69,15 +68,30 @@ export const WeeklyPlannerView: React.FC = () => {
         totalExp,
       };
     });
-  }, [weeklyTasks, daysConfig]);
+  }, [weeklyTasks, daysConfig, weekOffset]);
+
+  // Overall calculations for viewed sprint week
+  const weekTasks = useMemo(() => dayStats.flatMap(d => d.tasks), [dayStats]);
+  const totalTasks = weekTasks.length;
+  const completedTasks = weekTasks.filter(t => t.isCompleted).length;
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const totalWeeklyExp = weekTasks.filter(t => t.isCompleted).reduce((acc, t) => acc + t.expReward, 0);
 
   // Today spotlight tasks
-  const spotlightDayData = dayStats.find(d => d.index === selectedSpotlightDay) || dayStats[3];
+  const spotlightDayData = dayStats.find(d => d.index === selectedSpotlightDay) || dayStats[today.dayOfWeekIndex] || dayStats[0];
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeDayModal === null || !newTaskTitle.trim()) return;
-    addWeeklyTask(activeDayModal, newTaskTitle.trim(), newTaskPriority, newTaskCategory);
+    const targetDay = daysConfig[activeDayModal];
+    addWeeklyTask(
+      activeDayModal, 
+      newTaskTitle.trim(), 
+      newTaskPriority, 
+      newTaskCategory, 
+      targetDay ? targetDay.date : undefined, 
+      newTaskTimeEst
+    );
     setNewTaskTitle('');
     setActiveDayModal(null);
   };
@@ -100,19 +114,65 @@ export const WeeklyPlannerView: React.FC = () => {
               </h1>
             </div>
             
-            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[6px] text-[12px] font-medium font-ui text-[#18181B]">
+            <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
+              {/* Sprint Week Range Pill */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[6px] text-[12px] font-medium font-ui text-[#18181B] shadow-xs">
                 <Calendar size={13} className="text-[#71717A]" />
-                <span>Sprint Week of {today.sprintWeekRangeStr}</span>
+                <span>Sprint Week of {sprintWeek.sprintWeekRangeStr}</span>
+                <span className="font-num text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#18181B] text-white">
+                  {sprintWeek.weekTag}
+                </span>
               </div>
-              <div className="flex items-center gap-1">
-                <button className="p-1.5 border border-[#E2E8F0] rounded-[4px] bg-white hover:bg-[#F4F4F5] text-[#18181B]">
+
+              {/* Prev / Current / Next Controls */}
+              <div className="flex items-center gap-1 bg-[#F9FAFB] p-0.5 border border-[#E2E8F0] rounded-[6px]">
+                <button
+                  onClick={() => {
+                    setWeekOffset(prev => prev - 1);
+                    sound.playClick();
+                  }}
+                  className="p-1 rounded-[4px] bg-white hover:bg-[#F4F4F5] text-[#18181B] border border-[#E2E8F0] shadow-xs hover:border-[#18181B] transition-all cursor-pointer"
+                  title="Previous sprint week"
+                >
                   <ChevronLeft size={13} />
                 </button>
-                <button className="p-1.5 border border-[#E2E8F0] rounded-[4px] bg-white hover:bg-[#F4F4F5] text-[#18181B]">
+
+                {weekOffset !== 0 ? (
+                  <button
+                    onClick={() => {
+                      setWeekOffset(0);
+                      setSelectedSpotlightDay(today.dayOfWeekIndex);
+                      sound.playClick();
+                    }}
+                    className="px-2.5 py-0.5 text-[11px] font-ui font-semibold bg-[#18181B] text-white rounded-[4px] hover:bg-[#27272A] transition-all cursor-pointer shadow-xs"
+                    title="Jump to Current Week"
+                  >
+                    Current Week
+                  </button>
+                ) : (
+                  <span className="px-2 py-0.5 text-[10.5px] font-ui font-medium text-[#71717A]">
+                    Current Week
+                  </span>
+                )}
+
+                <button
+                  onClick={() => {
+                    setWeekOffset(prev => prev + 1);
+                    sound.playClick();
+                  }}
+                  className="p-1 rounded-[4px] bg-white hover:bg-[#F4F4F5] text-[#18181B] border border-[#E2E8F0] shadow-xs hover:border-[#18181B] transition-all cursor-pointer"
+                  title="Next sprint week"
+                >
                   <ChevronRight size={13} />
                 </button>
               </div>
+
+              {/* Relative Label Chip */}
+              {weekOffset !== 0 && (
+                <span className="px-2 py-1 rounded-[6px] text-[11px] font-ui font-medium bg-[#F1F5F9] text-[#71717A] border border-[#E2E8F0]">
+                  {sprintWeek.relativeWeekLabel}
+                </span>
+              )}
             </div>
           </div>
 
@@ -775,7 +835,7 @@ export const WeeklyPlannerView: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            {weeklyTasks
+            {weekTasks
               .filter(t => filterPriority === 'all' || t.priority === filterPriority)
               .map((task) => (
                 <div
@@ -817,6 +877,12 @@ export const WeeklyPlannerView: React.FC = () => {
                   </div>
                 </div>
               ))}
+
+            {weekTasks.filter(t => filterPriority === 'all' || t.priority === filterPriority).length === 0 && (
+              <div className="py-12 text-center text-[#71717A] font-ui text-[13px] border border-dashed border-[#E2E8F0] rounded-[8px]">
+                No tasks scheduled for this sprint week matching filter
+              </div>
+            )}
           </div>
 
         </section>

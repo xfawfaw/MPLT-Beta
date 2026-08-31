@@ -33,7 +33,7 @@ interface AppContextType {
   deleteHabit: (habitId: string) => void;
   
   toggleWeeklyTask: (taskId: string) => void;
-  addWeeklyTask: (dayIndex: number, title: string, priority: WeeklyTask['priority'], category: WeeklyTask['category']) => void;
+  addWeeklyTask: (dayIndex: number, title: string, priority: WeeklyTask['priority'], category: WeeklyTask['category'], dateStr?: string, timeEstimate?: string) => void;
   deleteWeeklyTask: (taskId: string) => void;
   
   toggleTaskStatus: (taskId: string) => void;
@@ -562,18 +562,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const addWeeklyTask = (dayIndex: number, title: string, priority: WeeklyTask['priority'], category: WeeklyTask['category']) => {
+  const addWeeklyTask = (
+    dayIndex: number, 
+    title: string, 
+    priority: WeeklyTask['priority'], 
+    category: WeeklyTask['category'],
+    dateStr?: string,
+    timeEstimate?: string
+  ) => {
     const dayNames: WeeklyTask['dayName'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const newTask: WeeklyTask = {
-      id: `wt-${Date.now()}`,
+      id: `wt-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       dayIndex,
       dayName: dayNames[dayIndex] || 'Monday',
-      dateStr: '26.02.2026',
+      dateStr: dateStr || '26.02.2026',
       title,
       priority,
       category,
       isCompleted: false,
       expReward: priority === 'High' ? 35 : priority === 'Med' ? 25 : 20,
+      timeEstimate: timeEstimate || '45m',
     };
     setWeeklyTasks(prev => [...prev, newTask]);
     addExp(15, 'Sprint Task Scheduled');
