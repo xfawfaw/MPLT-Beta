@@ -127,7 +127,7 @@ export const TaskManagerView: React.FC = () => {
             
             <div className="flex items-center gap-4 text-[12px] flex-wrap mt-1">
               <span className="text-[#71717A] font-ui">
-                Active Sprint Period: <strong className="text-[#18181B] font-num">February 2026</strong>
+                Active Sprint Period: <strong className="text-[#18181B] font-num">{today.monthName}</strong>
               </span>
               <span className="text-[#E2E8F0]">•</span>
               <span className="text-[#10B981] font-semibold font-ui flex items-center gap-1">

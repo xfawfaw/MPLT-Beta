@@ -65,16 +65,17 @@ export const YearlyStatsView: React.FC = () => {
   const heatmapData = useMemo(() => {
     const days = [];
     const startDate = new Date(today.year, 0, 1);
+    const currentWeekIdx = Math.max(0, today.currentWeekNumber - 1);
     
-    // Calculate live habit logs
-    const febLogs = habits.reduce((acc, h) => {
+    // Calculate live habit logs for the current active month
+    const totalMonthLogs = habits.reduce((acc, h) => {
       let count = 0;
-      for (let d = 1; d <= 31; d++) {
+      for (let d = 1; d <= today.daysInMonth; d++) {
         if (h.logs[d]) count++;
       }
       return acc + count;
     }, 0);
-    const avgRate = habits.length > 0 ? febLogs / (habits.length * 28) : 0.82;
+    const avgRate = habits.length > 0 ? totalMonthLogs / (habits.length * Math.max(1, today.dayOfMonth)) : 0.82;
 
     const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -93,8 +94,14 @@ export const YearlyStatsView: React.FC = () => {
       const noise = (seed - Math.floor(seed)) * 30 - 15;
       
       let completionPct = 0;
-      if (weekIdx <= 8) { // Jan - Feb (Live active baseline)
-        completionPct = Math.min(100, Math.max(25, Math.round((avgRate * 90) + noise)));
+      if (weekIdx <= currentWeekIdx) {
+        // If it's the current month, check actual habit logs for that dateNum
+        if (monthIdx === today.monthIndex && habits.length > 0 && dateNum <= today.dayOfMonth) {
+          const doneForDay = habits.filter(h => !!h.logs[dateNum]).length;
+          completionPct = Math.round((doneForDay / habits.length) * 100);
+        } else {
+          completionPct = Math.min(100, Math.max(25, Math.round((avgRate * 90) + noise)));
+        }
       } else {
         completionPct = Math.min(100, Math.max(30, Math.round(75 + wave + noise)));
       }
@@ -117,7 +124,7 @@ export const YearlyStatsView: React.FC = () => {
       });
     }
     return days;
-  }, [habits]);
+  }, [habits, today]);
 
   // 52-Week Granular Trajectory Curve Data
   const weeklyTrajectoryData = useMemo(() => {

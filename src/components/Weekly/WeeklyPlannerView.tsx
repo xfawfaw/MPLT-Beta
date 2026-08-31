@@ -49,7 +49,7 @@ export const WeeklyPlannerView: React.FC = () => {
   const dayStats = useMemo(() => {
     return daysConfig.map(day => {
       const tasks = weeklyTasks.filter(t => 
-        t.dateStr === day.date || (!t.dateStr && weekOffset === 0 && t.dayIndex === day.index)
+        t.dateStr === day.date || (weekOffset === 0 && t.dayIndex === day.index)
       );
       const done = tasks.filter(t => t.isCompleted).length;
       const pct = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;

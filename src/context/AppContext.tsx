@@ -10,6 +10,7 @@ import {
   TransactionItem 
 } from '../types';
 import { sound } from '../utils/sound';
+import { dateUtils } from '../utils/date';
 
 interface AppContextType {
   profile: UserProfile;
@@ -145,71 +146,87 @@ const INITIAL_HABITS: Habit[] = [
   },
 ];
 
-const INITIAL_WEEKLY_TASKS: WeeklyTask[] = [
-  // Monday (23.02.2026) - 5 of 5 done (100% / 120% bonus)
-  { id: 'wt-1', dayIndex: 0, dayName: 'Monday', dateStr: '23.02.2026', title: 'Buat plan pengembangan Q1', priority: 'High', category: 'Work', isCompleted: true, expReward: 30 },
-  { id: 'wt-2', dayIndex: 0, dayName: 'Monday', dateStr: '23.02.2026', title: 'Tulis script reels & content', priority: 'Med', category: 'Personal Growth', isCompleted: true, expReward: 25 },
-  { id: 'wt-3', dayIndex: 0, dayName: 'Monday', dateStr: '23.02.2026', title: 'Analisis dashboard iklan', priority: 'High', category: 'Work', isCompleted: true, expReward: 30 },
-  { id: 'wt-4', dayIndex: 0, dayName: 'Monday', dateStr: '23.02.2026', title: 'Selesaikan project Pak Hasan', priority: 'High', category: 'Work', isCompleted: true, expReward: 35 },
-  { id: 'wt-5', dayIndex: 0, dayName: 'Monday', dateStr: '23.02.2026', title: 'Set up landing page', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25 },
-  { id: 'wt-6', dayIndex: 0, dayName: 'Monday', dateStr: '23.02.2026', title: 'Bonus: Sprint Retrospective', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20 },
+// Real-time synchronized initial sprint week tasks
+const getInitialSprintWeekTasks = (): WeeklyTask[] => {
+  const currentSprint = dateUtils.getSprintWeekInfo(0);
+  const days = currentSprint.sprintDays;
 
-  // Tuesday (24.02.2026) - 6 of 7 done (86%)
-  { id: 'wt-7', dayIndex: 1, dayName: 'Tuesday', dateStr: '24.02.2026', title: 'Gym push session 60m', priority: 'High', category: 'Health', isCompleted: true, expReward: 30 },
-  { id: 'wt-8', dayIndex: 1, dayName: 'Tuesday', dateStr: '24.02.2026', title: 'Review PR & Code Merge', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25 },
-  { id: 'wt-9', dayIndex: 1, dayName: 'Tuesday', dateStr: '24.02.2026', title: 'Update spreadsheet catatan keuangan', priority: 'Med', category: 'Money', isCompleted: true, expReward: 25 },
-  { id: 'wt-10', dayIndex: 1, dayName: 'Tuesday', dateStr: '24.02.2026', title: 'Persiapan materi meeting sponsor', priority: 'High', category: 'Work', isCompleted: true, expReward: 30 },
-  { id: 'wt-11', dayIndex: 1, dayName: 'Tuesday', dateStr: '24.02.2026', title: 'Baca 1 chapter Atomic Habits', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20 },
-  { id: 'wt-12', dayIndex: 1, dayName: 'Tuesday', dateStr: '24.02.2026', title: 'Pembersihan database staging', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25 },
-  { id: 'wt-13', dayIndex: 1, dayName: 'Tuesday', dateStr: '24.02.2026', title: 'Draft proposal klien baru', priority: 'High', category: 'Work', isCompleted: false, expReward: 35 },
+  return [
+    // Monday (Day 0)
+    { id: 'wt-1', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Buat plan pengembangan Q1 & milestone focus', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '90m' },
+    { id: 'wt-2', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Tulis script reels & content ideation', priority: 'Med', category: 'Personal Growth', isCompleted: true, expReward: 25, timeEstimate: '45m' },
+    { id: 'wt-3', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Analisis dashboard iklan & metrics sprint', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '60m' },
+    { id: 'wt-4', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Selesaikan project client priority sync', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '120m' },
+    { id: 'wt-5', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Set up landing page & workstation', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '45m' },
+    { id: 'wt-6', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Bonus: Sprint Retrospective review', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20, timeEstimate: '30m' },
 
-  // Wednesday (25.02.2026) - 5 of 5 done (100%)
-  { id: 'wt-14', dayIndex: 2, dayName: 'Wednesday', dateStr: '25.02.2026', title: 'Refactor auth service & tokens', priority: 'High', category: 'Work', isCompleted: true, expReward: 35 },
-  { id: 'wt-15', dayIndex: 2, dayName: 'Wednesday', dateStr: '25.02.2026', title: 'Transfer tabungan investasi 20%', priority: 'High', category: 'Money', isCompleted: true, expReward: 30 },
-  { id: 'wt-16', dayIndex: 2, dayName: 'Wednesday', dateStr: '25.02.2026', title: 'Family dinner & quality time', priority: 'Med', category: 'Family', isCompleted: true, expReward: 25 },
-  { id: 'wt-17', dayIndex: 2, dayName: 'Wednesday', dateStr: '25.02.2026', title: 'Running 6km sub-35min', priority: 'Med', category: 'Health', isCompleted: true, expReward: 25 },
-  { id: 'wt-18', dayIndex: 2, dayName: 'Wednesday', dateStr: '25.02.2026', title: 'Sedekah subuh & duha', priority: 'Low', category: 'Spirituality', isCompleted: true, expReward: 20 },
+    // Tuesday (Day 1)
+    { id: 'wt-7', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Gym push session 60m & mobility stretch', priority: 'High', category: 'Health', isCompleted: true, expReward: 30, timeEstimate: '60m' },
+    { id: 'wt-8', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Review PR & Code Merge pipeline', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '45m' },
+    { id: 'wt-9', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Update spreadsheet catatan keuangan bulanan', priority: 'Med', category: 'Money', isCompleted: true, expReward: 25, timeEstimate: '30m' },
+    { id: 'wt-10', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Persiapan materi meeting sponsor eksekutif', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '45m' },
+    { id: 'wt-11', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Baca 1 chapter Atomic Habits & note ringkas', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20, timeEstimate: '30m' },
+    { id: 'wt-12', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Pembersihan database staging & caching', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '40m' },
+    { id: 'wt-13', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Draft proposal klien baru & visual deck', priority: 'High', category: 'Work', isCompleted: false, expReward: 35, timeEstimate: '60m' },
 
-  // Thursday (26.02.2026) - 4 of 5 done (80%)
-  { id: 'wt-19', dayIndex: 3, dayName: 'Thursday', dateStr: '26.02.2026', title: 'Design audit Figma to Code', priority: 'High', category: 'Work', isCompleted: true, expReward: 30 },
-  { id: 'wt-20', dayIndex: 3, dayName: 'Thursday', dateStr: '26.02.2026', title: 'Selesaikan API docs Swagger', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25 },
-  { id: 'wt-21', dayIndex: 3, dayName: 'Thursday', dateStr: '26.02.2026', title: 'Beli suplemen vitamin & whey', priority: 'Low', category: 'Health', isCompleted: true, expReward: 20 },
-  { id: 'wt-22', dayIndex: 3, dayName: 'Thursday', dateStr: '26.02.2026', title: 'Review budget mingguan', priority: 'Med', category: 'Money', isCompleted: true, expReward: 25 },
-  { id: 'wt-23', dayIndex: 3, dayName: 'Thursday', dateStr: '26.02.2026', title: 'Audit server monitoring logs', priority: 'Low', category: 'Work', isCompleted: false, expReward: 20 },
+    // Wednesday (Day 2)
+    { id: 'wt-14', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Refactor auth service & token security layer', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '90m' },
+    { id: 'wt-15', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Transfer tabungan investasi 20% otomatis', priority: 'High', category: 'Money', isCompleted: true, expReward: 30, timeEstimate: '15m' },
+    { id: 'wt-16', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Family dinner & quality time bonding', priority: 'Med', category: 'Family', isCompleted: true, expReward: 25, timeEstimate: '90m' },
+    { id: 'wt-17', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Running 6km sub-35min cardio outdoor', priority: 'Med', category: 'Health', isCompleted: true, expReward: 25, timeEstimate: '45m' },
+    { id: 'wt-18', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Sedekah subuh & duha mindfulness', priority: 'Low', category: 'Spirituality', isCompleted: true, expReward: 20, timeEstimate: '20m' },
 
-  // Friday (27.02.2026) - 5 of 6 done (83%)
-  { id: 'wt-24', dayIndex: 4, dayName: 'Friday', dateStr: '27.02.2026', title: 'Solat Jumat berjamaah tepat waktu', priority: 'High', category: 'Spirituality', isCompleted: true, expReward: 30 },
-  { id: 'wt-25', dayIndex: 4, dayName: 'Friday', dateStr: '27.02.2026', title: 'Deploy release v2.4 production', priority: 'High', category: 'Work', isCompleted: true, expReward: 35 },
-  { id: 'wt-26', dayIndex: 4, dayName: 'Friday', dateStr: '27.02.2026', title: 'Review feedback pengguna mingguan', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25 },
-  { id: 'wt-27', dayIndex: 4, dayName: 'Friday', dateStr: '27.02.2026', title: 'Telepon orang tua & kabar keluarga', priority: 'High', category: 'Family', isCompleted: true, expReward: 30 },
-  { id: 'wt-28', dayIndex: 4, dayName: 'Friday', dateStr: '27.02.2026', title: 'Clean desk & organize workspace', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20 },
-  { id: 'wt-29', dayIndex: 4, dayName: 'Friday', dateStr: '27.02.2026', title: 'Sync weekly metrics ke Notion', priority: 'Low', category: 'Work', isCompleted: false, expReward: 20 },
+    // Thursday (Day 3)
+    { id: 'wt-19', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Design audit Figma to Code workstation', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '60m' },
+    { id: 'wt-20', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Selesaikan API docs Swagger specification', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '45m' },
+    { id: 'wt-21', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Beli suplemen vitamin & whey protein restock', priority: 'Low', category: 'Health', isCompleted: true, expReward: 20, timeEstimate: '30m' },
+    { id: 'wt-22', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Review budget mingguan 50/30/20 ledger', priority: 'Med', category: 'Money', isCompleted: true, expReward: 25, timeEstimate: '30m' },
+    { id: 'wt-23', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Audit server monitoring logs & sentry', priority: 'Low', category: 'Work', isCompleted: false, expReward: 20, timeEstimate: '30m' },
 
-  // Saturday (28.02.2026) - 4 of 4 done (100%)
-  { id: 'wt-30', dayIndex: 5, dayName: 'Saturday', dateStr: '28.02.2026', title: 'Long run outdoor 10km', priority: 'High', category: 'Health', isCompleted: true, expReward: 40 },
-  { id: 'wt-31', dayIndex: 5, dayName: 'Saturday', dateStr: '28.02.2026', title: 'Grocery shopping mingguan sehat', priority: 'Med', category: 'Family', isCompleted: true, expReward: 25 },
-  { id: 'wt-32', dayIndex: 5, dayName: 'Saturday', dateStr: '28.02.2026', title: 'Eksperimen project AI side hustle', priority: 'Med', category: 'Personal Growth', isCompleted: true, expReward: 30 },
-  { id: 'wt-33', dayIndex: 5, dayName: 'Saturday', dateStr: '28.02.2026', title: 'Podcast listening & notes', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20 },
+    // Friday (Day 4)
+    { id: 'wt-24', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Solat Jumat berjamaah tepat waktu', priority: 'High', category: 'Spirituality', isCompleted: true, expReward: 30, timeEstimate: '60m' },
+    { id: 'wt-25', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Deploy release v2.4 production live', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '60m' },
+    { id: 'wt-26', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Review feedback pengguna mingguan', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '45m' },
+    { id: 'wt-27', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Telepon orang tua & kabar keluarga', priority: 'High', category: 'Family', isCompleted: true, expReward: 30, timeEstimate: '30m' },
+    { id: 'wt-28', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Clean desk & organize workstation setup', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20, timeEstimate: '30m' },
+    { id: 'wt-29', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Sync weekly metrics ke central dashboard', priority: 'Low', category: 'Work', isCompleted: false, expReward: 20, timeEstimate: '30m' },
 
-  // Sunday (01.03.2026) - 2 of 5 done (40%)
-  { id: 'wt-34', dayIndex: 6, dayName: 'Sunday', dateStr: '01.03.2026', title: 'Weekly Review & Habit Audit', priority: 'High', category: 'Personal Growth', isCompleted: true, expReward: 35 },
-  { id: 'wt-35', dayIndex: 6, dayName: 'Sunday', dateStr: '01.03.2026', title: 'Perencanaan agenda minggu depan', priority: 'High', category: 'Work', isCompleted: true, expReward: 30 },
-  { id: 'wt-36', dayIndex: 6, dayName: 'Sunday', dateStr: '01.03.2026', title: 'Deep stretch & foam rolling 30m', priority: 'Med', category: 'Health', isCompleted: false, expReward: 25 },
-  { id: 'wt-37', dayIndex: 6, dayName: 'Sunday', dateStr: '01.03.2026', title: 'Kajian spiritual online', priority: 'Med', category: 'Spirituality', isCompleted: false, expReward: 25 },
-  { id: 'wt-38', dayIndex: 6, dayName: 'Sunday', dateStr: '01.03.2026', title: 'Meal prep untuk Senin-Rabu', priority: 'Low', category: 'Health', isCompleted: false, expReward: 20 },
-];
+    // Saturday (Day 5)
+    { id: 'wt-30', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Long run outdoor 10km zone 2 endurance', priority: 'High', category: 'Health', isCompleted: true, expReward: 40, timeEstimate: '75m' },
+    { id: 'wt-31', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Grocery shopping mingguan segar bernutrisi', priority: 'Med', category: 'Family', isCompleted: true, expReward: 25, timeEstimate: '60m' },
+    { id: 'wt-32', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Eksperimen project AI side hustle MVP', priority: 'Med', category: 'Personal Growth', isCompleted: true, expReward: 30, timeEstimate: '90m' },
+    { id: 'wt-33', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Deep podcast listening & insights breakdown', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20, timeEstimate: '45m' },
 
-const INITIAL_TASKS: TaskItem[] = [
-  { id: 't-1', title: 'Rapikan catatan keuangan bulanan', category: 'Money', priority: 'High', dueDate: '2026-02-26', status: 'In Progress', expReward: 30, note: 'Sesuaikan dengan rasio 50/30/20' },
-  { id: 't-2', title: 'Tulis 10 ide konten carousel Instagram', category: 'Work', priority: 'High', dueDate: '2026-02-26', status: 'In Progress', expReward: 35, note: 'Tema: Gamified productivity system' },
-  { id: 't-3', title: 'Bersih-bersih area kerja & setup monitor', category: 'Personal Growth', priority: 'Low', dueDate: '2026-02-26', status: 'Completed', expReward: 20 },
-  { id: 't-4', title: 'Meeting dengan Pak Hasan (Sponsor)', category: 'Work', priority: 'High', dueDate: '2026-02-28', status: 'Not Started', expReward: 40, note: 'Siapkan slide deck dan demo' },
-  { id: 't-5', title: 'Persiapan campaign iklan produk digital', category: 'Work', priority: 'Med', dueDate: '2026-03-15', status: 'Not Started', expReward: 30 },
-  { id: 't-6', title: 'Telepon umi & transfer uang bulanan', category: 'Family', priority: 'High', dueDate: '2026-04-18', status: 'Completed', expReward: 30 },
-  { id: 't-7', title: 'Gym push day & leg day 4x seminggu', category: 'Health', priority: 'Med', dueDate: '2026-03-01', status: 'In Progress', expReward: 30 },
-  { id: 't-8', title: 'Upgrade web deployment ke Vercel Pro', category: 'Work', priority: 'Low', dueDate: '2026-03-05', status: 'Not Started', expReward: 20 },
-  { id: 't-9', title: 'Khatam 1 juz tafsir Al-Quran', category: 'Spirituality', priority: 'Med', dueDate: '2026-03-02', status: 'In Progress', expReward: 25 },
-];
+    // Sunday (Day 6)
+    { id: 'wt-34', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Weekly Review & Habit Audit retrospective', priority: 'High', category: 'Personal Growth', isCompleted: true, expReward: 35, timeEstimate: '60m' },
+    { id: 'wt-35', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Perencanaan agenda sprint minggu depan', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '45m' },
+    { id: 'wt-36', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Deep stretch & mobility recovery session', priority: 'Med', category: 'Health', isCompleted: false, expReward: 25, timeEstimate: '30m' },
+    { id: 'wt-37', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Kajian spiritual online & self-reflection', priority: 'Med', category: 'Spirituality', isCompleted: false, expReward: 25, timeEstimate: '45m' },
+    { id: 'wt-38', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Meal prep bernutrisi untuk hari Senin-Rabu', priority: 'Low', category: 'Health', isCompleted: false, expReward: 20, timeEstimate: '60m' },
+  ];
+};
+
+// Real-time synchronized general task items
+const getInitialTasks = (): TaskItem[] => {
+  const now = new Date();
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  const formatOffsetDate = (offsetDays: number) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  return [
+    { id: 't-1', title: 'Rapikan catatan keuangan & alokasi bulanan', category: 'Money', priority: 'High', dueDate: formatOffsetDate(0), status: 'In Progress', expReward: 30, note: 'Sesuaikan dengan rasio 50/30/20' },
+    { id: 't-2', title: 'Tulis 10 ide konten carousel Instagram', category: 'Work', priority: 'High', dueDate: formatOffsetDate(0), status: 'In Progress', expReward: 35, note: 'Tema: Gamified productivity system' },
+    { id: 't-3', title: 'Bersih-bersih area kerja & setup workstation', category: 'Personal Growth', priority: 'Low', dueDate: formatOffsetDate(-1), status: 'Completed', expReward: 20 },
+    { id: 't-4', title: 'Meeting dengan Pak Hasan (Sponsor Demo)', category: 'Work', priority: 'High', dueDate: formatOffsetDate(2), status: 'Not Started', expReward: 40, note: 'Siapkan slide deck dan demo' },
+    { id: 't-5', title: 'Persiapan campaign iklan produk digital', category: 'Work', priority: 'Med', dueDate: formatOffsetDate(15), status: 'Not Started', expReward: 30 },
+    { id: 't-6', title: 'Telepon umi & transfer uang bulanan keluarga', category: 'Family', priority: 'High', dueDate: formatOffsetDate(1), status: 'Completed', expReward: 30 },
+    { id: 't-7', title: 'Gym push day & leg day 4x seminggu', category: 'Health', priority: 'Med', dueDate: formatOffsetDate(3), status: 'In Progress', expReward: 30 },
+    { id: 't-8', title: 'Upgrade web deployment ke Vercel Pro', category: 'Work', priority: 'Low', dueDate: formatOffsetDate(5), status: 'Not Started', expReward: 20 },
+    { id: 't-9', title: 'Khatam 1 juz tafsir Al-Quran', category: 'Spirituality', priority: 'Med', dueDate: formatOffsetDate(2), status: 'In Progress', expReward: 25 },
+  ];
+};
 
 const INITIAL_GOALS: GoalItem[] = [
   {
@@ -327,6 +344,27 @@ const INITIAL_GOALS: GoalItem[] = [
   },
 ];
 
+// Real-time synchronized financial transactions ledger
+const getInitialTransactions = (): TransactionItem[] => {
+  const now = new Date();
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  const formatOffsetDate = (offsetDays: number) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  return [
+    { id: 'tx-1', date: formatOffsetDate(-6), description: 'Gaji Pokok & Freelance Revenue', bucket: 'Savings', amount: 15000000, type: 'income', categoryTag: 'Income' },
+    { id: 'tx-2', date: formatOffsetDate(-5), description: 'Sewa Kost / Apartemen & Listrik', bucket: 'Needs', amount: 2500000, type: 'expense', categoryTag: 'Housing' },
+    { id: 'tx-3', date: formatOffsetDate(-4), description: 'Belanja Supermarket & Protein Sehat', bucket: 'Needs', amount: 1250000, type: 'expense', categoryTag: 'Groceries' },
+    { id: 'tx-4', date: formatOffsetDate(-3), description: 'Wifi Fiber & Paket Data Internet', bucket: 'Needs', amount: 450000, type: 'expense', categoryTag: 'Utilities' },
+    { id: 'tx-5', date: formatOffsetDate(-2), description: 'Dinner Cafe & Coffee Specialty', bucket: 'Wants', amount: 650000, type: 'expense', categoryTag: 'Dining' },
+    { id: 'tx-6', date: formatOffsetDate(-1), description: 'Langganan Software & Spotify/iCloud', bucket: 'Wants', amount: 450000, type: 'expense', categoryTag: 'Subscriptions' },
+    { id: 'tx-7', date: formatOffsetDate(0), description: 'Top-up Reksa Dana Indeks & Saham SBN', bucket: 'Savings', amount: 2000000, type: 'expense', categoryTag: 'Investments' },
+    { id: 'tx-8', date: formatOffsetDate(0), description: 'Baju Gym & Sepatu Running Gear', bucket: 'Wants', amount: 1000000, type: 'expense', categoryTag: 'Lifestyle' },
+  ];
+};
+
 const INITIAL_BUDGET: BudgetConfig = {
   mode: '50/30/20',
   needsRatio: 50,
@@ -335,17 +373,6 @@ const INITIAL_BUDGET: BudgetConfig = {
   incomeGoal: 15000000,
   startBalance: 11250000,
 };
-
-const INITIAL_TRANSACTIONS: TransactionItem[] = [
-  { id: 'tx-1', date: '2026-02-24', description: 'Gaji Pokok & Freelance Revenue', bucket: 'Savings', amount: 15000000, type: 'income', categoryTag: 'Income' },
-  { id: 'tx-2', date: '2026-02-24', description: 'Sewa Kost / Apartemen & Listrik', bucket: 'Needs', amount: 2500000, type: 'expense', categoryTag: 'Housing' },
-  { id: 'tx-3', date: '2026-02-25', description: 'Belanja Supermarket & Protein', bucket: 'Needs', amount: 1250000, type: 'expense', categoryTag: 'Groceries' },
-  { id: 'tx-4', date: '2026-02-25', description: 'Wifi Fiber & Paket Data', bucket: 'Needs', amount: 450000, type: 'expense', categoryTag: 'Utilities' },
-  { id: 'tx-5', date: '2026-02-26', description: 'Dinner Cafe & Coffee Specialty', bucket: 'Wants', amount: 650000, type: 'expense', categoryTag: 'Dining' },
-  { id: 'tx-6', date: '2026-02-26', description: 'Langganan Software & Spotify/iCloud', bucket: 'Wants', amount: 450000, type: 'expense', categoryTag: 'Subscriptions' },
-  { id: 'tx-7', date: '2026-02-26', description: 'Top-up Reksa Dana Indeks & Saham', bucket: 'Savings', amount: 2000000, type: 'expense', categoryTag: 'Investments' },
-  { id: 'tx-8', date: '2026-02-27', description: 'Baju Gym & Sepatu Running', bucket: 'Wants', amount: 1000000, type: 'expense', categoryTag: 'Lifestyle' },
-];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -374,12 +401,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_weeklyTasks`);
-    return saved ? JSON.parse(saved) : INITIAL_WEEKLY_TASKS;
+    if (!saved) return getInitialSprintWeekTasks();
+    try {
+      const parsed: WeeklyTask[] = JSON.parse(saved);
+      const currentSprint = dateUtils.getSprintWeekInfo(0);
+      return parsed.map(t => {
+        const matchingDay = currentSprint.sprintDays[t.dayIndex];
+        return {
+          ...t,
+          dateStr: t.dateStr || matchingDay?.dateStr || currentSprint.sprintDays[0].dateStr,
+        };
+      });
+    } catch {
+      return getInitialSprintWeekTasks();
+    }
   });
 
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_tasks`);
-    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    return saved ? JSON.parse(saved) : getInitialTasks();
   });
 
   const [goals, setGoals] = useState<GoalItem[]>(() => {
@@ -408,11 +448,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [transactions, setTransactions] = useState<TransactionItem[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_transactions`);
-    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+    return saved ? JSON.parse(saved) : getInitialTransactions();
   });
 
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
-  const [selectedMonth, setSelectedMonth] = useState({ month: 0, year: 2026 }); // 0 = Jan 2026
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return { month: now.getMonth(), year: now.getFullYear() };
+  });
 
   const [levelUpModal, setLevelUpModal] = useState<{ isOpen: boolean; newLevel: number }>({
     isOpen: false,
@@ -575,12 +618,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dateStr?: string,
     timeEstimate?: string
   ) => {
+    const currentSprint = dateUtils.getSprintWeekInfo(0);
     const dayNames: WeeklyTask['dayName'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const resolvedDate = dateStr || currentSprint.sprintDays[dayIndex]?.dateStr || currentSprint.sprintDays[0].dateStr;
     const newTask: WeeklyTask = {
       id: `wt-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       dayIndex,
       dayName: dayNames[dayIndex] || 'Monday',
-      dateStr: dateStr || '26.02.2026',
+      dateStr: resolvedDate,
       title,
       priority,
       category,
@@ -782,11 +827,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.clear();
     setProfile(INITIAL_PROFILE);
     setHabits(INITIAL_HABITS);
-    setWeeklyTasks(INITIAL_WEEKLY_TASKS);
-    setTasks(INITIAL_TASKS);
+    setWeeklyTasks(getInitialSprintWeekTasks());
+    setTasks(getInitialTasks());
     setGoals(INITIAL_GOALS);
     setBudget(INITIAL_BUDGET);
-    setTransactions(INITIAL_TRANSACTIONS);
+    setTransactions(getInitialTransactions());
   };
 
   return (

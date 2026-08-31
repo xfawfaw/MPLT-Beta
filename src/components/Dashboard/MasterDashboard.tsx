@@ -510,14 +510,25 @@ export const MasterDashboard: React.FC = () => {
                 return (
                   <div
                     key={d.index}
-                    className="border border-[#E2E8F0] rounded-[8px] p-2.5 bg-[#FFFFFF] flex flex-col items-center text-center hover:border-[#CBD5E1] transition-colors"
+                    className={`border rounded-[8px] p-2.5 bg-[#FFFFFF] flex flex-col items-center text-center transition-all ${
+                      d.isToday ? 'border-[#18181B] ring-1 ring-[#18181B] shadow-xs' : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
+                    }`}
                   >
                     {/* Header */}
-                    <div className="w-full bg-[#18181B] text-white py-1 px-1.5 rounded-[4px] mb-2.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider block leading-none">
-                        {d.name.substring(0, 3)}
-                      </span>
-                      <span className="text-[9px] font-num text-[#94A3B8] block leading-tight">
+                    <div className={`w-full py-1 px-1.5 rounded-[4px] mb-2.5 ${
+                      d.isToday ? 'bg-[#18181B] text-white' : 'bg-[#F9FAFB] text-[#18181B] border border-[#E2E8F0]'
+                    }`}>
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider block leading-none">
+                          {d.name.substring(0, 3)}
+                        </span>
+                        {d.isToday && (
+                          <span className="text-[8px] font-bold px-1 rounded bg-[#10B981] text-white">TODAY</span>
+                        )}
+                      </div>
+                      <span className={`text-[9px] font-num block leading-tight ${
+                        d.isToday ? 'text-[#94A3B8]' : 'text-[#71717A]'
+                      }`}>
                         {d.date}
                       </span>
                     </div>
@@ -547,7 +558,7 @@ export const MasterDashboard: React.FC = () => {
                         />
                       </svg>
                       <span className="absolute text-[11px] font-num font-bold text-[#18181B]">
-                        {d.index === 0 ? '120%' : `${percent}%`}
+                        {d.expected}
                       </span>
                     </div>
 

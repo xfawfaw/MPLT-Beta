@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   LayoutGrid, 
@@ -21,6 +21,7 @@ import {
   Compass
 } from 'lucide-react';
 import { sound } from '../utils/sound';
+import { dateUtils } from '../utils/date';
 import { 
   TreeView, 
   TreeSection, 
@@ -35,12 +36,14 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBackup }) => {
-  const { profile, currentTab, setCurrentTab, resetAllData, tasks } = useApp();
+  const { profile, currentTab, setCurrentTab, resetAllData, tasks, goals } = useApp();
+  const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
   const [isWorkstationOpen, setIsWorkstationOpen] = useState(false);
   const workstationRef = useRef<HTMLDivElement>(null);
 
   const expPercentage = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
+  const activeGoalsCount = goals.filter(g => g.status !== 'Achieved').length;
 
   const toggleSound = () => {
     const muted = sound.toggleMute();
@@ -338,7 +341,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
                           id="weekly" 
                           label="Weekly To-Do" 
                           icon={CalendarRange} 
-                          badge="W09" 
+                          badge={today.weekTag} 
                         />
                         <TreeFolder id="tasks-folder" label="Tasks Operations" defaultExpanded={true}>
                           <TreeItem 
@@ -356,7 +359,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
                             id="goals" 
                             label="Goal Tracker" 
                             icon={Target} 
-                            badge="6 ACTIVE" 
+                            badge={`${activeGoalsCount} ACTIVE`} 
                           />
                         </TreeFolder>
                         <TreeFolder id="finance-folder" label="Finance Hub" defaultExpanded={false}>
@@ -371,7 +374,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
                           id="yearly" 
                           label="Yearly Analytics" 
                           icon={BarChart3} 
-                          badge="2026" 
+                          badge={`${today.year}`} 
                         />
                       </TreeSection>
                     </TreeView>

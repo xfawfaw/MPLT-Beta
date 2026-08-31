@@ -30,18 +30,20 @@ export interface TodayInfo {
   date: Date;
   year: number;
   monthIndex: number; // 0-11
-  monthName: string; // e.g. "FEBRUARY 2026"
-  monthShort: string; // e.g. "Feb"
+  monthName: string; // e.g. "AUGUST 2026"
+  monthShort: string; // e.g. "Aug"
   dayOfMonth: number; // 1-31
   dayOfWeekIndex: number; // 0 = Mon, 6 = Sun
-  dayName: string; // e.g. "Thursday"
-  todayISO: string; // e.g. "2026-02-26"
-  formattedDisplay: string; // e.g. "Thursday, 26 February 2026"
+  dayName: string; // e.g. "Monday"
+  todayISO: string; // e.g. "2026-08-31"
+  formattedDisplay: string; // e.g. "Monday, 31 August 2026"
   daysInMonth: number;
   remainingDaysInMonth: number;
   daysRemainingInYear: number;
   currentWeekNumber: number; // 1-52
-  sprintWeekRangeStr: string; // e.g. "23 FEB — 01 MAR 2026"
+  weekTag: string; // e.g. "W36"
+  dayOfYear: number; // 1-366
+  sprintWeekRangeStr: string; // e.g. "31 AUG — 06 SEP 2026"
   sprintDays: DayConfig[];
 }
 
@@ -159,6 +161,8 @@ export const dateUtils = {
     const formattedDisplay = `${dayName}, ${dayOfMonth} ${monthNames[monthIndex].charAt(0) + monthNames[monthIndex].slice(1).toLowerCase()} ${year}`;
 
     const currentSprint = this.getSprintWeekInfo(0);
+    const startOfYear = new Date(year, 0, 1);
+    const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / 86400000) + 1;
 
     return {
       date,
@@ -175,6 +179,8 @@ export const dateUtils = {
       remainingDaysInMonth,
       daysRemainingInYear,
       currentWeekNumber: currentSprint.currentWeekNumber,
+      weekTag: currentSprint.weekTag,
+      dayOfYear,
       sprintWeekRangeStr: currentSprint.sprintWeekRangeStr,
       sprintDays: currentSprint.sprintDays,
     };
