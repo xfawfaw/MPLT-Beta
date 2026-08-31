@@ -16,6 +16,7 @@ import {
   Check,
   Zap,
   ArrowRight,
+  Workflow,
   LucideIcon
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
@@ -130,6 +131,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       category: 'Navigation',
       icon: BarChart3,
       action: () => { setCurrentTab('yearly'); sound.playClick(); onClose(); }
+    },
+    {
+      id: 'nav-automations',
+      title: 'Go to Life Pipelines (Automations)',
+      subtitle: 'Flow Graph & Reactive Logic Rules Engine',
+      category: 'Navigation',
+      icon: Workflow,
+      action: () => { setCurrentTab('automations'); sound.playClick(); onClose(); }
     },
 
     // System

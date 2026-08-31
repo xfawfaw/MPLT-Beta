@@ -8,6 +8,7 @@ import { TaskManagerView } from './components/Tasks/TaskManagerView';
 import { GoalTrackerView } from './components/Goals/GoalTrackerView';
 import { MoneyTrackerView } from './components/Finance/MoneyTrackerView';
 import { YearlyStatsView } from './components/Analytics/YearlyStatsView';
+import { LifeAutomationView } from './components/Automations/LifeAutomationView';
 import { LevelUpModal } from './components/Common/LevelUpModal';
 import { ExpToast } from './components/Common/ExpToast';
 import { CommandPalette } from './components/Common/CommandPalette';
@@ -58,6 +59,7 @@ export const AppContent: React.FC = () => {
             {currentTab === 'goals' && <GoalTrackerView />}
             {currentTab === 'finance' && <MoneyTrackerView />}
             {currentTab === 'yearly' && <YearlyStatsView />}
+            {currentTab === 'automations' && <LifeAutomationView />}
           </motion.div>
         </AnimatePresence>
       </main>

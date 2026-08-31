@@ -18,7 +18,8 @@ import {
   FolderTree,
   X,
   ChevronRight,
-  Compass
+  Compass,
+  Workflow
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 import { dateUtils } from '../utils/date';
@@ -59,6 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
     { id: 'goals', label: 'Goals', icon: Target, section: 'Strategy' },
     { id: 'finance', label: 'Finance', icon: Wallet, section: 'Strategy' },
     { id: 'yearly', label: 'Stats', icon: BarChart3, section: 'Strategy' },
+    { id: 'automations', label: 'Pipelines', icon: Workflow, section: 'Strategy' },
   ];
 
   const currentNav = navItems.find(item => item.id === currentTab) || navItems[0];
@@ -107,6 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
       'goals': 'goals',
       'finance': 'finance',
       'yearly': 'yearly',
+      'automations': 'automations',
     };
 
     if (tabMap[id]) {
@@ -375,6 +378,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
                           label="Yearly Analytics" 
                           icon={BarChart3} 
                           badge={`${today.year}`} 
+                        />
+                        <TreeItem 
+                          id="automations" 
+                          label="Life Pipelines" 
+                          icon={Workflow} 
+                          badge="REACT" 
                         />
                       </TreeSection>
                     </TreeView>
