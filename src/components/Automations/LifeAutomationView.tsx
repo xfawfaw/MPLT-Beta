@@ -18,6 +18,9 @@ import {
   Workflow,
   Cpu,
   Activity,
+  Lock,
+  Unlock,
+  ArrowLeft,
   LucideIcon
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -262,7 +265,8 @@ function ConnectionLine({
 }
 
 export const LifeAutomationView: React.FC = () => {
-  const { addExp } = useApp();
+  const { addExp, setCurrentTab } = useApp();
+  const [isLocked, setIsLocked] = useState(true);
   const [nodes, setNodes] = useState<WorkflowNode[]>(INITIAL_MPLT_NODES);
   const [connections, setConnections] = useState<WorkflowConnection[]>(INITIAL_MPLT_CONNECTIONS);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -367,6 +371,58 @@ export const LifeAutomationView: React.FC = () => {
     setConnections(INITIAL_MPLT_CONNECTIONS);
     sound.playClick();
   };
+
+  if (isLocked) {
+    return (
+      <div className="max-w-[1440px] mx-auto p-6 space-y-6">
+        <div className="mplt-card p-8 bg-white border border-[#E2E8F0] rounded-xl flex flex-col items-center justify-center text-center max-w-xl mx-auto my-12 shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-[#18181B] text-white flex items-center justify-center mb-4 shadow-sm">
+            <Lock size={24} className="text-[#10B981]" />
+          </div>
+          
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span className="text-[10.5px] font-bold uppercase tracking-widest text-[#71717A] font-ui">
+              BETA v0.1 • FEATURE LOCKED
+            </span>
+          </div>
+
+          <h2 className="text-[20px] font-bold text-[#18181B] font-ui tracking-tight mb-2">
+            Life Automation Pipelines is Locked
+          </h2>
+
+          <p className="text-[12.5px] text-[#71717A] font-ui max-w-md leading-relaxed mb-6">
+            During Beta v0.1, we are prioritizing core MVP stability across Habit Matrix, Weekly Sprints, Tasks, Strategic Goals, and 50/30/20 Budgeting.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              onClick={() => {
+                setCurrentTab('dashboard');
+                sound.playClick();
+              }}
+              className="h-9 px-4 bg-[#18181B] text-white text-[12px] font-ui font-medium rounded-lg hover:bg-zinc-800 gap-1.5"
+            >
+              <ArrowLeft size={13} />
+              Return to Master Dashboard
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsLocked(false);
+                sound.playPop();
+              }}
+              className="h-9 px-4 border-[#E2E8F0] text-[12px] font-ui text-[#71717A] hover:text-[#18181B] rounded-lg gap-1.5"
+            >
+              <Unlock size={13} />
+              Preview Sandbox (Dev Mode)
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-[1440px] mx-auto p-6 space-y-6">

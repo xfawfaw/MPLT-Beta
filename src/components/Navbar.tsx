@@ -139,8 +139,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
               <span className="font-bold tracking-tight text-[13.5px] font-ui text-[#18181B] leading-tight">
                 MPLT ZERO
               </span>
-              <span className="text-[8.5px] uppercase tracking-widest text-[#71717A] font-medium">
-                Life Ops
+              <span className="text-[8.5px] uppercase tracking-widest text-[#10B981] font-bold">
+                BETA v0.1
               </span>
             </div>
           </div>
@@ -383,7 +383,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
                           id="automations" 
                           label="Life Pipelines" 
                           icon={Workflow} 
-                          badge="REACT" 
+                          badge="LOCKED" 
                         />
                       </TreeSection>
                     </TreeView>
@@ -396,7 +396,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
                       MPLT
                     </span>
                     <span className="font-num text-[#18181B] font-semibold">
-                      1.0
+                      v0.1-BETA
                     </span>
                   </div>
                 </motion.div>

@@ -135,7 +135,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     {
       id: 'nav-automations',
       title: 'Go to Life Pipelines (Automations)',
-      subtitle: 'Flow Graph & Reactive Logic Rules Engine',
+      subtitle: '[Locked in Beta v0.1] Flow Graph & Reactive Logic Rules Engine',
       category: 'Navigation',
       icon: Workflow,
       action: () => { setCurrentTab('automations'); sound.playClick(); onClose(); }
