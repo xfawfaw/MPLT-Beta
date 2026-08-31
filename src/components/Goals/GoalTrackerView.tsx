@@ -21,6 +21,7 @@ import {
   X,
   Trash2
 } from 'lucide-react';
+import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
@@ -185,41 +186,45 @@ export const GoalTrackerView: React.FC = () => {
 
         </div>
 
-        {/* Areas of Life Filter Chips */}
+        {/* Areas of Life Filter Expandable Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
-          <button
-            onClick={() => {
-              setSelectedArea('all');
+          <ExpandableTabs
+            size="sm"
+            tabs={[
+              { id: 'all', title: 'All Domains', icon: Target, badge: goals.length },
+              { id: 'Health', title: 'Health', icon: ShieldCheck, badge: goals.filter(g => g.areaOfLife === 'Health').length },
+              { id: 'Work', title: 'Work', icon: Briefcase, badge: goals.filter(g => g.areaOfLife === 'Work').length },
+              { id: 'Money', title: 'Money', icon: TrendingUp, badge: goals.filter(g => g.areaOfLife === 'Money').length },
+              { id: 'Family', title: 'Family', icon: HeartHandshake, badge: goals.filter(g => g.areaOfLife === 'Family').length },
+              { id: 'Personal Growth', title: 'Growth', icon: BookOpen, badge: goals.filter(g => g.areaOfLife === 'Personal Growth').length },
+              { id: 'Spirituality', title: 'Spirituality', icon: Moon, badge: goals.filter(g => g.areaOfLife === 'Spirituality').length },
+            ]}
+            selectedIndex={
+              selectedArea === 'all'
+                ? 0
+                : selectedArea === 'Health'
+                ? 1
+                : selectedArea === 'Work'
+                ? 2
+                : selectedArea === 'Money'
+                ? 3
+                : selectedArea === 'Family'
+                ? 4
+                : selectedArea === 'Personal Growth'
+                ? 5
+                : 6
+            }
+            activeBgColor="bg-[#18181B]"
+            activeColor="text-white"
+            className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+            onChange={(idx) => {
               sound.playClick();
+              const areaMap = ['all', 'Health', 'Work', 'Money', 'Family', 'Personal Growth', 'Spirituality'];
+              if (idx !== null && areaMap[idx]) {
+                setSelectedArea(areaMap[idx]);
+              }
             }}
-            className={`px-3 py-1.5 rounded-[6px] text-[11.5px] font-medium font-ui transition-all whitespace-nowrap ${
-              selectedArea === 'all' 
-                ? 'bg-[#18181B] text-white font-bold' 
-                : 'bg-[#F9FAFB] text-[#71717A] hover:bg-[#F4F4F5] border border-[#E2E8F0]'
-            }`}
-          >
-            All Life Domains ({goals.length})
-          </button>
-          {areas.map(area => {
-            const count = goals.filter(g => g.areaOfLife === area).length;
-            const isSelected = selectedArea === area;
-            return (
-              <button
-                key={area}
-                onClick={() => {
-                  setSelectedArea(area);
-                  sound.playClick();
-                }}
-                className={`px-3 py-1.5 rounded-[6px] text-[11.5px] font-medium font-ui transition-all whitespace-nowrap ${
-                  isSelected 
-                    ? 'bg-[#18181B] text-white font-bold' 
-                    : 'bg-[#F9FAFB] text-[#71717A] hover:bg-[#F4F4F5] border border-[#E2E8F0]'
-                }`}
-              >
-                {area} ({count})
-              </button>
-            );
-          })}
+          />
         </div>
       </section>
 

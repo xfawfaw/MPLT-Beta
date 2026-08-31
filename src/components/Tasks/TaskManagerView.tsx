@@ -12,9 +12,13 @@ import {
   AlertCircle, 
   Tag,
   Calendar,
-  Sparkles
+  Sparkles,
+  CheckSquare,
+  CheckCircle2
 } from 'lucide-react';
+import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { TaskItem, AreaOfLife } from '../../types';
+import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -133,37 +137,24 @@ export const TaskManagerView: React.FC = () => {
 
           {/* Right Action & Multi-View Switcher */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center bg-[#F1F5F9] p-1 rounded-[6px] text-[11px] font-ui font-medium">
-              <button
-                onClick={() => setViewMode('table')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-all ${
-                  viewMode === 'table' ? 'bg-[#18181B] text-white shadow-sm font-bold' : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <TableIcon size={13} />
-                <span>Table Ledger</span>
-              </button>
-
-              <button
-                onClick={() => setViewMode('kanban')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-all ${
-                  viewMode === 'kanban' ? 'bg-[#18181B] text-white shadow-sm font-bold' : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <Columns size={13} />
-                <span>Kanban Board</span>
-              </button>
-
-              <button
-                onClick={() => setViewMode('matrix')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-all ${
-                  viewMode === 'matrix' ? 'bg-[#18181B] text-white shadow-sm font-bold' : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <LayoutGrid size={13} />
-                <span>Priority Matrix</span>
-              </button>
-            </div>
+            <ExpandableTabs
+              size="sm"
+              tabs={[
+                { id: 'table', title: 'Table Ledger', icon: TableIcon },
+                { id: 'kanban', title: 'Kanban Board', icon: Columns },
+                { id: 'matrix', title: 'Priority Matrix', icon: LayoutGrid },
+              ]}
+              selectedIndex={viewMode === 'table' ? 0 : viewMode === 'kanban' ? 1 : 2}
+              activeBgColor="bg-[#18181B]"
+              activeColor="text-white"
+              className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+              onChange={(idx) => {
+                sound.playClick();
+                if (idx === 0) setViewMode('table');
+                else if (idx === 1) setViewMode('kanban');
+                else if (idx === 2) setViewMode('matrix');
+              }}
+            />
 
             <button
               onClick={() => setShowAddModal(true)}
@@ -315,20 +306,38 @@ export const TaskManagerView: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* Status Filter Chips */}
-                  <div className="flex items-center gap-1 bg-white border border-[#E2E8F0] p-0.5 rounded-[6px]">
-                    {(['all', 'pending', 'completed', 'today', 'overdue'] as const).map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => setFilterStatus(s)}
-                        className={`px-2.5 py-1 rounded-[4px] text-[11px] font-medium font-ui transition-colors capitalize ${
-                          filterStatus === s ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
-                        }`}
-                      >
-                        {s === 'all' ? 'All Tasks' : s}
-                      </button>
-                    ))}
-                  </div>
+                  {/* Status Filter Expandable Tabs */}
+                  <ExpandableTabs
+                    size="sm"
+                    tabs={[
+                      { id: 'all', title: 'All Tasks', icon: CheckSquare, badge: totalTasks },
+                      { id: 'pending', title: 'Pending', icon: Clock, badge: totalTasks - completedTasks },
+                      { id: 'completed', title: 'Completed', icon: CheckCircle2, badge: completedTasks },
+                      { id: 'today', title: 'Due Today', icon: Calendar, badge: dueTodayTasks > 0 ? dueTodayTasks : undefined },
+                      { id: 'overdue', title: 'Overdue', icon: AlertCircle, badge: overdueTasks > 0 ? overdueTasks : undefined },
+                    ]}
+                    selectedIndex={
+                      filterStatus === 'all'
+                        ? 0
+                        : filterStatus === 'pending'
+                        ? 1
+                        : filterStatus === 'completed'
+                        ? 2
+                        : filterStatus === 'today'
+                        ? 3
+                        : 4
+                    }
+                    activeBgColor="bg-[#18181B]"
+                    activeColor="text-white"
+                    className="bg-white border-[#E2E8F0] rounded-[8px]"
+                    onChange={(idx) => {
+                      sound.playClick();
+                      const statusMap = ['all', 'pending', 'completed', 'today', 'overdue'];
+                      if (idx !== null && statusMap[idx]) {
+                        setFilterStatus(statusMap[idx]);
+                      }
+                    }}
+                  />
 
                   {/* Priority Filter */}
                   <select

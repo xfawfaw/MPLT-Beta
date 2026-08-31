@@ -18,6 +18,7 @@ import {
   Layers,
   X
 } from 'lucide-react';
+import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { AreaOfLife, Habit } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
@@ -213,63 +214,57 @@ export const HabitMatrixView: React.FC = () => {
           </div>
 
           {/* Right Action & View Mode Controls */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Domain Filter Pills */}
-            <div className="flex items-center bg-[#F1F5F9] p-0.5 rounded-[6px] text-[11px] font-ui">
-              <button
-                onClick={() => {
-                  setActiveVelocityFilter('all');
-                  sound.playClick();
-                }}
-                className={`px-2 py-1 rounded-[4px] font-medium transition-all ${
-                  activeVelocityFilter === 'all' ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                All
-              </button>
-              {(['Health', 'Work', 'Money', 'Personal Growth'] as AreaOfLife[]).map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => {
-                    setActiveVelocityFilter(cat);
-                    sound.playClick();
-                  }}
-                  className={`px-2 py-1 rounded-[4px] font-medium transition-all ${
-                    activeVelocityFilter === cat ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
-                  }`}
-                >
-                  {cat.split(' ')[0]}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Domain Filter Expandable Tabs */}
+            <ExpandableTabs
+              size="sm"
+              tabs={[
+                { id: 'all', title: 'All Domains', icon: Sparkles },
+                { id: 'Health', title: 'Health', icon: Activity },
+                { id: 'Work', title: 'Work', icon: Laptop },
+                { id: 'Money', title: 'Money', icon: TrendingUp },
+                { id: 'Personal Growth', title: 'Growth', icon: Award },
+              ]}
+              selectedIndex={
+                activeVelocityFilter === 'all'
+                  ? 0
+                  : activeVelocityFilter === 'Health'
+                  ? 1
+                  : activeVelocityFilter === 'Work'
+                  ? 2
+                  : activeVelocityFilter === 'Money'
+                  ? 3
+                  : 4
+              }
+              activeBgColor="bg-[#18181B]"
+              activeColor="text-white"
+              className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+              onChange={(idx) => {
+                sound.playClick();
+                const mapping: ('all' | AreaOfLife)[] = ['all', 'Health', 'Work', 'Money', 'Personal Growth'];
+                if (idx !== null && mapping[idx]) {
+                  setActiveVelocityFilter(mapping[idx]);
+                }
+              }}
+            />
 
-            {/* View Mode Toggle: 31-Day Ledger vs Routine Stacking */}
-            <div className="flex items-center bg-[#F1F5F9] p-0.5 rounded-[6px] text-[11px] font-ui">
-              <button
-                onClick={() => {
-                  setViewMode('table');
-                  sound.playClick();
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] font-medium transition-all ${
-                  viewMode === 'table' ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <List size={12} />
-                <span>31-Day Ledger</span>
-              </button>
-              <button
-                onClick={() => {
-                  setViewMode('stack');
-                  sound.playClick();
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] font-medium transition-all ${
-                  viewMode === 'stack' ? 'bg-[#18181B] text-white font-bold' : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <Layers size={12} />
-                <span>Routine Stacking</span>
-              </button>
-            </div>
+            {/* View Mode Expandable Tabs: 31-Day Ledger vs Routine Stacking */}
+            <ExpandableTabs
+              size="sm"
+              tabs={[
+                { id: 'table', title: '31-Day Ledger', icon: List },
+                { id: 'stack', title: 'Routine Stacking', icon: Layers },
+              ]}
+              selectedIndex={viewMode === 'table' ? 0 : 1}
+              activeBgColor="bg-[#18181B]"
+              activeColor="text-white"
+              className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+              onChange={(idx) => {
+                sound.playClick();
+                if (idx === 0) setViewMode('table');
+                else if (idx === 1) setViewMode('stack');
+              }}
+            />
 
             {/* Add Habit Button */}
             <button

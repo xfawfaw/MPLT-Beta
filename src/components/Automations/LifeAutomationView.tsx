@@ -26,6 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { useApp } from '../../context/AppContext';
 import { sound } from '../../utils/sound';
 
@@ -482,59 +483,34 @@ export const LifeAutomationView: React.FC = () => {
 
       {/* Preset Strategy Tabs */}
       <div className="flex items-center justify-between gap-3 text-[11.5px] font-ui">
-        <div className="flex items-center gap-1.5 p-1 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px]">
-          <button
-            onClick={() => setActivePreset('custom')}
-            className={`px-3 py-1 rounded-[6px] transition-all font-medium ${
-              activePreset === 'custom'
-                ? 'bg-[#18181B] text-white font-semibold shadow-2xs'
-                : 'text-[#71717A] hover:text-[#18181B]'
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <Cpu size={12} />
-              Active Life Pipeline
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
+        <ExpandableTabs
+          size="sm"
+          tabs={[
+            { id: 'custom', title: 'Active Life Pipeline', icon: Cpu },
+            { id: 'gamification', title: 'EXP & Streak Boosters', icon: Sparkles },
+            { id: 'finance', title: 'Budget Guardrails', icon: ShieldAlert },
+          ]}
+          selectedIndex={
+            activePreset === 'custom' ? 0 : activePreset === 'gamification' ? 1 : 2
+          }
+          activeBgColor="bg-[#18181B]"
+          activeColor="text-white"
+          className="bg-white border-[#E2E8F0] rounded-[8px]"
+          onChange={(idx) => {
+            sound.playClick();
+            if (idx === 0) {
+              setActivePreset('custom');
+            } else if (idx === 1) {
               setActivePreset('gamification');
               setNodes(INITIAL_MPLT_NODES.slice(0, 3));
               setConnections(INITIAL_MPLT_CONNECTIONS.slice(0, 2));
-              sound.playClick();
-            }}
-            className={`px-3 py-1 rounded-[6px] transition-all font-medium ${
-              activePreset === 'gamification'
-                ? 'bg-[#18181B] text-white font-semibold shadow-2xs'
-                : 'text-[#71717A] hover:text-[#18181B]'
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <Sparkles size={12} className="text-[#10B981]" />
-              EXP & Streak Boosters
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
+            } else if (idx === 2) {
               setActivePreset('finance');
               setNodes(INITIAL_MPLT_NODES.slice(3, 6));
               setConnections(INITIAL_MPLT_CONNECTIONS.slice(2, 4));
-              sound.playClick();
-            }}
-            className={`px-3 py-1 rounded-[6px] transition-all font-medium ${
-              activePreset === 'finance'
-                ? 'bg-[#18181B] text-white font-semibold shadow-2xs'
-                : 'text-[#71717A] hover:text-[#18181B]'
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <ShieldAlert size={12} className="text-rose-500" />
-              Budget Guardrails
-            </span>
-          </button>
-        </div>
+            }
+          }}
+        />
 
         <div className="hidden sm:flex items-center gap-3 text-[#71717A] font-num text-[11px]">
           <span className="flex items-center gap-1">

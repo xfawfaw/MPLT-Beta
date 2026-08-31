@@ -15,6 +15,7 @@ import {
   ArrowUpRight, 
   CheckCircle2 
 } from 'lucide-react';
+import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { WeeklyTask, AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
@@ -178,43 +179,26 @@ export const WeeklyPlannerView: React.FC = () => {
 
           {/* View Mode Switcher */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-[#F1F5F9] p-1 rounded-[6px] text-[11px] font-ui font-medium">
-              <button
-                onClick={() => setActiveViewMode('grid')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-all ${
-                  activeViewMode === 'grid'
-                    ? 'bg-[#18181B] text-white shadow-sm font-bold'
-                    : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <LayoutGrid size={13} />
-                <span>Sprint Board</span>
-              </button>
-
-              <button
-                onClick={() => setActiveViewMode('spotlight')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-all ${
-                  activeViewMode === 'spotlight'
-                    ? 'bg-[#18181B] text-white shadow-sm font-bold'
-                    : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <Clock size={13} />
-                <span>Day Spotlight</span>
-              </button>
-
-              <button
-                onClick={() => setActiveViewMode('agenda')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-all ${
-                  activeViewMode === 'agenda'
-                    ? 'bg-[#18181B] text-white shadow-sm font-bold'
-                    : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <ListFilter size={13} />
-                <span>Agenda List</span>
-              </button>
-            </div>
+            <ExpandableTabs
+              size="sm"
+              tabs={[
+                { id: 'grid', title: 'Sprint Board', icon: LayoutGrid },
+                { id: 'spotlight', title: 'Day Spotlight', icon: Clock },
+                { id: 'agenda', title: 'Agenda List', icon: ListFilter },
+              ]}
+              selectedIndex={
+                activeViewMode === 'grid' ? 0 : activeViewMode === 'spotlight' ? 1 : 2
+              }
+              activeBgColor="bg-[#18181B]"
+              activeColor="text-white"
+              className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+              onChange={(idx) => {
+                sound.playClick();
+                if (idx === 0) setActiveViewMode('grid');
+                else if (idx === 1) setActiveViewMode('spotlight');
+                else if (idx === 2) setActiveViewMode('agenda');
+              }}
+            />
           </div>
         </div>
 

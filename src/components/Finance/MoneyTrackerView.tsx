@@ -11,8 +11,11 @@ import {
   Flame,
   CreditCard,
   PieChart,
+  Layers,
+  Sliders,
   X
 } from 'lucide-react';
+import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { BudgetConfig } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
@@ -261,22 +264,34 @@ export const MoneyTrackerView: React.FC = () => {
               </p>
             </div>
 
-            {/* Segmented Control Toggle */}
-            <div className="flex items-center bg-[#F1F5F9] p-1 rounded-[6px] text-[11px] font-ui font-medium">
-              {(['50/30/20', '60/20/20', '80/20', 'custom'] as const).map((preset) => (
-                <button
-                  key={preset}
-                  onClick={() => handlePresetSelect(preset)}
-                  className={`px-2.5 py-1 rounded-[4px] transition-all capitalize ${
-                    budget.mode === preset
-                      ? 'bg-[#18181B] text-white font-bold'
-                      : 'text-[#71717A] hover:text-[#18181B]'
-                  }`}
-                >
-                  {preset === 'custom' ? 'Custom' : `${preset}`}
-                </button>
-              ))}
-            </div>
+            {/* Expandable Tabs Budget Ratio Toggle */}
+            <ExpandableTabs
+              size="sm"
+              tabs={[
+                { id: '50/30/20', title: '50/30/20', icon: PieChart },
+                { id: '60/20/20', title: '60/20/20', icon: Layers },
+                { id: '80/20', title: '80/20', icon: CreditCard },
+                { id: 'custom', title: 'Custom', icon: Sliders },
+              ]}
+              selectedIndex={
+                budget.mode === '50/30/20'
+                  ? 0
+                  : budget.mode === '60/20/20'
+                  ? 1
+                  : budget.mode === '80/20'
+                  ? 2
+                  : 3
+              }
+              activeBgColor="bg-[#18181B]"
+              activeColor="text-white"
+              className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+              onChange={(idx) => {
+                const presets: BudgetConfig['mode'][] = ['50/30/20', '60/20/20', '80/20', 'custom'];
+                if (idx !== null && presets[idx]) {
+                  handlePresetSelect(presets[idx]);
+                }
+              }}
+            />
           </div>
 
           {/* Three Horizontal Progress Slider Bars */}
@@ -521,25 +536,38 @@ export const MoneyTrackerView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Filter Pills */}
-            <div className="flex items-center bg-white border border-[#E2E8F0] p-0.5 rounded-[6px] text-[11px] font-ui">
-              {(['All', 'Needs', 'Wants', 'Savings', 'Income'] as const).map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => {
-                    setActiveBucketFilter(filter);
-                    sound.playClick();
-                  }}
-                  className={`px-2.5 py-1 rounded-[4px] font-medium transition-all ${
-                    activeBucketFilter === filter 
-                      ? 'bg-[#18181B] text-white font-bold' 
-                      : 'text-[#71717A] hover:text-[#18181B]'
-                  }`}
-                >
-                  {filter}
-                </button>
-              ))}
-            </div>
+            {/* Expandable Tabs Filter */}
+            <ExpandableTabs
+              size="sm"
+              tabs={[
+                { id: 'All', title: 'All Ledger', icon: Layers, badge: transactions.length },
+                { id: 'Needs', title: 'Needs', icon: ShieldCheck, badge: transactions.filter(t => t.type === 'expense' && t.bucket === 'Needs').length },
+                { id: 'Wants', title: 'Wants', icon: CreditCard, badge: transactions.filter(t => t.type === 'expense' && t.bucket === 'Wants').length },
+                { id: 'Savings', title: 'Savings', icon: TrendingUp, badge: transactions.filter(t => t.type === 'expense' && t.bucket === 'Savings').length },
+                { id: 'Income', title: 'Income', icon: DollarSign, badge: transactions.filter(t => t.type === 'income').length },
+              ]}
+              selectedIndex={
+                activeBucketFilter === 'All'
+                  ? 0
+                  : activeBucketFilter === 'Needs'
+                  ? 1
+                  : activeBucketFilter === 'Wants'
+                  ? 2
+                  : activeBucketFilter === 'Savings'
+                  ? 3
+                  : 4
+              }
+              activeBgColor="bg-[#18181B]"
+              activeColor="text-white"
+              className="bg-white border-[#E2E8F0] rounded-[8px]"
+              onChange={(idx) => {
+                sound.playClick();
+                const bucketMap: ('All' | 'Needs' | 'Wants' | 'Savings' | 'Income')[] = ['All', 'Needs', 'Wants', 'Savings', 'Income'];
+                if (idx !== null && bucketMap[idx]) {
+                  setActiveBucketFilter(bucketMap[idx]);
+                }
+              }}
+            />
 
             <button
               onClick={() => {
