@@ -15,6 +15,7 @@ import {
   RotateCcw,
   Check,
   Zap,
+  Sparkles,
   ArrowRight,
   Workflow,
   LucideIcon
@@ -27,6 +28,7 @@ interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenBackup: () => void;
+  onOpenOnboarding?: () => void;
 }
 
 interface CommandItem {
@@ -38,17 +40,18 @@ interface CommandItem {
   action: () => void;
 }
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onOpenBackup }) => {
+export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onOpenBackup, onOpenOnboarding }) => {
   const { 
     habits, 
     toggleHabitLog, 
     weeklyTasks, 
     toggleWeeklyTask, 
-    tasks,
-    toggleTaskStatus,
-    goals,
+    tasks, 
+    toggleTaskStatus, 
+    goals, 
     toggleGoalStatus,
     setCurrentTab, 
+    loadDemoData,
     resetAllData 
   } = useApp();
 
@@ -170,6 +173,28 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
             resetAllData();
             onClose();
           }
+        }
+      },
+      {
+        id: 'sys-onboarding',
+        title: 'Run Onboarding Setup Wizard',
+        subtitle: 'Configure call-sign, core focus, habits & income',
+        category: 'System',
+        icon: Sparkles,
+        action: () => {
+          onOpenOnboarding?.();
+          onClose();
+        }
+      },
+      {
+        id: 'sys-demo',
+        title: 'Load Demo Showcase Data (Level 14)',
+        subtitle: 'Populate all 7 workstations with active sample data',
+        category: 'System',
+        icon: Zap,
+        action: () => {
+          loadDemoData();
+          onClose();
         }
       },
     ];
@@ -397,3 +422,5 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     </AnimatePresence>
   );
 };
+
+export default CommandPalette;

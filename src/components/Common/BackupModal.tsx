@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp, STORAGE_KEY } from '../../context/AppContext';
 import { 
   Download, 
   Upload, 
   FileSpreadsheet, 
   X, 
-  ShieldCheck
+  ShieldCheck,
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,7 +25,9 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
     tasks, 
     goals, 
     budget, 
-    transactions 
+    transactions,
+    loadDemoData,
+    resetAllData
   } = useApp();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,13 +98,13 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed.profile && parsed.habits) {
-          localStorage.setItem('mplt_zero_state_v1_profile', JSON.stringify(parsed.profile));
-          localStorage.setItem('mplt_zero_state_v1_habits', JSON.stringify(parsed.habits));
-          localStorage.setItem('mplt_zero_state_v1_weeklyTasks', JSON.stringify(parsed.weeklyTasks || []));
-          localStorage.setItem('mplt_zero_state_v1_tasks', JSON.stringify(parsed.tasks || []));
-          localStorage.setItem('mplt_zero_state_v1_goals', JSON.stringify(parsed.goals || []));
-          localStorage.setItem('mplt_zero_state_v1_budget', JSON.stringify(parsed.budget || {}));
-          localStorage.setItem('mplt_zero_state_v1_transactions', JSON.stringify(parsed.transactions || []));
+          localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(parsed.profile));
+          localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(parsed.habits));
+          localStorage.setItem(`${STORAGE_KEY}_weeklyTasks`, JSON.stringify(parsed.weeklyTasks || []));
+          localStorage.setItem(`${STORAGE_KEY}_tasks`, JSON.stringify(parsed.tasks || []));
+          localStorage.setItem(`${STORAGE_KEY}_goals`, JSON.stringify(parsed.goals || []));
+          localStorage.setItem(`${STORAGE_KEY}_budget`, JSON.stringify(parsed.budget || {}));
+          localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(parsed.transactions || []));
 
           sound.playLevelUp();
           alert('System backup restored successfully! Reloading...');
@@ -222,6 +226,56 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
                 </button>
               </div>
 
+              {/* Action 4: Load Full Demo Data */}
+              <div className="p-3.5 bg-[#FEF3C7]/40 border border-[#FDE68A] rounded-[8px] flex items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-[13px] font-bold text-[#92400E] font-ui flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-[#D97706]" />
+                    <span>Load Demo Showcase Data (Level 14)</span>
+                  </h4>
+                  <p className="text-[11px] text-[#B45309]">
+                    Fills all 7 workstations with realistic active data for demonstration & testing
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    loadDemoData();
+                    onClose();
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#D97706] hover:bg-[#B45309] text-white text-[11.5px] font-bold font-ui active:scale-[0.97] transition-all flex-shrink-0"
+                >
+                  <Sparkles size={13} />
+                  <span>Load Demo</span>
+                </button>
+              </div>
+
+              {/* Action 5: Reset to Clean Slate */}
+              <div className="p-3.5 bg-[#FFF1F2] border border-[#FECDD3] rounded-[8px] flex items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-[13px] font-bold text-[#9F1239] font-ui flex items-center gap-1.5">
+                    <RotateCcw size={14} className="text-[#E11D48]" />
+                    <span>Reset to Clean Slate (Level 1 Novice)</span>
+                  </h4>
+                  <p className="text-[11px] text-[#BE123C]">
+                    Wipe local storage and restart fresh with 0 EXP, blank logs, and empty ledger
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to reset all data back to Level 1 Clean Slate?')) {
+                      resetAllData();
+                      onClose();
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#E11D48] hover:bg-[#BE123C] text-white text-[11.5px] font-bold font-ui active:scale-[0.97] transition-all flex-shrink-0"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reset Slate</span>
+                </button>
+              </div>
+
             </div>
 
             {/* Footer */}
@@ -240,3 +294,5 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
     </AnimatePresence>
   );
 };
+
+export default BackupModal;

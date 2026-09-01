@@ -60,12 +60,32 @@ interface AppContextType {
   
   // Toast notification for EXP / Points
   expToast: { visible: boolean; message: string; exp: number } | null;
+  loadDemoData: () => void;
   resetAllData: () => void;
 }
 
-const STORAGE_KEY = 'mplt_zero_state_v1';
+export const STORAGE_KEY = 'mplt_zero_state_v2';
 
-const INITIAL_PROFILE: UserProfile = {
+export const getUserRankTitle = (level: number): string => {
+  if (level <= 1) return 'Novice Initiate';
+  if (level < 5) return 'Apprentice';
+  if (level < 10) return 'Consistent Operator';
+  if (level < 15) return 'Discipline Specialist';
+  if (level < 20) return 'Master Strategist';
+  return 'Apex Achiever';
+};
+
+// Clean slate starting profile for first-time visitors (Level 1 Novice Initiate)
+export const CLEAN_PROFILE: UserProfile = {
+  level: 1,
+  currentExp: 0,
+  nextLevelExp: 100,
+  totalPoints: 0,
+  streakDays: 0,
+};
+
+// High-level demo profile for test drivers
+export const DEMO_PROFILE: UserProfile = {
   level: 14,
   currentExp: 1420,
   nextLevelExp: 2000,
@@ -73,7 +93,7 @@ const INITIAL_PROFILE: UserProfile = {
   streakDays: 28,
 };
 
-// Initial 31-day habit logs generation
+// Initial 31-day habit logs generation for demo data
 const generateInitialHabitLogs = (fillRate: number) => {
   const logs: Record<number, boolean> = {};
   for (let day = 1; day <= 31; day++) {
@@ -83,7 +103,7 @@ const generateInitialHabitLogs = (fillRate: number) => {
   return logs;
 };
 
-const INITIAL_HABITS: Habit[] = [
+export const DEMO_HABITS: Habit[] = [
   {
     id: 'h-1',
     title: 'Morning Run 5km',
@@ -146,8 +166,14 @@ const INITIAL_HABITS: Habit[] = [
   },
 ];
 
-// Real-time synchronized initial sprint week tasks
-const getInitialSprintWeekTasks = (): WeeklyTask[] => {
+// Clean slate starter habits with empty logs for new users
+export const CLEAN_HABITS: Habit[] = DEMO_HABITS.map(h => ({
+  ...h,
+  logs: {},
+}));
+
+// Real-time synchronized demo sprint week tasks
+export const getDemoSprintWeekTasks = (): WeeklyTask[] => {
   const currentSprint = dateUtils.getSprintWeekInfo(0);
   const days = currentSprint.sprintDays;
 
@@ -206,8 +232,16 @@ const getInitialSprintWeekTasks = (): WeeklyTask[] => {
   ];
 };
 
-// Real-time synchronized general task items
-const getInitialTasks = (): TaskItem[] => {
+// Clean slate uncompleted sprint tasks for new visitors
+export const getCleanSprintWeekTasks = (): WeeklyTask[] => {
+  return getDemoSprintWeekTasks().map(t => ({
+    ...t,
+    isCompleted: false,
+  }));
+};
+
+// Real-time synchronized demo general task items
+export const getDemoTasks = (): TaskItem[] => {
   const now = new Date();
   const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
   const formatOffsetDate = (offsetDays: number) => {
@@ -228,7 +262,15 @@ const getInitialTasks = (): TaskItem[] => {
   ];
 };
 
-const INITIAL_GOALS: GoalItem[] = [
+// Clean slate tasks all not started
+export const getCleanTasks = (): TaskItem[] => {
+  return getDemoTasks().map(t => ({
+    ...t,
+    status: 'Not Started',
+  }));
+};
+
+export const DEMO_GOALS: GoalItem[] = [
   {
     id: 'g-1',
     areaOfLife: 'Money',
@@ -344,8 +386,16 @@ const INITIAL_GOALS: GoalItem[] = [
   },
 ];
 
-// Real-time synchronized financial transactions ledger
-const getInitialTransactions = (): TransactionItem[] => {
+// Clean slate strategic goals with zero progress for new visitors
+export const CLEAN_GOALS: GoalItem[] = DEMO_GOALS.map(g => ({
+  ...g,
+  status: 'In Progress',
+  progressPercent: 0,
+  milestones: g.milestones ? g.milestones.map(m => ({ ...m, isCompleted: false })) : [],
+}));
+
+// Real-time synchronized demo financial transactions ledger
+export const getDemoTransactions = (): TransactionItem[] => {
   const now = new Date();
   const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
   const formatOffsetDate = (offsetDays: number) => {
@@ -365,7 +415,7 @@ const getInitialTransactions = (): TransactionItem[] => {
   ];
 };
 
-const INITIAL_BUDGET: BudgetConfig = {
+export const DEMO_BUDGET: BudgetConfig = {
   mode: '50/30/20',
   needsRatio: 50,
   wantsRatio: 30,
@@ -374,34 +424,43 @@ const INITIAL_BUDGET: BudgetConfig = {
   startBalance: 11250000,
 };
 
+export const CLEAN_BUDGET: BudgetConfig = {
+  mode: '50/30/20',
+  needsRatio: 50,
+  wantsRatio: 30,
+  savingsRatio: 20,
+  incomeGoal: 10000000,
+  startBalance: 0,
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [profile, setProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_profile`);
-    return saved ? JSON.parse(saved) : INITIAL_PROFILE;
+    return saved ? JSON.parse(saved) : CLEAN_PROFILE;
   });
 
   const [habits, setHabits] = useState<Habit[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_habits`);
-    if (!saved) return INITIAL_HABITS;
+    if (!saved) return CLEAN_HABITS;
     try {
       const parsed: Habit[] = JSON.parse(saved);
       return parsed.map(h => {
-        const match = INITIAL_HABITS.find(ih => ih.id === h.id);
+        const match = CLEAN_HABITS.find(ih => ih.id === h.id);
         return {
           ...h,
           timeOfDay: h.timeOfDay || match?.timeOfDay || 'Morning',
         };
       });
     } catch {
-      return INITIAL_HABITS;
+      return CLEAN_HABITS;
     }
   });
 
   const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_weeklyTasks`);
-    if (!saved) return getInitialSprintWeekTasks();
+    if (!saved) return getCleanSprintWeekTasks();
     try {
       const parsed: WeeklyTask[] = JSON.parse(saved);
       const currentSprint = dateUtils.getSprintWeekInfo(0);
@@ -413,22 +472,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       });
     } catch {
-      return getInitialSprintWeekTasks();
+      return getCleanSprintWeekTasks();
     }
   });
 
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_tasks`);
-    return saved ? JSON.parse(saved) : getInitialTasks();
+    return saved ? JSON.parse(saved) : getCleanTasks();
   });
 
   const [goals, setGoals] = useState<GoalItem[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_goals`);
-    if (!saved) return INITIAL_GOALS;
+    if (!saved) return CLEAN_GOALS;
     try {
       const parsed: GoalItem[] = JSON.parse(saved);
       return parsed.map(g => {
-        const match = INITIAL_GOALS.find(ig => ig.id === g.id);
+        const match = CLEAN_GOALS.find(ig => ig.id === g.id);
         return {
           ...g,
           quarterTarget: g.quarterTarget || match?.quarterTarget || 'Q4',
@@ -437,18 +496,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       });
     } catch {
-      return INITIAL_GOALS;
+      return CLEAN_GOALS;
     }
   });
 
   const [budget, setBudget] = useState<BudgetConfig>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_budget`);
-    return saved ? JSON.parse(saved) : INITIAL_BUDGET;
+    return saved ? JSON.parse(saved) : CLEAN_BUDGET;
   });
 
   const [transactions, setTransactions] = useState<TransactionItem[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_transactions`);
-    return saved ? JSON.parse(saved) : getInitialTransactions();
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
@@ -823,15 +882,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTransactions(prev => prev.filter(tx => tx.id !== txId));
   };
 
+  // Load full Level 14 demo environment for test drivers
+  const loadDemoData = () => {
+    const demoProfile = { ...DEMO_PROFILE };
+    const demoHabits = [...DEMO_HABITS];
+    const demoWeekly = getDemoSprintWeekTasks();
+    const demoTasks = getDemoTasks();
+    const demoGoals = [...DEMO_GOALS];
+    const demoBudget = { ...DEMO_BUDGET };
+    const demoTx = getDemoTransactions();
+
+    localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(demoProfile));
+    localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(demoHabits));
+    localStorage.setItem(`${STORAGE_KEY}_weeklyTasks`, JSON.stringify(demoWeekly));
+    localStorage.setItem(`${STORAGE_KEY}_tasks`, JSON.stringify(demoTasks));
+    localStorage.setItem(`${STORAGE_KEY}_goals`, JSON.stringify(demoGoals));
+    localStorage.setItem(`${STORAGE_KEY}_budget`, JSON.stringify(demoBudget));
+    localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(demoTx));
+
+    setProfile(demoProfile);
+    setHabits(demoHabits);
+    setWeeklyTasks(demoWeekly);
+    setTasks(demoTasks);
+    setGoals(demoGoals);
+    setBudget(demoBudget);
+    setTransactions(demoTx);
+
+    sound.playLevelUp();
+    setExpToast({ visible: true, message: 'Loaded Level 14 Demo Environment', exp: 1420 });
+    setTimeout(() => setExpToast(null), 3000);
+  };
+
+  // Reset to clean slate Level 1 Novice Initiate
   const resetAllData = () => {
-    localStorage.clear();
-    setProfile(INITIAL_PROFILE);
-    setHabits(INITIAL_HABITS);
-    setWeeklyTasks(getInitialSprintWeekTasks());
-    setTasks(getInitialTasks());
-    setGoals(INITIAL_GOALS);
-    setBudget(INITIAL_BUDGET);
-    setTransactions(getInitialTransactions());
+    localStorage.removeItem(`${STORAGE_KEY}_profile`);
+    localStorage.removeItem(`${STORAGE_KEY}_habits`);
+    localStorage.removeItem(`${STORAGE_KEY}_weeklyTasks`);
+    localStorage.removeItem(`${STORAGE_KEY}_tasks`);
+    localStorage.removeItem(`${STORAGE_KEY}_goals`);
+    localStorage.removeItem(`${STORAGE_KEY}_budget`);
+    localStorage.removeItem(`${STORAGE_KEY}_transactions`);
+
+    setProfile({ ...CLEAN_PROFILE });
+    setHabits([...CLEAN_HABITS]);
+    setWeeklyTasks(getCleanSprintWeekTasks());
+    setTasks(getCleanTasks());
+    setGoals([...CLEAN_GOALS]);
+    setBudget({ ...CLEAN_BUDGET });
+    setTransactions([]);
+
+    sound.playPop();
+    setExpToast({ visible: true, message: 'Reset to Clean Slate (Level 1 Novice)', exp: 0 });
+    setTimeout(() => setExpToast(null), 3000);
   };
 
   return (
@@ -872,6 +974,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         levelUpModal,
         closeLevelUpModal,
         expToast,
+        loadDemoData,
         resetAllData,
       }}
     >

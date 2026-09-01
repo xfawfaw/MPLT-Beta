@@ -1,25 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
-import { MasterDashboard } from './components/Dashboard/MasterDashboard';
-import { HabitMatrixView } from './components/Habits/HabitMatrixView';
-import { WeeklyPlannerView } from './components/Weekly/WeeklyPlannerView';
-import { TaskManagerView } from './components/Tasks/TaskManagerView';
-import { GoalTrackerView } from './components/Goals/GoalTrackerView';
-import { MoneyTrackerView } from './components/Finance/MoneyTrackerView';
-import { YearlyStatsView } from './components/Analytics/YearlyStatsView';
-import { LifeAutomationView } from './components/Automations/LifeAutomationView';
 import { LevelUpModal } from './components/Common/LevelUpModal';
 import { ExpToast } from './components/Common/ExpToast';
 import { CommandPalette } from './components/Common/CommandPalette';
 import { BackupModal } from './components/Common/BackupModal';
-
+import { OnboardingModal } from './components/Common/OnboardingModal';
+import { ViewSkeleton } from './components/Common/ViewSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Code-splitting via React.lazy for sub-100kB chunks and instant LCP
+const MasterDashboard = lazy(() => import('./components/Dashboard/MasterDashboard').then(m => ({ default: m.MasterDashboard })));
+const HabitMatrixView = lazy(() => import('./components/Habits/HabitMatrixView').then(m => ({ default: m.HabitMatrixView })));
+const WeeklyPlannerView = lazy(() => import('./components/Weekly/WeeklyPlannerView').then(m => ({ default: m.WeeklyPlannerView })));
+const TaskManagerView = lazy(() => import('./components/Tasks/TaskManagerView').then(m => ({ default: m.TaskManagerView })));
+const GoalTrackerView = lazy(() => import('./components/Goals/GoalTrackerView').then(m => ({ default: m.GoalTrackerView })));
+const MoneyTrackerView = lazy(() => import('./components/Finance/MoneyTrackerView').then(m => ({ default: m.MoneyTrackerView })));
+const YearlyStatsView = lazy(() => import('./components/Analytics/YearlyStatsView').then(m => ({ default: m.YearlyStatsView })));
+const LifeAutomationView = lazy(() => import('./components/Automations/LifeAutomationView').then(m => ({ default: m.LifeAutomationView })));
 
 export const AppContent: React.FC = () => {
   const { currentTab } = useApp();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+
+  // Check if first-time visitor needs onboarding
+  useEffect(() => {
+    const hasOnboarded = localStorage.getItem('mplt_zero_onboarded');
+    if (!hasOnboarded) {
+      // Delay slightly for smooth page entrance
+      const timer = setTimeout(() => {
+        setIsOnboardingModalOpen(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Global Ctrl+K / Cmd+K listener
   useEffect(() => {
@@ -42,39 +58,50 @@ export const AppContent: React.FC = () => {
         onOpenBackup={() => setIsBackupModalOpen(true)}
       />
 
-      {/* Main Workspace Container with Smooth Spring Transitions */}
+      {/* Main Workspace Container with Suspense and Smooth Spring Transitions */}
       <main className="flex-1 pb-16 overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentTab}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {currentTab === 'dashboard' && <MasterDashboard />}
-            {currentTab === 'habits' && <HabitMatrixView />}
-            {currentTab === 'weekly' && <WeeklyPlannerView />}
-            {currentTab === 'tasks' && <TaskManagerView />}
-            {currentTab === 'goals' && <GoalTrackerView />}
-            {currentTab === 'finance' && <MoneyTrackerView />}
-            {currentTab === 'yearly' && <YearlyStatsView />}
-            {currentTab === 'automations' && <LifeAutomationView />}
-          </motion.div>
-        </AnimatePresence>
+        <Suspense fallback={<ViewSkeleton />}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentTab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {currentTab === 'dashboard' && <MasterDashboard />}
+              {currentTab === 'habits' && <HabitMatrixView />}
+              {currentTab === 'weekly' && <WeeklyPlannerView />}
+              {currentTab === 'tasks' && <TaskManagerView />}
+              {currentTab === 'goals' && <GoalTrackerView />}
+              {currentTab === 'finance' && <MoneyTrackerView />}
+              {currentTab === 'yearly' && <YearlyStatsView />}
+              {currentTab === 'automations' && <LifeAutomationView />}
+            </motion.div>
+          </AnimatePresence>
+        </Suspense>
       </main>
 
       {/* Floating System Modals & Telemetry Toasts */}
       <LevelUpModal />
       <ExpToast />
+      
       <CommandPalette 
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         onOpenBackup={() => setIsBackupModalOpen(true)}
+        onOpenOnboarding={() => setIsOnboardingModalOpen(true)}
       />
+      
       <BackupModal 
         isOpen={isBackupModalOpen}
         onClose={() => setIsBackupModalOpen(false)}
+      />
+
+      {/* First-Time User Onboarding Setup Wizard */}
+      <OnboardingModal 
+        isOpen={isOnboardingModalOpen}
+        onClose={() => setIsOnboardingModalOpen(false)}
       />
 
       {/* Footer Info & Operational Mantra */}

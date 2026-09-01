@@ -15,4 +15,19 @@ export default defineConfig({
     port: 3000,
     host: true,
   },
+  build: {
+    target: 'esnext',
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-canvas': ['canvas-confetti'],
+        },
+      },
+    },
+  },
 });

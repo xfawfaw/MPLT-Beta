@@ -786,3 +786,5 @@ export const TaskManagerView: React.FC = () => {
     </div>
   );
 };
+
+export default TaskManagerView;

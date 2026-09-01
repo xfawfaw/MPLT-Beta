@@ -938,3 +938,5 @@ export const YearlyStatsView: React.FC = () => {
     </div>
   );
 };
+
+export default YearlyStatsView;

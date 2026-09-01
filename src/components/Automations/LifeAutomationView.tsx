@@ -683,3 +683,5 @@ export const LifeAutomationView: React.FC = () => {
     </div>
   );
 };
+
+export default LifeAutomationView;

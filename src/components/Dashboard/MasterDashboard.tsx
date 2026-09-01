@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp, getUserRankTitle } from '../../context/AppContext';
 import { 
   Check, 
   CheckCircle2, 
@@ -679,7 +679,7 @@ export const MasterDashboard: React.FC = () => {
                 </h3>
               </div>
               <span className="text-[10.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded">
-                LVL {profile.level}
+                LVL {profile.level} • {getUserRankTitle(profile.level)}
               </span>
             </div>
 
@@ -867,3 +867,5 @@ export const MasterDashboard: React.FC = () => {
     </div>
   );
 };
+
+export default MasterDashboard;

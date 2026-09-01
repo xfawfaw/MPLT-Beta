@@ -903,3 +903,5 @@ export const HabitMatrixView: React.FC = () => {
     </div>
   );
 };
+
+export default HabitMatrixView;

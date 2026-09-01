@@ -555,3 +555,5 @@ export const GoalTrackerView: React.FC = () => {
     </div>
   );
 };
+
+export default GoalTrackerView;

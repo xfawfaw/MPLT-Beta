@@ -804,3 +804,5 @@ export const MoneyTrackerView: React.FC = () => {
     </div>
   );
 };
+
+export default MoneyTrackerView;

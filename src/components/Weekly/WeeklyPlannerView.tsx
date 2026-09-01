@@ -978,3 +978,5 @@ export const WeeklyPlannerView: React.FC = () => {
     </div>
   );
 };
+
+export default WeeklyPlannerView;
