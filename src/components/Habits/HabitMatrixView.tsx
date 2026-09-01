@@ -24,7 +24,7 @@ import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
 
 export const HabitMatrixView: React.FC = () => {
-  const { habits, toggleHabitLog, addHabit, deleteHabit } = useApp();
+  const { profile, habits, toggleHabitLog, addHabit, deleteHabit } = useApp();
   
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const selectedMonth = today.monthName;
@@ -110,7 +110,7 @@ export const HabitMatrixView: React.FC = () => {
 
   // Velocity statistics
   const peakDay = useMemo(() => {
-    return [...dailyTelemetry].sort((a, b) => b.pct - a.pct)[0] || { day: 1, pct: 100 };
+    return [...dailyTelemetry].sort((a, b) => b.pct - a.pct)[0] || { day: 1, pct: 0 };
   }, [dailyTelemetry]);
 
   const totalExpThisMonth = useMemo(() => {
@@ -208,7 +208,7 @@ export const HabitMatrixView: React.FC = () => {
 
               <div className="flex items-center gap-1 font-num font-semibold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-[4px]">
                 <Flame size={12} className="text-orange-500 fill-orange-500" />
-                <span>Current Streak: 28 Days</span>
+                <span>Current Streak: {profile.streakDays} Days</span>
               </div>
             </div>
           </div>

@@ -64,7 +64,7 @@ interface AppContextType {
   resetAllData: () => void;
 }
 
-export const STORAGE_KEY = 'mplt_zero_state_v2';
+export const STORAGE_KEY = 'mplt_zero_state_v3';
 
 export const getUserRankTitle = (level: number): string => {
   if (level <= 1) return 'Novice Initiate';
@@ -180,65 +180,55 @@ export const getDemoSprintWeekTasks = (): WeeklyTask[] => {
   return [
     // Monday (Day 0)
     { id: 'wt-1', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Buat plan pengembangan Q1 & milestone focus', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '90m' },
-    { id: 'wt-2', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Tulis script reels & content ideation', priority: 'Med', category: 'Personal Growth', isCompleted: true, expReward: 25, timeEstimate: '45m' },
-    { id: 'wt-3', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Analisis dashboard iklan & metrics sprint', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '60m' },
-    { id: 'wt-4', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Selesaikan project client priority sync', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '120m' },
-    { id: 'wt-5', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Set up landing page & workstation', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '45m' },
-    { id: 'wt-6', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Bonus: Sprint Retrospective review', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20, timeEstimate: '30m' },
+    { id: 'wt-1', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Sprint Kickoff & Weekly Horizon Mapping', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '45m' },
+    { id: 'wt-2', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Deep Work: Core system component refactoring', priority: 'High', category: 'Work', isCompleted: true, expReward: 40, timeEstimate: '90m' },
+    { id: 'wt-3', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Lower body gym session (Heavy Squats)', priority: 'Med', category: 'Health', isCompleted: true, expReward: 30, timeEstimate: '60m' },
+    { id: 'wt-4', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Review budget allocations & fixed needs', priority: 'Low', category: 'Money', isCompleted: true, expReward: 20, timeEstimate: '20m' },
+    { id: 'wt-5', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Tadabbur 5 ayat Al-Quran setelah Subuh', priority: 'Med', category: 'Spirituality', isCompleted: true, expReward: 25, timeEstimate: '25m' },
 
-    // Tuesday (Day 1)
-    { id: 'wt-7', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Gym push session 60m & mobility stretch', priority: 'High', category: 'Health', isCompleted: true, expReward: 30, timeEstimate: '60m' },
-    { id: 'wt-8', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Review PR & Code Merge pipeline', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '45m' },
-    { id: 'wt-9', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Update spreadsheet catatan keuangan bulanan', priority: 'Med', category: 'Money', isCompleted: true, expReward: 25, timeEstimate: '30m' },
-    { id: 'wt-10', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Persiapan materi meeting sponsor eksekutif', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '45m' },
-    { id: 'wt-11', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Baca 1 chapter Atomic Habits & note ringkas', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20, timeEstimate: '30m' },
-    { id: 'wt-12', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Pembersihan database staging & caching', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '40m' },
-    { id: 'wt-13', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Draft proposal klien baru & visual deck', priority: 'High', category: 'Work', isCompleted: false, expReward: 35, timeEstimate: '60m' },
+    { id: 'wt-6', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Design high-converting landing page Figma', priority: 'High', category: 'Work', isCompleted: true, expReward: 40, timeEstimate: '90m' },
+    { id: 'wt-7', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Cardio interval training 5km pacing', priority: 'Med', category: 'Health', isCompleted: true, expReward: 25, timeEstimate: '35m' },
+    { id: 'wt-8', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Write & publish 1 technical breakdown article', priority: 'Med', category: 'Personal Growth', isCompleted: false, expReward: 30, timeEstimate: '60m' },
+    { id: 'wt-9', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Update portfolio investment spreadsheet', priority: 'Low', category: 'Money', isCompleted: true, expReward: 20, timeEstimate: '20m' },
+    { id: 'wt-10', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Quality dinner & deep talk with family', priority: 'High', category: 'Family', isCompleted: false, expReward: 35, timeEstimate: '90m' },
+    { id: 'wt-11', dayIndex: 1, dayName: 'Tuesday', dateStr: days[1]?.dateStr || '01.09.2026', title: 'Read 25 pages Marcus Aurelius Meditations', priority: 'Low', category: 'Personal Growth', isCompleted: false, expReward: 20, timeEstimate: '30m' },
 
-    // Wednesday (Day 2)
-    { id: 'wt-14', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Refactor auth service & token security layer', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '90m' },
-    { id: 'wt-15', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Transfer tabungan investasi 20% otomatis', priority: 'High', category: 'Money', isCompleted: true, expReward: 30, timeEstimate: '15m' },
-    { id: 'wt-16', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Family dinner & quality time bonding', priority: 'Med', category: 'Family', isCompleted: true, expReward: 25, timeEstimate: '90m' },
-    { id: 'wt-17', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Running 6km sub-35min cardio outdoor', priority: 'Med', category: 'Health', isCompleted: true, expReward: 25, timeEstimate: '45m' },
-    { id: 'wt-18', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Sedekah subuh & duha mindfulness', priority: 'Low', category: 'Spirituality', isCompleted: true, expReward: 20, timeEstimate: '20m' },
+    { id: 'wt-12', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Implement database schema for user telemetry', priority: 'High', category: 'Work', isCompleted: false, expReward: 40, timeEstimate: '90m' },
+    { id: 'wt-13', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Push Day: Incline bench & lateral raises', priority: 'Med', category: 'Health', isCompleted: false, expReward: 30, timeEstimate: '60m' },
+    { id: 'wt-14', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Audit weekly grocery receipts & dining out', priority: 'Low', category: 'Money', isCompleted: false, expReward: 20, timeEstimate: '20m' },
+    { id: 'wt-15', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Belanja stok makanan bergizi mingguan', priority: 'Low', category: 'Health', isCompleted: false, expReward: 20, timeEstimate: '45m' },
+    { id: 'wt-16', dayIndex: 2, dayName: 'Wednesday', dateStr: days[2]?.dateStr || '02.09.2026', title: 'Dzikir pagi & petang konsisten', priority: 'Med', category: 'Spirituality', isCompleted: false, expReward: 20, timeEstimate: '20m' },
 
-    // Thursday (Day 3)
-    { id: 'wt-19', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Design audit Figma to Code workstation', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '60m' },
-    { id: 'wt-20', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Selesaikan API docs Swagger specification', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '45m' },
-    { id: 'wt-21', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Beli suplemen vitamin & whey protein restock', priority: 'Low', category: 'Health', isCompleted: true, expReward: 20, timeEstimate: '30m' },
-    { id: 'wt-22', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Review budget mingguan 50/30/20 ledger', priority: 'Med', category: 'Money', isCompleted: true, expReward: 25, timeEstimate: '30m' },
-    { id: 'wt-23', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Audit server monitoring logs & sentry', priority: 'Low', category: 'Work', isCompleted: false, expReward: 20, timeEstimate: '30m' },
+    { id: 'wt-17', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Client demo presentation & milestone review', priority: 'High', category: 'Work', isCompleted: false, expReward: 45, timeEstimate: '60m' },
+    { id: 'wt-18', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Zone 2 low-heart-rate cycling 45 mins', priority: 'Med', category: 'Health', isCompleted: false, expReward: 25, timeEstimate: '45m' },
+    { id: 'wt-19', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Review SaaS growth metrics & churn rates', priority: 'Med', category: 'Work', isCompleted: false, expReward: 30, timeEstimate: '30m' },
+    { id: 'wt-20', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Bantu adik persiapan tugas kuliah', priority: 'Med', category: 'Family', isCompleted: false, expReward: 25, timeEstimate: '60m' },
+    { id: 'wt-21', dayIndex: 3, dayName: 'Thursday', dateStr: days[3]?.dateStr || '03.09.2026', title: 'Sleep hygiene: Zero blue light 1h before bed', priority: 'Low', category: 'Health', isCompleted: false, expReward: 20, timeEstimate: '15m' },
 
-    // Friday (Day 4)
-    { id: 'wt-24', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Solat Jumat berjamaah tepat waktu', priority: 'High', category: 'Spirituality', isCompleted: true, expReward: 30, timeEstimate: '60m' },
-    { id: 'wt-25', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Deploy release v2.4 production live', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '60m' },
-    { id: 'wt-26', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Review feedback pengguna mingguan', priority: 'Med', category: 'Work', isCompleted: true, expReward: 25, timeEstimate: '45m' },
-    { id: 'wt-27', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Telepon orang tua & kabar keluarga', priority: 'High', category: 'Family', isCompleted: true, expReward: 30, timeEstimate: '30m' },
-    { id: 'wt-28', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Clean desk & organize workstation setup', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20, timeEstimate: '30m' },
-    { id: 'wt-29', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Sync weekly metrics ke central dashboard', priority: 'Low', category: 'Work', isCompleted: false, expReward: 20, timeEstimate: '30m' },
+    { id: 'wt-22', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Deploy production release v0.9.4 to servers', priority: 'High', category: 'Work', isCompleted: false, expReward: 50, timeEstimate: '75m' },
+    { id: 'wt-23', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Sholat Jumat di saf terdepan & sedekah Jumat', priority: 'High', category: 'Spirituality', isCompleted: false, expReward: 35, timeEstimate: '90m' },
+    { id: 'wt-24', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Transfer tabungan umroh & reksa dana', priority: 'Med', category: 'Money', isCompleted: false, expReward: 25, timeEstimate: '15m' },
+    { id: 'wt-25', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Pull Day: Deadlift & weighted pull-ups', priority: 'Med', category: 'Health', isCompleted: false, expReward: 30, timeEstimate: '60m' },
+    { id: 'wt-26', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Weekly inbox zero & desktop clean-up', priority: 'Low', category: 'Work', isCompleted: false, expReward: 20, timeEstimate: '30m' },
+    { id: 'wt-27', dayIndex: 4, dayName: 'Friday', dateStr: days[4]?.dateStr || '04.09.2026', title: 'Baca surat Al-Kahfi lengkap', priority: 'Med', category: 'Spirituality', isCompleted: false, expReward: 30, timeEstimate: '40m' },
 
-    // Saturday (Day 5)
-    { id: 'wt-30', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Long run outdoor 10km zone 2 endurance', priority: 'High', category: 'Health', isCompleted: true, expReward: 40, timeEstimate: '75m' },
-    { id: 'wt-31', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Grocery shopping mingguan segar bernutrisi', priority: 'Med', category: 'Family', isCompleted: true, expReward: 25, timeEstimate: '60m' },
-    { id: 'wt-32', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Eksperimen project AI side hustle MVP', priority: 'Med', category: 'Personal Growth', isCompleted: true, expReward: 30, timeEstimate: '90m' },
-    { id: 'wt-33', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Deep podcast listening & insights breakdown', priority: 'Low', category: 'Personal Growth', isCompleted: true, expReward: 20, timeEstimate: '45m' },
+    { id: 'wt-28', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Long endurance run 10km pagi hari', priority: 'High', category: 'Health', isCompleted: false, expReward: 40, timeEstimate: '75m' },
+    { id: 'wt-29', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Quality time bareng pasangan & orang tua', priority: 'High', category: 'Family', isCompleted: false, expReward: 40, timeEstimate: '180m' },
+    { id: 'wt-30', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Belajar arsitektur AI agent & LLM tooling', priority: 'Med', category: 'Personal Growth', isCompleted: false, expReward: 30, timeEstimate: '90m' },
+    { id: 'wt-31', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Deep sauna recovery & hydration protocol', priority: 'Low', category: 'Health', isCompleted: false, expReward: 20, timeEstimate: '45m' },
+    { id: 'wt-32', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Silaturahmi ke rumah saudara', priority: 'Med', category: 'Family', isCompleted: false, expReward: 30, timeEstimate: '120m' },
+    { id: 'wt-33', dayIndex: 5, dayName: 'Saturday', dateStr: days[5]?.dateStr || '05.09.2026', title: 'Podcast episode: Macro economy breakdown', priority: 'Low', category: 'Personal Growth', isCompleted: false, expReward: 20, timeEstimate: '45m' },
 
-    // Sunday (Day 6)
-    { id: 'wt-34', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Weekly Review & Habit Audit retrospective', priority: 'High', category: 'Personal Growth', isCompleted: true, expReward: 35, timeEstimate: '60m' },
-    { id: 'wt-35', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Perencanaan agenda sprint minggu depan', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '45m' },
-    { id: 'wt-36', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Deep stretch & mobility recovery session', priority: 'Med', category: 'Health', isCompleted: false, expReward: 25, timeEstimate: '30m' },
+    { id: 'wt-34', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Weekly Retrospective & Horizon Alignment', priority: 'High', category: 'Work', isCompleted: false, expReward: 45, timeEstimate: '60m' },
+    { id: 'wt-35', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Financial weekly reconciliation & ledger audit', priority: 'High', category: 'Money', isCompleted: false, expReward: 35, timeEstimate: '30m' },
+    { id: 'wt-36', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Mobility flow & deep tissue stretching', priority: 'Med', category: 'Health', isCompleted: false, expReward: 20, timeEstimate: '30m' },
     { id: 'wt-37', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Kajian spiritual online & self-reflection', priority: 'Med', category: 'Spirituality', isCompleted: false, expReward: 25, timeEstimate: '45m' },
     { id: 'wt-38', dayIndex: 6, dayName: 'Sunday', dateStr: days[6]?.dateStr || '06.09.2026', title: 'Meal prep bernutrisi untuk hari Senin-Rabu', priority: 'Low', category: 'Health', isCompleted: false, expReward: 20, timeEstimate: '60m' },
   ];
 };
 
-// Clean slate uncompleted sprint tasks for new visitors
-export const getCleanSprintWeekTasks = (): WeeklyTask[] => {
-  return getDemoSprintWeekTasks().map(t => ({
-    ...t,
-    isCompleted: false,
-  }));
-};
+// Clean slate: empty sprint tasks for new visitors (user plans their own week)
+export const getCleanSprintWeekTasks = (): WeeklyTask[] => [];
 
 // Real-time synchronized demo general task items
 export const getDemoTasks = (): TaskItem[] => {
@@ -262,13 +252,8 @@ export const getDemoTasks = (): TaskItem[] => {
   ];
 };
 
-// Clean slate tasks all not started
-export const getCleanTasks = (): TaskItem[] => {
-  return getDemoTasks().map(t => ({
-    ...t,
-    status: 'Not Started',
-  }));
-};
+// Clean slate: empty tasks for new visitors (user adds their own tasks)
+export const getCleanTasks = (): TaskItem[] => [];
 
 export const DEMO_GOALS: GoalItem[] = [
   {
@@ -386,13 +371,8 @@ export const DEMO_GOALS: GoalItem[] = [
   },
 ];
 
-// Clean slate strategic goals with zero progress for new visitors
-export const CLEAN_GOALS: GoalItem[] = DEMO_GOALS.map(g => ({
-  ...g,
-  status: 'In Progress',
-  progressPercent: 0,
-  milestones: g.milestones ? g.milestones.map(m => ({ ...m, isCompleted: false })) : [],
-}));
+// Clean slate: empty strategic goals for new visitors (user sets their own goals)
+export const CLEAN_GOALS: GoalItem[] = [];
 
 // Real-time synchronized demo financial transactions ledger
 export const getDemoTransactions = (): TransactionItem[] => {

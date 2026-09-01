@@ -61,7 +61,9 @@ export const MoneyTrackerView: React.FC = () => {
 
   // Safe daily spend calculation (dynamic based on remaining days in month)
   const remainingWantsBudget = Math.max(0, wantsLimit - wantsSpent);
-  const safeDailySpend = Math.round(remainingWantsBudget / today.remainingDaysInMonth);
+  const safeDailySpend = today.remainingDaysInMonth > 0 
+    ? Math.round(remainingWantsBudget / today.remainingDaysInMonth) 
+    : 0;
 
   // Preset switchers
   const handlePresetSelect = (preset: BudgetConfig['mode']) => {

@@ -62,8 +62,7 @@ export const WeeklyPlannerView: React.FC = () => {
       );
       const done = tasks.filter(t => t.isCompleted).length;
       const pct = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
-      const isBonus = day.index === 0 && pct === 100;
-      const displayPct = isBonus ? '120%' : `${pct}%`;
+      const displayPct = `${pct}%`;
       const expEarned = tasks.filter(t => t.isCompleted).reduce((acc, t) => acc + t.expReward, 0);
       const totalExp = tasks.reduce((acc, t) => acc + t.expReward, 0);
       return {

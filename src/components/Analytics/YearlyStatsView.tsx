@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp, getUserRankTitle } from '../../context/AppContext';
 import { 
   Trophy, 
   TrendingUp, 
@@ -26,7 +26,7 @@ import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
 
 export const YearlyStatsView: React.FC = () => {
-  const { profile, habits, tasks, goals, budget, transactions, addExp } = useApp();
+  const { profile, habits, tasks, goals, weeklyTasks, transactions, addExp } = useApp();
 
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [hoveredCell, setHoveredCell] = useState<{
@@ -62,21 +62,14 @@ export const YearlyStatsView: React.FC = () => {
   };
 
   // Generate 365 Days Grid Data (52 weeks x 7 days)
+  const completedTasksCount = useMemo(() => {
+    return tasks.filter(t => t.status === 'Completed').length + weeklyTasks.filter(t => t.isCompleted).length;
+  }, [tasks, weeklyTasks]);
+
+  // Generate 365 Days Grid Data (52 weeks x 7 days) tied to authentic logs
   const heatmapData = useMemo(() => {
     const days = [];
     const startDate = new Date(today.year, 0, 1);
-    const currentWeekIdx = Math.max(0, today.currentWeekNumber - 1);
-    
-    // Calculate live habit logs for the current active month
-    const totalMonthLogs = habits.reduce((acc, h) => {
-      let count = 0;
-      for (let d = 1; d <= today.daysInMonth; d++) {
-        if (h.logs[d]) count++;
-      }
-      return acc + count;
-    }, 0);
-    const avgRate = habits.length > 0 ? totalMonthLogs / (habits.length * Math.max(1, today.dayOfMonth)) : 0.82;
-
     const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     for (let dayIdx = 0; dayIdx < 364; dayIdx++) { // 52 full weeks = 364 days
@@ -88,28 +81,22 @@ export const YearlyStatsView: React.FC = () => {
       const dayOfWeek = (currentDate.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
       const weekIdx = Math.floor(dayIdx / 7);
 
-      // Deterministic dynamic distribution
-      const wave = Math.sin(dayIdx * 0.12) * 15;
-      const seed = Math.sin(dayIdx * 7919 + weekIdx * 53) * 10000;
-      const noise = (seed - Math.floor(seed)) * 30 - 15;
-      
       let completionPct = 0;
-      if (weekIdx <= currentWeekIdx) {
-        // If it's the current month, check actual habit logs for that dateNum
-        if (monthIdx === today.monthIndex && habits.length > 0 && dateNum <= today.dayOfMonth) {
-          const doneForDay = habits.filter(h => !!h.logs[dateNum]).length;
-          completionPct = Math.round((doneForDay / habits.length) * 100);
-        } else {
-          completionPct = Math.min(100, Math.max(25, Math.round((avgRate * 90) + noise)));
+      let tasksDone = 0;
+      let exp = 0;
+
+      // Authentic habit logs for current tracking
+      if (monthIdx === today.monthIndex && habits.length > 0) {
+        const doneHabits = habits.filter(h => !!h.logs[dateNum]);
+        if (doneHabits.length > 0) {
+          completionPct = Math.round((doneHabits.length / habits.length) * 100);
+          tasksDone = doneHabits.length;
+          exp = doneHabits.reduce((acc, h) => acc + h.expReward, 0);
         }
-      } else {
-        completionPct = Math.min(100, Math.max(30, Math.round(75 + wave + noise)));
       }
 
       // Format date string
       const dateStr = `${dateNum} ${monthsShort[monthIdx]} ${today.year}`;
-      const tasksDone = Math.floor((completionPct / 100) * 4) + 1;
-      const exp = Math.round(completionPct * 1.5 + tasksDone * 15);
 
       days.push({
         dayOfYear: dayIdx + 1,
@@ -133,9 +120,8 @@ export const YearlyStatsView: React.FC = () => {
       const weekDays = heatmapData.filter(d => d.weekIdx === w);
       const avgConsistency = weekDays.length > 0
         ? Math.round(weekDays.reduce((acc, d) => acc + d.completionPct, 0) / weekDays.length)
-        : 80;
+        : 0;
 
-      // Realistic peaks, recovery waves, and surges
       const weekNumber = w + 1;
       const quarter = weekNumber <= 13 ? 'Q1' : weekNumber <= 26 ? 'Q2' : weekNumber <= 39 ? 'Q3' : 'Q4';
       const totalTasks = weekDays.reduce((acc, d) => acc + d.tasksDone, 0);
@@ -173,18 +159,27 @@ export const YearlyStatsView: React.FC = () => {
       const dHabits = habits.filter(h => h.category === cfg.area);
       const totalLogs = dHabits.reduce((acc, h) => acc + Object.values(h.logs).filter(Boolean).length, 0);
       const possibleLogs = Math.max(1, dHabits.length * 28);
-      const habitScore = dHabits.length > 0 ? Math.round((totalLogs / possibleLogs) * 100) : 75;
+      const habitScore = dHabits.length > 0 ? Math.round((totalLogs / possibleLogs) * 100) : 0;
 
       const dTasks = tasks.filter(t => t.category === cfg.area);
       const completedTasks = dTasks.filter(t => t.status === 'Completed').length;
-      const taskScore = dTasks.length > 0 ? Math.round((completedTasks / dTasks.length) * 100) : 70;
+      const taskScore = dTasks.length > 0 ? Math.round((completedTasks / dTasks.length) * 100) : 0;
 
       const dGoals = goals.filter(g => g.areaOfLife === cfg.area);
       const goalsScore = dGoals.length > 0
         ? Math.round(dGoals.reduce((acc, g) => acc + g.progressPercent, 0) / dGoals.length)
-        : 60;
+        : 0;
 
-      const dynamicScore = Math.min(100, Math.max(40, Math.round(habitScore * 0.4 + taskScore * 0.3 + goalsScore * 0.3)));
+      const activeDimensions: { score: number; weight: number }[] = [];
+      if (dHabits.length > 0) activeDimensions.push({ score: habitScore, weight: 0.4 });
+      if (dTasks.length > 0) activeDimensions.push({ score: taskScore, weight: 0.3 });
+      if (dGoals.length > 0) activeDimensions.push({ score: goalsScore, weight: 0.3 });
+
+      let dynamicScore = 0;
+      if (activeDimensions.length > 0) {
+        const totalW = activeDimensions.reduce((acc, a) => acc + a.weight, 0);
+        dynamicScore = Math.round(activeDimensions.reduce((acc, a) => acc + (a.score * a.weight), 0) / totalW);
+      }
 
       return {
         ...cfg,
@@ -195,30 +190,68 @@ export const YearlyStatsView: React.FC = () => {
 
   // Annual Financial Ledger Aggregate
   const annualFinance = useMemo(() => {
-    const annualIncome = (budget.incomeGoal || 15000000) * 12;
-    const annualNeedsSpent = annualIncome * 0.48; // 48% actual
-    const annualWantsSpent = annualIncome * 0.278; // 27.8% actual
-    const annualRetainedCapital = annualIncome - (annualNeedsSpent + annualWantsSpent);
-    const annualSavingsRate = Math.round((annualRetainedCapital / annualIncome) * 100);
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+    const needsSpent = transactions.filter(t => t.type === 'expense' && t.bucket === 'Needs').reduce((acc, t) => acc + t.amount, 0);
+    const wantsSpent = transactions.filter(t => t.type === 'expense' && t.bucket === 'Wants').reduce((acc, t) => acc + t.amount, 0);
+    const annualNeedsSpent = needsSpent;
+    const annualWantsSpent = wantsSpent;
+    const annualRetainedCapital = Math.max(0, totalIncome - (needsSpent + wantsSpent));
+    const annualSavingsRate = totalIncome > 0 ? Math.round((annualRetainedCapital / totalIncome) * 100) : 0;
 
     return {
-      annualIncome,
+      annualIncome: totalIncome,
       annualNeedsSpent,
       annualWantsSpent,
       annualRetainedCapital,
       annualSavingsRate,
     };
-  }, [budget]);
+  }, [transactions]);
 
   // Hall of Fame Badges
-  const badges = [
-    { title: 'Centurion Streak', subtitle: '100+ Days Unbroken Discipline', icon: Flame, color: 'text-orange-500 bg-orange-50 border-orange-200' },
-    { title: 'Master Executor', subtitle: '300+ Tasks Closed in 2026', icon: CheckCircle2, color: 'text-emerald-500 bg-emerald-50 border-emerald-200' },
-    { title: 'Sovereign Capitalist', subtitle: 'Surpassed 20% Net Annual Savings', icon: TrendingUp, color: 'text-blue-500 bg-blue-50 border-blue-200' },
-    { title: 'Vision Architect', subtitle: 'Multi-Step 2026 Goals Executed', icon: Trophy, color: 'text-amber-500 bg-amber-50 border-amber-200' },
-    { title: 'Iron Focus', subtitle: '90m Deep Work Consistency', icon: Zap, color: 'text-purple-500 bg-purple-50 border-purple-200' },
-    { title: 'Compound Mindset', subtitle: 'Level 14 Senior Sovereign Rank', icon: Sparkles, color: 'text-zinc-800 bg-zinc-100 border-zinc-300' },
-  ];
+  const badges = useMemo(() => [
+    { 
+      title: 'Centurion Streak', 
+      subtitle: `${profile.streakDays} / 100 Days Unbroken`, 
+      icon: Flame, 
+      unlocked: profile.streakDays >= 100,
+      color: profile.streakDays >= 100 ? 'text-orange-500 bg-orange-50 border-orange-200' : 'text-zinc-400 bg-zinc-50 border-zinc-200 opacity-60' 
+    },
+    { 
+      title: 'Master Executor', 
+      subtitle: `${completedTasksCount} / 300 Tasks Closed`, 
+      icon: CheckCircle2, 
+      unlocked: completedTasksCount >= 300,
+      color: completedTasksCount >= 300 ? 'text-emerald-500 bg-emerald-50 border-emerald-200' : 'text-zinc-400 bg-zinc-50 border-zinc-200 opacity-60' 
+    },
+    { 
+      title: 'Sovereign Capitalist', 
+      subtitle: `${annualFinance.annualSavingsRate}% Net Savings Rate`, 
+      icon: TrendingUp, 
+      unlocked: annualFinance.annualSavingsRate >= 20,
+      color: annualFinance.annualSavingsRate >= 20 ? 'text-blue-500 bg-blue-50 border-blue-200' : 'text-zinc-400 bg-zinc-50 border-zinc-200 opacity-60' 
+    },
+    { 
+      title: 'Vision Architect', 
+      subtitle: `${goals.filter(g => g.status === 'Achieved').length} / ${goals.length || 0} Goals Achieved`, 
+      icon: Trophy, 
+      unlocked: goals.length > 0 && goals.some(g => g.status === 'Achieved'),
+      color: goals.some(g => g.status === 'Achieved') ? 'text-amber-500 bg-amber-50 border-amber-200' : 'text-zinc-400 bg-zinc-50 border-zinc-200 opacity-60' 
+    },
+    { 
+      title: 'Iron Focus', 
+      subtitle: `${habits.filter(h => Object.values(h.logs).filter(Boolean).length > 0).length} Active Routines`, 
+      icon: Zap, 
+      unlocked: habits.some(h => Object.values(h.logs).filter(Boolean).length > 0),
+      color: habits.some(h => Object.values(h.logs).filter(Boolean).length > 0) ? 'text-purple-500 bg-purple-50 border-purple-200' : 'text-zinc-400 bg-zinc-50 border-zinc-200 opacity-60' 
+    },
+    { 
+      title: 'Compound Mindset', 
+      subtitle: `LVL ${profile.level} • ${getUserRankTitle(profile.level)}`, 
+      icon: Sparkles, 
+      unlocked: profile.level >= 10,
+      color: profile.level >= 10 ? 'text-zinc-800 bg-zinc-100 border-zinc-300' : 'text-zinc-400 bg-zinc-50 border-zinc-200 opacity-60' 
+    },
+  ], [profile, completedTasksCount, annualFinance, goals, habits]);
 
   // SVG Chart Geometry for 52-Week Granular Curve
   const chartGeometry = useMemo(() => {
@@ -335,10 +368,10 @@ export const YearlyStatsView: React.FC = () => {
           <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
             <div className="flex items-center gap-1.5 text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
               <Sparkles size={13} className="text-amber-500" />
-              <span>Cumulative 2026 EXP</span>
+              <span>Cumulative {today.year} EXP</span>
             </div>
             <div className="text-[20px] font-num font-bold text-[#18181B]">
-              +48,250 <span className="text-[11px] font-ui text-[#71717A]">EXP Earned</span>
+              +{profile.currentExp.toLocaleString('id-ID')} <span className="text-[11px] font-ui text-[#71717A]">EXP Earned</span>
             </div>
           </div>
 
@@ -348,7 +381,7 @@ export const YearlyStatsView: React.FC = () => {
               <span>Sprint & Task Output</span>
             </div>
             <div className="text-[20px] font-num font-bold text-[#18181B]">
-              312 <span className="text-[11px] font-ui text-[#71717A]">Tasks Closed</span>
+              {completedTasksCount} <span className="text-[11px] font-ui text-[#71717A]">Tasks Closed</span>
             </div>
           </div>
 
@@ -874,63 +907,50 @@ export const YearlyStatsView: React.FC = () => {
 
         {/* 4 Quarterly Roadmap Recap Cards (Q1 → Q4) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] space-y-2">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-              <span className="text-[11px] font-bold font-num px-2 py-0.5 rounded bg-[#18181B] text-white">
-                Q1 2026 (Launch)
-              </span>
-              <span className="text-[10px] font-ui text-[#10B981] font-bold">COMPLETED</span>
-            </div>
-            <ul className="text-[11px] text-[#71717A] font-ui space-y-1">
-              <li>• Launch MPLT Zero architecture</li>
-              <li>• Establish 5am Morning Protocol</li>
-              <li>• Hit first 25M liquid buffer</li>
-            </ul>
-          </div>
+          {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map((q) => {
+            const quarterGoals = goals.filter(g => g.quarterTarget === q);
+            const quarterLabels: Record<string, string> = {
+              'Q1': 'Launch & Foundation',
+              'Q2': 'Acceleration & Traction',
+              'Q3': 'Mastery & Expansion',
+              'Q4': 'Harvest & Compounding',
+            };
+            const allAchieved = quarterGoals.length > 0 && quarterGoals.every(g => g.status === 'Achieved');
+            const hasActive = quarterGoals.some(g => g.status === 'In Progress');
 
-          <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] space-y-2">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-              <span className="text-[11px] font-bold font-num px-2 py-0.5 rounded bg-[#18181B] text-white">
-                Q2 2026 (Acceleration)
-              </span>
-              <span className="text-[10px] font-ui text-[#10B981] font-bold">COMPLETED</span>
-            </div>
-            <ul className="text-[11px] text-[#71717A] font-ui space-y-1">
-              <li>• Benchpress 80kg milestone</li>
-              <li>• Beta test SaaS with 20 users</li>
-              <li>• 12 Books non-fiction read</li>
-            </ul>
-          </div>
-
-          <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] space-y-2">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-              <span className="text-[11px] font-bold font-num px-2 py-0.5 rounded bg-[#18181B] text-white">
-                Q3 2026 (Mastery)
-              </span>
-              <span className="text-[10px] font-ui text-[#0284C7] font-bold">IN PROGRESS</span>
-            </div>
-            <ul className="text-[11px] text-[#71717A] font-ui space-y-1">
-              <li>• 100 Paid SaaS subscribers</li>
-              <li>• Family wedding & mahar prep</li>
-              <li>• 50M liquid portfolio milestone</li>
-            </ul>
-          </div>
-
-          <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] space-y-2">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-              <span className="text-[11px] font-bold font-num px-2 py-0.5 rounded bg-[#18181B] text-white">
-                Q4 2026 (Harvest)
-              </span>
-              <span className="text-[10px] font-ui text-[#71717A]">SCHEDULED</span>
-            </div>
-            <ul className="text-[11px] text-[#71717A] font-ui space-y-1">
-              <li>• Umroh bareng orang tua</li>
-              <li>• Hit 100M liquid capital portfolio</li>
-              <li>• Annual review & 2027 roadmap</li>
-            </ul>
-          </div>
-
+            return (
+              <div key={q} className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] space-y-2">
+                <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+                  <span className="text-[11px] font-bold font-num px-2 py-0.5 rounded bg-[#18181B] text-white">
+                    {q} {today.year} ({quarterLabels[q]})
+                  </span>
+                  <span className={`text-[10px] font-ui font-bold ${
+                    allAchieved 
+                      ? 'text-[#10B981]' 
+                      : hasActive 
+                      ? 'text-[#0284C7]' 
+                      : 'text-[#71717A]'
+                  }`}>
+                    {quarterGoals.length === 0 ? 'NO GOALS' : allAchieved ? 'COMPLETED' : hasActive ? 'IN PROGRESS' : 'SCHEDULED'}
+                  </span>
+                </div>
+                {quarterGoals.length > 0 ? (
+                  <ul className="text-[11px] text-[#71717A] font-ui space-y-1">
+                    {quarterGoals.map(g => (
+                      <li key={g.id} className="flex items-center justify-between gap-1">
+                        <span className="truncate">• {g.title}</span>
+                        <span className="text-[9.5px] font-num font-bold text-[#18181B] flex-shrink-0">{g.progressPercent}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[11px] text-[#A1A1AA] italic font-ui py-2">
+                    No goals scheduled for {q}. Set targets in Goal Tracker.
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
 
       </section>
