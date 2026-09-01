@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Check, 
@@ -23,9 +23,17 @@ import { dateUtils } from '../../utils/date';
 export const WeeklyPlannerView: React.FC = () => {
   const { weeklyTasks, toggleWeeklyTask, addWeeklyTask, deleteWeeklyTask } = useApp();
 
-  const today = useMemo(() => dateUtils.getTodayInfo(), []);
+  const [today, setToday] = useState(() => dateUtils.getTodayInfo());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setToday(dateUtils.getTodayInfo());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   const [weekOffset, setWeekOffset] = useState<number>(0);
-  const sprintWeek = useMemo(() => dateUtils.getSprintWeekInfo(weekOffset), [weekOffset]);
+  const sprintWeek = useMemo(() => dateUtils.getSprintWeekInfo(weekOffset), [weekOffset, today]);
 
   const [activeViewMode, setActiveViewMode] = useState<'grid' | 'spotlight' | 'agenda'>('grid');
   const [selectedSpotlightDay, setSelectedSpotlightDay] = useState<number>(today.dayOfWeekIndex); // Default to today

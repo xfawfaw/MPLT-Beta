@@ -18,6 +18,7 @@ export interface SprintWeekInfo {
   isCurrentWeek: boolean;
   relativeWeekLabel: string;
   sprintWeekRangeStr: string;
+  formattedWeekRange: string;
   currentWeekNumber: number;
   weekTag: string;
   year: number;
@@ -44,6 +45,7 @@ export interface TodayInfo {
   weekTag: string; // e.g. "W36"
   dayOfYear: number; // 1-366
   sprintWeekRangeStr: string; // e.g. "31 AUG — 06 SEP 2026"
+  formattedWeekRange: string; // e.g. "Aug 31, 2026 — Sep 06, 2026"
   sprintDays: DayConfig[];
 }
 
@@ -101,6 +103,9 @@ export const dateUtils = {
       sprintWeekRangeStr = `${pad(mondayDate.getDate())} ${monthShorts[startMonMonth].toUpperCase()} ${startMonYear} — ${pad(sundayDate.getDate())} ${monthShorts[endSunMonth].toUpperCase()} ${endSunYear}`;
     }
 
+    // Standard title format: "Feb 23, 2026 — Mar 01, 2026"
+    const formattedWeekRange = `${monthShorts[startMonMonth]} ${pad(mondayDate.getDate())}, ${startMonYear} — ${monthShorts[endSunMonth]} ${pad(sundayDate.getDate())}, ${endSunYear}`;
+
     // Week number calculation
     const startOfYear = new Date(mondayDate.getFullYear(), 0, 1);
     const pastDaysOfYear = (mondayDate.getTime() - startOfYear.getTime()) / 86400000;
@@ -118,6 +123,7 @@ export const dateUtils = {
       isCurrentWeek: weekOffset === 0,
       relativeWeekLabel,
       sprintWeekRangeStr,
+      formattedWeekRange,
       currentWeekNumber,
       weekTag,
       year: mondayDate.getFullYear(),
@@ -182,8 +188,19 @@ export const dateUtils = {
       weekTag: currentSprint.weekTag,
       dayOfYear,
       sprintWeekRangeStr: currentSprint.sprintWeekRangeStr,
+      formattedWeekRange: currentSprint.formattedWeekRange,
       sprintDays: currentSprint.sprintDays,
     };
+  },
+
+  /**
+   * Format any start and end date pair into standard human readable range
+   * e.g. "Feb 23, 2026 — Mar 01, 2026"
+   */
+  formatWeekRange(mondayDate: Date, sundayDate: Date): string {
+    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+    const monthShorts = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthShorts[mondayDate.getMonth()]} ${pad(mondayDate.getDate())}, ${mondayDate.getFullYear()} — ${monthShorts[sundayDate.getMonth()]} ${pad(sundayDate.getDate())}, ${sundayDate.getFullYear()}`;
   },
 
   /**

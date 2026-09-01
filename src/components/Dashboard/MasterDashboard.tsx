@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Check, 
@@ -34,7 +34,15 @@ export const MasterDashboard: React.FC = () => {
     setCurrentTab
   } = useApp();
 
-  const today = useMemo(() => dateUtils.getTodayInfo(), []);
+  const [today, setToday] = useState(() => dateUtils.getTodayInfo());
+
+  useEffect(() => {
+    // Keep date real-time synchronized
+    const timer = setInterval(() => {
+      setToday(dateUtils.getTodayInfo());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   // 1. Calculate Today Habit Completion (e.g. for current active day of month)
   const currentDayNum = today.dayOfMonth;
@@ -480,7 +488,7 @@ export const MasterDashboard: React.FC = () => {
                     Weekly Distribution & Daily Progress
                   </h3>
                   <p className="text-[11px] text-[#71717A] -mt-0.5">
-                    Week of Feb 23, 2026 — Mar 01, 2026
+                    Week of {today.formattedWeekRange}
                   </p>
                 </div>
               </div>
