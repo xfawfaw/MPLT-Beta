@@ -19,10 +19,15 @@ import {
   BookOpen,
   Moon,
   Globe as GlobeIcon,
-  Activity
+  Activity,
+  Plus,
+  X,
+  CalendarCheck2,
+  CheckSquare
 } from 'lucide-react';
 import { Globe, Marker, Arc } from '@/components/ui/cobe-globe';
 import { AreaOfLife } from '../../types';
+import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
 
 export const MasterDashboard: React.FC = () => {
@@ -32,15 +37,45 @@ export const MasterDashboard: React.FC = () => {
     toggleHabitLog, 
     weeklyTasks, 
     toggleWeeklyTask, 
+    addWeeklyTask,
     tasks,
     toggleTaskStatus,
     goals,
     budget, 
     transactions,
+    addTransaction,
+    addExp,
     setCurrentTab
   } = useApp();
 
   const [today, setToday] = useState(() => dateUtils.getTodayInfo());
+  
+  // Quick Kinetic Capture Modal State (Option B)
+  const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [quickCaptureTab, setQuickCaptureTab] = useState<'expense' | 'habit' | 'task'>('expense');
+
+  // Quick form fields
+  const [quickAmount, setQuickAmount] = useState('');
+  const [quickDesc, setQuickDesc] = useState('');
+  const [quickCategory, setQuickCategory] = useState<AreaOfLife>('Work');
+  const [quickBucket, setQuickBucket] = useState<'Needs' | 'Wants' | 'Savings'>('Needs');
+  const [quickTaskTitle, setQuickTaskTitle] = useState('');
+  const [quickTaskPriority, setQuickTaskPriority] = useState<'High' | 'Med' | 'Low'>('High');
+  const [quickTaskDay, setQuickTaskDay] = useState(today.dayOfWeekIndex);
+
+  // Global hotkey 'C' for Quick Kinetic Capture
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if ((e.key === 'c' || e.key === 'C') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) {
+        e.preventDefault();
+        setShowQuickCapture(prev => !prev);
+        sound.playClick();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     // Keep date real-time synchronized
@@ -346,11 +381,120 @@ export const MasterDashboard: React.FC = () => {
     return `Rp ${val.toLocaleString('id-ID')}`;
   };
 
-  const expToNextLevel = profile.nextLevelExp - profile.currentExp;
+  const expToNextLevel = Math.max(0, profile.nextLevelExp - profile.currentExp);
+  const expProgressPct = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
+
+  // Quick Action Handlers
+  const handleQuickExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amountNum = parseFloat(quickAmount.replace(/[^0-9]/g, ''));
+    if (!amountNum || isNaN(amountNum)) return;
+
+    addTransaction({
+      amount: amountNum,
+      type: 'expense',
+      categoryTag: quickCategory,
+      description: quickDesc.trim() || `${quickCategory} Expense`,
+      date: today.todayISO,
+      bucket: quickBucket,
+    });
+
+    sound.playPop();
+    addExp(15, `Logged ${formatIDR(amountNum)} Outflow`);
+    setQuickAmount('');
+    setQuickDesc('');
+    setShowQuickCapture(false);
+  };
+
+  const handleQuickTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTaskTitle.trim()) return;
+
+    addWeeklyTask(
+      quickTaskDay,
+      quickTaskTitle.trim(),
+      quickTaskPriority,
+      quickCategory,
+      today.sprintDays[quickTaskDay]?.dateStr,
+      '45m'
+    );
+
+    sound.playPop();
+    setQuickTaskTitle('');
+    setShowQuickCapture(false);
+  };
 
   return (
     <div className="max-w-[1440px] mx-auto p-6 space-y-6">
       
+      {/* ========================================================
+          SOVEREIGN EXECUTIVE HUD BAR (OPTION B)
+          ======================================================== */}
+      <section className="mplt-card p-4 bg-[#18181B] text-white border border-[#27272A] rounded-[10px] shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          
+          {/* Left: Level, Rank & EXP Progress */}
+          <div className="flex items-center gap-3.5 min-w-[280px]">
+            <div className="w-10 h-10 rounded-[8px] bg-white/10 border border-white/15 flex items-center justify-center text-white flex-shrink-0">
+              <Sparkles size={18} className="text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 text-[11px] font-ui">
+                <span className="font-bold text-white tracking-wide">
+                  LVL {profile.level} • {getUserRankTitle(profile.level).toUpperCase()}
+                </span>
+                <span className="font-num text-[10.5px] text-zinc-400">
+                  {profile.currentExp} / {profile.nextLevelExp} EXP ({expProgressPct}%)
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden mt-1.5">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                  style={{ width: `${expProgressPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Center: Live Operational Telemetry Chips */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/5 border border-white/10 text-[11px] font-ui">
+              <Flame size={13} className="text-orange-400 fill-orange-400" />
+              <span className="text-zinc-300">Streak:</span>
+              <strong className="text-white font-num">{profile.streakDays} Days</strong>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/5 border border-white/10 text-[11px] font-ui">
+              <CalendarCheck2 size={13} className="text-emerald-400" />
+              <span className="text-zinc-300">Habits Today:</span>
+              <strong className="text-emerald-400 font-num">{habitsDoneCount}/{habits.length}</strong>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/5 border border-white/10 text-[11px] font-ui">
+              <CheckSquare size={13} className="text-sky-400" />
+              <span className="text-zinc-300">Sprint Backlog:</span>
+              <strong className="text-white font-num">{pendingTasksCount} Tasks</strong>
+            </div>
+          </div>
+
+          {/* Right: Quick Kinetic Capture Trigger */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => {
+                setShowQuickCapture(true);
+                sound.playClick();
+              }}
+              className="px-4 py-2 rounded-[6px] bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-[12px] font-bold font-ui flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+            >
+              <Zap size={14} className="fill-white" />
+              <span>Quick Capture</span>
+              <kbd className="hidden sm:inline-block px-1.5 py-0.2 text-[9.5px] bg-black/30 rounded text-white font-mono">C</kbd>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
       {/* ========================================================
           TOP SECTION 1: MISSION CONTROL PRIMARY DIRECTIVE
           ======================================================== */}
@@ -1201,6 +1345,328 @@ export const MasterDashboard: React.FC = () => {
         </div>
 
       </div>
+
+      {/* ========================================================
+          QUICK KINETIC CAPTURE MODAL (OPTION B HUD)
+          ======================================================== */}
+      {showQuickCapture && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border border-[#E2E8F0] rounded-[14px] max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95 duration-150 space-y-5"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-[6px] bg-[#18181B] text-white flex items-center justify-center">
+                  <Zap size={15} className="text-amber-400 fill-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-bold text-[#18181B] font-ui">
+                    Quick Kinetic Capture
+                  </h3>
+                  <p className="text-[11px] text-[#71717A] font-ui">
+                    Rapid one-click logging across capital, habits & sprint tasks
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowQuickCapture(false)}
+                className="p-1 rounded-[6px] text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickCaptureTab('expense');
+                  sound.playClick();
+                }}
+                className={`flex items-center justify-center gap-1.5 py-1.5 rounded-[6px] text-[11.5px] font-bold font-ui transition-all cursor-pointer ${
+                  quickCaptureTab === 'expense'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'text-[#71717A] hover:text-[#18181B]'
+                }`}
+              >
+                <DollarSign size={13} />
+                <span>Expense</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickCaptureTab('habit');
+                  sound.playClick();
+                }}
+                className={`flex items-center justify-center gap-1.5 py-1.5 rounded-[6px] text-[11.5px] font-bold font-ui transition-all cursor-pointer ${
+                  quickCaptureTab === 'habit'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'text-[#71717A] hover:text-[#18181B]'
+                }`}
+              >
+                <CalendarCheck2 size={13} />
+                <span>Habits</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickCaptureTab('task');
+                  sound.playClick();
+                }}
+                className={`flex items-center justify-center gap-1.5 py-1.5 rounded-[6px] text-[11.5px] font-bold font-ui transition-all cursor-pointer ${
+                  quickCaptureTab === 'task'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'text-[#71717A] hover:text-[#18181B]'
+                }`}
+              >
+                <CheckSquare size={13} />
+                <span>Sprint Task</span>
+              </button>
+            </div>
+
+            {/* TAB 1: QUICK EXPENSE */}
+            {quickCaptureTab === 'expense' && (
+              <form onSubmit={handleQuickExpense} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                    Outflow Amount (IDR)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="e.g. 75.000 or 150000"
+                    value={quickAmount}
+                    onChange={(e) => setQuickAmount(e.target.value)}
+                    className="w-full px-3 py-2 text-[14px] font-num font-bold border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                    Description / Item
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Server hosting, Groceries, Coffee"
+                    value={quickDesc}
+                    onChange={(e) => setQuickDesc(e.target.value)}
+                    className="w-full px-3 py-2 text-[12.5px] font-ui border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                      Category Domain
+                    </label>
+                    <select
+                      value={quickCategory}
+                      onChange={(e) => setQuickCategory(e.target.value as AreaOfLife)}
+                      className="w-full px-3 py-2 text-[12.5px] font-ui border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
+                    >
+                      <option value="Work">Work</option>
+                      <option value="Health">Health</option>
+                      <option value="Money">Money</option>
+                      <option value="Personal Growth">Personal Growth</option>
+                      <option value="Family">Family</option>
+                      <option value="Spirituality">Spirituality</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                      50/30/20 Bucket
+                    </label>
+                    <select
+                      value={quickBucket}
+                      onChange={(e) => setQuickBucket(e.target.value as 'Needs' | 'Wants' | 'Savings')}
+                      className="w-full px-3 py-2 text-[12.5px] font-ui border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
+                    >
+                      <option value="Needs">Needs (50%)</option>
+                      <option value="Wants">Wants (30%)</option>
+                      <option value="Savings">Savings / Invest (20%)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickCapture(false)}
+                    className="px-4 py-2 text-[12px] font-medium text-[#71717A] hover:bg-[#F4F4F5] rounded-[6px] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-[12px] font-bold bg-[#18181B] hover:bg-[#27272A] text-white rounded-[6px] flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <Check size={14} />
+                    <span>Record Outflow (+15 EXP)</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 2: QUICK HABITS */}
+            {quickCaptureTab === 'habit' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-[11px] text-[#71717A] pb-1 border-b border-[#F1F5F9]">
+                  <span>Today's Active Routines ({today.dayOfMonth} {today.monthShort})</span>
+                  <span className="font-num text-[#10B981] font-bold">{habitsDoneCount}/{habits.length} Completed</span>
+                </div>
+
+                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                  {habits.map((h) => {
+                    const isDone = !!h.logs[currentDayNum];
+                    return (
+                      <div
+                        key={h.id}
+                        onClick={() => {
+                          toggleHabitLog(h.id, currentDayNum);
+                          sound.playPop();
+                        }}
+                        className={`flex items-center justify-between p-2.5 rounded-[8px] border transition-all cursor-pointer select-none ${
+                          isDone 
+                            ? 'bg-[#18181B] text-white border-[#18181B]' 
+                            : 'bg-[#F9FAFB] hover:bg-[#F4F4F5] text-[#18181B] border-[#E2E8F0]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-4 h-4 rounded-[4px] border flex items-center justify-center ${
+                            isDone ? 'bg-white text-[#18181B] border-white' : 'bg-white border-[#CBD5E1]'
+                          }`}>
+                            {isDone && <Check size={12} className="stroke-[3]" />}
+                          </div>
+                          <div>
+                            <div className="text-[12.5px] font-bold font-ui">{h.title}</div>
+                            <div className={`text-[10px] ${isDone ? 'text-zinc-400' : 'text-[#71717A]'}`}>
+                              {h.category} • {Object.values(h.logs).filter(Boolean).length}d logged
+                            </div>
+                          </div>
+                        </div>
+
+                        <span className={`text-[11px] font-num font-bold px-2 py-0.5 rounded ${
+                          isDone ? 'bg-white/20 text-white' : 'bg-emerald-50 text-[#10B981]'
+                        }`}>
+                          +{h.expReward} EXP
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickCapture(false)}
+                    className="px-4 py-2 text-[12px] font-bold bg-[#18181B] text-white rounded-[6px] hover:bg-[#27272A] cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: QUICK SPRINT TASK */}
+            {quickCaptureTab === 'task' && (
+              <form onSubmit={handleQuickTask} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                    Task Title / Objective
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="e.g. Ship v2 deployment, 10km run, Read 30 pages"
+                    value={quickTaskTitle}
+                    onChange={(e) => setQuickTaskTitle(e.target.value)}
+                    className="w-full px-3 py-2 text-[13px] font-ui border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                      Sprint Day
+                    </label>
+                    <select
+                      value={quickTaskDay}
+                      onChange={(e) => setQuickTaskDay(parseInt(e.target.value))}
+                      className="w-full px-3 py-2 text-[12.5px] font-ui border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
+                    >
+                      {today.sprintDays.map((d) => (
+                        <option key={d.index} value={d.index}>
+                          {d.name} {d.isToday ? '(Today)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                      Priority Level
+                    </label>
+                    <select
+                      value={quickTaskPriority}
+                      onChange={(e) => setQuickTaskPriority(e.target.value as 'High' | 'Med' | 'Low')}
+                      className="w-full px-3 py-2 text-[12.5px] font-ui border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
+                    >
+                      <option value="High">High Priority (+35 EXP)</option>
+                      <option value="Med">Medium Priority (+25 EXP)</option>
+                      <option value="Low">Low Priority (+15 EXP)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-[#71717A] uppercase tracking-wider mb-1 font-ui">
+                    Category Domain
+                  </label>
+                  <select
+                    value={quickCategory}
+                    onChange={(e) => setQuickCategory(e.target.value as AreaOfLife)}
+                    className="w-full px-3 py-2 text-[12.5px] font-ui border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-white"
+                  >
+                    <option value="Work">Work</option>
+                    <option value="Health">Health</option>
+                    <option value="Money">Money</option>
+                    <option value="Personal Growth">Personal Growth</option>
+                    <option value="Family">Family</option>
+                    <option value="Spirituality">Spirituality</option>
+                  </select>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickCapture(false)}
+                    className="px-4 py-2 text-[12px] font-medium text-[#71717A] hover:bg-[#F4F4F5] rounded-[6px] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-[12px] font-bold bg-[#18181B] hover:bg-[#27272A] text-white rounded-[6px] flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>Schedule Task</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
