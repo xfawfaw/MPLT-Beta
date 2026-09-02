@@ -7,11 +7,21 @@ export type AreaOfLife =
   | 'Spirituality';
 
 export interface UserProfile {
+  callsign?: string;
+  bio?: string;
+  avatarSeed?: string;
   level: number;
   currentExp: number;
   nextLevelExp: number;
   totalPoints: number;
   streakDays: number;
+  joinedDate?: string;
+  notificationsEnabled?: boolean;
+  routineAlarmTimes?: {
+    morning?: string;
+    deepWork?: string;
+    evening?: string;
+  };
 }
 
 export interface HabitMilestoneTier {

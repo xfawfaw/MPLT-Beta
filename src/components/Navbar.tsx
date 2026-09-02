@@ -34,9 +34,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface NavbarProps {
   onOpenCommandPalette: () => void;
   onOpenBackup: () => void;
+  onOpenProfile: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBackup }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBackup, onOpenProfile }) => {
   const { profile, currentTab, setCurrentTab, resetAllData, tasks, goals } = useApp();
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
@@ -184,8 +185,28 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
           </div>
         </div>
 
-        {/* Right: Workstation Trigger Button & Floating Modal Container */}
-        <div className="relative" ref={workstationRef}>
+        {/* Right: Operator Profile & Workstation Container */}
+        <div className="flex items-center gap-2">
+          {/* Operator Profile Trigger Button */}
+          <button
+            type="button"
+            onClick={() => {
+              onOpenProfile();
+              sound.playClick();
+            }}
+            title="Operator Profile & Identity"
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-[8px] bg-[#F9FAFB] hover:bg-white border border-[#E2E8F0] hover:border-[#18181B] text-[#18181B] h-[38px] transition-all cursor-pointer shadow-2xs group"
+          >
+            <div className="w-5 h-5 rounded-full bg-[#18181B] text-[#10B981] flex items-center justify-center text-[10px] font-bold shadow-inner">
+              {profile.avatarSeed === 'operator-apex' ? '🛡️' : profile.avatarSeed === 'operator-zen' ? '🌿' : profile.avatarSeed === 'operator-cyborg' ? '⚙️' : profile.avatarSeed === 'operator-sovereign' ? '👑' : profile.avatarSeed === 'operator-matrix' ? '📊' : '⚡'}
+            </div>
+            <span className="hidden lg:inline text-[11.5px] font-bold font-ui max-w-[100px] truncate">
+              {profile.callsign || 'Operator'}
+            </span>
+          </button>
+
+          {/* Workstation Trigger Button & Floating Modal Container */}
+          <div className="relative" ref={workstationRef}>
           <button
             type="button"
             onClick={() => {
@@ -403,6 +424,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
               </>
             )}
           </AnimatePresence>
+        </div>
         </div>
 
       </div>

@@ -203,16 +203,16 @@ export function Globe({
           if (focusLocationRef.current) {
             const targetLat = focusLocationRef.current[0]
             const targetLng = focusLocationRef.current[1]
-            const targetPhi = -((targetLng * Math.PI) / 180) + Math.PI / 2
+            const targetPhi = -((targetLng * Math.PI) / 180)
             const targetTheta = Math.max(-0.35, Math.min(0.35, ((targetLat * Math.PI) / 180) * 0.35))
 
             let diffPhi = (targetPhi - (phi + phiOffsetRef.current)) % (2 * Math.PI)
             if (diffPhi > Math.PI) diffPhi -= 2 * Math.PI
             if (diffPhi < -Math.PI) diffPhi += 2 * Math.PI
-            phiOffsetRef.current += diffPhi * 0.06
+            phiOffsetRef.current += diffPhi * 0.08
 
             let diffTheta = targetTheta - (propsRef.current.theta + thetaOffsetRef.current)
-            thetaOffsetRef.current += diffTheta * 0.06
+            thetaOffsetRef.current += diffTheta * 0.08
           } else {
             phi += propsRef.current.speed
           }

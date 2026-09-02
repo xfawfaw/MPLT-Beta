@@ -1,11 +1,14 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
+import { MobileBottomNav } from './components/Navbar/MobileBottomNav';
 import { LevelUpModal } from './components/Common/LevelUpModal';
 import { ExpToast } from './components/Common/ExpToast';
 import { CommandPalette } from './components/Common/CommandPalette';
 import { BackupModal } from './components/Common/BackupModal';
 import { OnboardingModal } from './components/Common/OnboardingModal';
+import { OperatorProfileModal } from './components/Common/OperatorProfileModal';
+import { PasscodeGate } from './components/Common/PasscodeGate';
 import { ViewSkeleton } from './components/Common/ViewSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -24,6 +27,7 @@ export const AppContent: React.FC = () => {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Check if first-time visitor needs onboarding
   useEffect(() => {
@@ -56,10 +60,11 @@ export const AppContent: React.FC = () => {
       <Navbar 
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenBackup={() => setIsBackupModalOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
       />
 
       {/* Main Workspace Container with Suspense and Smooth Spring Transitions */}
-      <main className="flex-1 pb-16 overflow-hidden">
+      <main className="flex-1 pb-24 md:pb-16 overflow-hidden">
         <Suspense fallback={<ViewSkeleton />}>
           <AnimatePresence mode="wait">
             <motion.div
@@ -82,6 +87,9 @@ export const AppContent: React.FC = () => {
         </Suspense>
       </main>
 
+      {/* Sticky Mobile Bottom Navigation Dock (< 768px) */}
+      <MobileBottomNav onOpenProfile={() => setIsProfileModalOpen(true)} />
+
       {/* Floating System Modals & Telemetry Toasts */}
       <LevelUpModal />
       <ExpToast />
@@ -91,11 +99,18 @@ export const AppContent: React.FC = () => {
         onClose={() => setIsCommandPaletteOpen(false)}
         onOpenBackup={() => setIsBackupModalOpen(true)}
         onOpenOnboarding={() => setIsOnboardingModalOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
       />
       
       <BackupModal 
         isOpen={isBackupModalOpen}
         onClose={() => setIsBackupModalOpen(false)}
+      />
+
+      {/* Operator Profile Modal */}
+      <OperatorProfileModal 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
       />
 
       {/* First-Time User Onboarding Setup Wizard */}
@@ -105,7 +120,7 @@ export const AppContent: React.FC = () => {
       />
 
       {/* Footer Info & Operational Mantra */}
-      <footer className="border-t border-[#E2E8F0] bg-white py-4 text-center text-[11px] text-[#71717A] font-ui">
+      <footer className="border-t border-[#E2E8F0] bg-white py-4 text-center text-[11px] text-[#71717A] font-ui hidden md:block">
         <div className="max-w-[1440px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
@@ -126,5 +141,9 @@ export const AppContent: React.FC = () => {
 };
 
 export default function App() {
-  return <AppContent />;
+  return (
+    <PasscodeGate>
+      <AppContent />
+    </PasscodeGate>
+  );
 }

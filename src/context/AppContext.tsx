@@ -60,6 +60,7 @@ interface AppContextType {
   
   // Toast notification for EXP / Points
   expToast: { visible: boolean; message: string; exp: number } | null;
+  updateProfile: (updates: Partial<UserProfile>) => void;
   loadDemoData: () => void;
   resetAllData: () => void;
 }
@@ -77,20 +78,40 @@ export const getUserRankTitle = (level: number): string => {
 
 // Clean slate starting profile for first-time visitors (Level 1 Novice Initiate)
 export const CLEAN_PROFILE: UserProfile = {
+  callsign: 'Sovereign Operator',
+  bio: 'Building unwavering discipline through quantified daily execution.',
+  avatarSeed: 'operator-1',
   level: 1,
   currentExp: 0,
   nextLevelExp: 100,
   totalPoints: 0,
   streakDays: 0,
+  joinedDate: '2026.09.01',
+  notificationsEnabled: true,
+  routineAlarmTimes: {
+    morning: '06:00',
+    deepWork: '09:00',
+    evening: '21:00',
+  },
 };
 
 // High-level demo profile for test drivers
 export const DEMO_PROFILE: UserProfile = {
+  callsign: 'Apex Strategist',
+  bio: 'Compounding habits, deep work blocks, and 50/30/20 capital flow daily.',
+  avatarSeed: 'operator-apex',
   level: 14,
   currentExp: 1420,
   nextLevelExp: 2000,
   totalPoints: 1240,
   streakDays: 28,
+  joinedDate: '2026.08.01',
+  notificationsEnabled: true,
+  routineAlarmTimes: {
+    morning: '06:00',
+    deepWork: '09:00',
+    evening: '21:00',
+  },
 };
 
 // Initial 31-day habit logs generation for demo data
@@ -893,6 +914,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTimeout(() => setExpToast(null), 3000);
   };
 
+  // Update Profile details & routine times
+  const updateProfile = (updates: Partial<UserProfile>) => {
+    setProfile(prev => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(updated));
+      return updated;
+    });
+    sound.playClick();
+  };
+
   // Reset to clean slate Level 1 Novice Initiate
   const resetAllData = () => {
     localStorage.removeItem(`${STORAGE_KEY}_profile`);
@@ -932,6 +963,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedMonth,
         addExp,
         addPoints,
+        updateProfile,
         toggleHabitLog,
         addHabit,
         deleteHabit,

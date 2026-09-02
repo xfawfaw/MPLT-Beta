@@ -18,10 +18,12 @@ import {
   Sparkles,
   ArrowRight,
   Workflow,
+  User,
   LucideIcon
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
+import { exportUniversalICS } from '../../utils/calendar';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface CommandPaletteProps {
@@ -29,6 +31,7 @@ interface CommandPaletteProps {
   onClose: () => void;
   onOpenBackup: () => void;
   onOpenOnboarding?: () => void;
+  onOpenProfile?: () => void;
 }
 
 interface CommandItem {
@@ -40,8 +43,15 @@ interface CommandItem {
   action: () => void;
 }
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onOpenBackup, onOpenOnboarding }) => {
+export const CommandPalette: React.FC<CommandPaletteProps> = ({ 
+  isOpen, 
+  onClose, 
+  onOpenBackup, 
+  onOpenOnboarding,
+  onOpenProfile 
+}) => {
   const { 
+    profile,
     habits, 
     toggleHabitLog, 
     weeklyTasks, 
@@ -173,6 +183,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
             resetAllData();
             onClose();
           }
+        }
+      },
+      {
+        id: 'sys-profile',
+        title: 'Open Operator Profile & Alarms',
+        subtitle: `Configured for ${profile.callsign || 'Operator'} • Routine Alarms & Lifetime Stats`,
+        category: 'System',
+        icon: User,
+        action: () => {
+          onOpenProfile?.();
+          onClose();
+        }
+      },
+      {
+        id: 'sys-gcal',
+        title: 'Export Routines to Google / Apple Calendar (.ICS)',
+        subtitle: '1-click export of Morning Launch, Deep Work & Evening Review',
+        category: 'System',
+        icon: CalendarRange,
+        action: () => {
+          exportUniversalICS(profile, habits);
+          sound.playPop();
+          onClose();
         }
       },
       {

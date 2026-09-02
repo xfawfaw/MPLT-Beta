@@ -1,0 +1,18 @@
+{
+  "name": "MPLT ZERO — Life Operations",
+  "short_name": "MPLT ZERO",
+  "description": "High-density gamified personal operations system and life dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9FAFB",
+  "theme_color": "#18181B",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2318181B'><rect width='512' height='512' rx='100'/><path d='M150 360V152l212 212V152' stroke='%2310B981' stroke-width='50' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

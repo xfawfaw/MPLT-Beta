@@ -16,12 +16,15 @@ import {
   Moon,
   List,
   Layers,
+  CalendarPlus,
+  Calendar,
   X
 } from 'lucide-react';
 import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { AreaOfLife, Habit } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
+import { syncRoutineToGoogleCalendar, exportUniversalICS } from '../../utils/calendar';
 
 export const HabitMatrixView: React.FC = () => {
   const { profile, habits, toggleHabitLog, addHabit, deleteHabit } = useApp();
@@ -728,7 +731,35 @@ export const HabitMatrixView: React.FC = () => {
         /* ========================================================
             CENTER SECTION: VIEW 2 — DAILY ROUTINE STACKING BLOCKS
             ======================================================== */
-        <section className="space-y-6">
+        <section className="space-y-4">
+          {/* Calendar Sync Action Bar */}
+          <div className="p-3.5 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-[6px] bg-[#18181B] text-white flex items-center justify-center">
+                <Calendar size={14} className="text-[#10B981]" />
+              </div>
+              <div>
+                <h4 className="text-[12.5px] font-bold text-[#18181B] font-ui">
+                  CALENDAR & ROUTINE SYNCHRONIZATION
+                </h4>
+                <p className="text-[11px] text-[#71717A] font-ui">
+                  Sync daily execution blocks to Google Calendar, Apple Calendar, or mobile device alarms
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                exportUniversalICS(profile, habits);
+                sound.playPop();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#18181B] hover:bg-[#27272A] text-white text-[11.5px] font-bold font-ui active:scale-[0.98] transition-all shadow-sm flex-shrink-0"
+            >
+              <CalendarPlus size={13} className="text-[#10B981]" />
+              <span>Export Schedule (.ICS)</span>
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {routineBlocks.map((block) => {
               const BlockIcon = block.icon;
@@ -748,9 +779,30 @@ export const HabitMatrixView: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="text-[10.5px] font-num font-bold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#18181B]">
-                      {blockHabits.length} Habits
-                    </span>
+                    
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const routineKey = block.id === 'Morning' ? 'morning' : block.id === 'Deep Work' ? 'deepWork' : 'evening';
+                          const timeVal = block.id === 'Morning' 
+                            ? (profile.routineAlarmTimes?.morning || '06:00') 
+                            : block.id === 'Deep Work' 
+                            ? (profile.routineAlarmTimes?.deepWork || '09:00') 
+                            : (profile.routineAlarmTimes?.evening || '21:00');
+                          syncRoutineToGoogleCalendar(routineKey, timeVal);
+                          sound.playClick();
+                        }}
+                        title="Sync this routine block to Google Calendar"
+                        className="flex items-center gap-1 px-2 py-1 rounded-[6px] bg-[#F9FAFB] hover:bg-white border border-[#E2E8F0] hover:border-[#18181B] text-[10.5px] font-bold font-ui text-[#71717A] hover:text-[#18181B] transition-all shadow-2xs cursor-pointer"
+                      >
+                        <CalendarPlus size={11} className="text-[#10B981]" />
+                        <span>GCal</span>
+                      </button>
+                      <span className="text-[10.5px] font-num font-bold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#18181B]">
+                        {blockHabits.length}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="space-y-2.5">

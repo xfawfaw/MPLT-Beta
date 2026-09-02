@@ -509,13 +509,13 @@ export const MasterDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 2-Column Responsive Command Center */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* 2-Column Responsive Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           
-          {/* Left Column (5 Cols): 3D Geodesic Interactive Globe & Domain Inspector */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] relative overflow-hidden group space-y-3">
+          {/* Left Column (5 Cols): 3D Geodesic Interactive Globe */}
+          <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] relative overflow-hidden group">
             
-            {/* Subtle high-tech background texture from Unsplash */}
+            {/* Subtle high-tech background texture */}
             <div 
               className="absolute inset-0 opacity-[0.03] pointer-events-none bg-cover bg-center"
               style={{
@@ -523,19 +523,19 @@ export const MasterDashboard: React.FC = () => {
               }}
             />
 
-            {/* Top Minimal Telemetry HUD */}
-            <div className="w-full flex items-center justify-between text-[10px] font-num text-[#71717A] z-10 px-1">
+            {/* Top Minimal HUD Header */}
+            <div className="w-full flex items-center justify-between text-[10px] font-num text-[#71717A] z-10 mb-2 px-1">
               <span className="flex items-center gap-1.5 font-semibold text-[#18181B]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-                3D SPHERICAL HARMONY TOPOGRAPHY
+                3D SPHERICAL HARMONY MATRIX
               </span>
-              <span className="font-ui text-[9.5px] text-[#71717A]">
-                {selectedGlobeDomain ? `LOCKED • ${selectedGlobeDomain.toUpperCase()}` : '6 DOMAINS LINKED'}
+              <span className="font-num text-[10px] text-[#71717A]">
+                {selectedGlobeDomain ? `NODE: ${selectedGlobeDomain.toUpperCase()}` : '6 DOMAINS LINKED'}
               </span>
             </div>
 
             {/* Globe Canvas Container */}
-            <div className="w-full max-w-[270px] sm:max-w-[290px] aspect-square relative z-10 flex items-center justify-center">
+            <div className="w-full max-w-[290px] sm:max-w-[320px] aspect-square relative z-10 flex items-center justify-center">
               <Globe
                 markers={globeMarkers}
                 arcs={globeArcs}
@@ -545,7 +545,7 @@ export const MasterDashboard: React.FC = () => {
                 glowColor={[0.92, 0.94, 0.95]}
                 dark={0}
                 mapBrightness={9}
-                markerSize={0.03}
+                markerSize={0.032}
                 markerElevation={0.015}
                 arcWidth={0.6}
                 arcHeight={0.28}
@@ -554,130 +554,21 @@ export const MasterDashboard: React.FC = () => {
               />
             </div>
 
-            {/* Live Domain Telemetry & Operations HUD */}
-            <div className="w-full pt-3 border-t border-[#E2E8F0] z-10">
-              {activeSelectedDomain ? (
-                <div className="space-y-3">
-                  {/* Domain Header Banner */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-[6px] bg-[#18181B] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
-                        {React.createElement(activeSelectedDomain.icon, { size: 14 })}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[12.5px] font-bold text-[#18181B] font-ui leading-none truncate">
-                          {activeSelectedDomain.domain} Domain
-                        </div>
-                        <div className="text-[10px] text-[#71717A] font-ui mt-0.5 truncate">
-                          {activeSelectedDomain.description}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className={`text-[10.5px] font-num font-bold px-2 py-0.5 rounded ${activeSelectedDomain.statusColor}`}>
-                        {activeSelectedDomain.score}% • {activeSelectedDomain.statusText}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 3-Pillar Operational Matrix */}
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {/* Pillar 1: Kinetic EXP */}
-                    <div className="bg-white p-2 rounded-[6px] border border-[#E2E8F0] text-center flex flex-col justify-between">
-                      <div className="text-[9px] text-[#71717A] font-ui uppercase font-semibold">EXP Share</div>
-                      <div className="text-[12px] font-bold font-num text-[#18181B] my-0.5">
-                        +{activeSelectedDomain.domainExp}
-                      </div>
-                      <div className="text-[8.5px] text-[#71717A] font-num">
-                        {totalCategoryExp > 0 ? Math.round((activeSelectedDomain.domainExp / totalCategoryExp) * 100) : 0}% of Total
-                      </div>
-                    </div>
-
-                    {/* Pillar 2: Habits Tracking */}
-                    <div className="bg-white p-2 rounded-[6px] border border-[#E2E8F0] text-center flex flex-col justify-between">
-                      <div className="text-[9px] text-[#71717A] font-ui uppercase font-semibold">Today Habits</div>
-                      <div className="text-[12px] font-bold font-num text-[#18181B] my-0.5">
-                        {activeSelectedDomain.habitsCompleted}/{activeSelectedDomain.domainHabitsCount}
-                      </div>
-                      <div className="text-[8.5px] font-ui font-medium text-[#10B981]">
-                        {activeSelectedDomain.domainHabitsCount > 0 && activeSelectedDomain.habitsCompleted === activeSelectedDomain.domainHabitsCount ? 'Complete' : `${activeSelectedDomain.domainHabitsCount - activeSelectedDomain.habitsCompleted} Pending`}
-                      </div>
-                    </div>
-
-                    {/* Pillar 3: Tasks & Milestones */}
-                    <div className="bg-white p-2 rounded-[6px] border border-[#E2E8F0] text-center flex flex-col justify-between">
-                      <div className="text-[9px] text-[#71717A] font-ui uppercase font-semibold">Sprint Tasks</div>
-                      <div className="text-[12px] font-bold font-num text-[#18181B] my-0.5">
-                        {activeSelectedDomain.weeklyTasksCompleted}/{activeSelectedDomain.domainWeeklyCount}
-                      </div>
-                      <div className="text-[8.5px] text-[#71717A] font-num">
-                        {activeSelectedDomain.pendingTasksCount} uncompleted
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Operational Next Directive in this Domain */}
-                  {activeSelectedDomain.nextDirective ? (
-                    <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] flex items-center justify-between text-[10.5px]">
-                      <div className="flex items-center gap-1.5 truncate mr-2">
-                        <Target size={11} className="text-[#10B981] flex-shrink-0" />
-                        <span className="font-ui font-semibold text-[#18181B] truncate">
-                          {activeSelectedDomain.nextDirective.title}
-                        </span>
-                      </div>
-                      <span className="text-[9px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded flex-shrink-0">
-                        +{activeSelectedDomain.nextDirective.expReward} EXP
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] flex items-center justify-between text-[10.5px] text-[#71717A]">
-                      <span className="flex items-center gap-1.5 font-ui">
-                        <CheckCircle2 size={11} className="text-[#10B981]" />
-                        <span>All sprint directives completed in this domain</span>
-                      </span>
-                      <span className="text-[9.5px] font-num font-bold text-[#10B981]">Clear</span>
-                    </div>
-                  )}
-
-                  {/* Action Link & Deselect Controls */}
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      onClick={() => setSelectedGlobeDomain(null)}
-                      className="text-[10px] text-[#71717A] hover:text-[#18181B] font-ui transition-colors underline"
-                    >
-                      Reset 3D Overview
-                    </button>
-                    <button
-                      onClick={() => setCurrentTab(activeSelectedDomain.targetTab)}
-                      className="px-2.5 py-1 rounded-[5px] bg-[#18181B] hover:bg-[#27272A] text-white text-[10.5px] font-ui font-bold flex items-center gap-1 transition-all shadow-xs"
-                    >
-                      <span>Manage in {activeSelectedDomain.targetTab}</span>
-                      <ChevronRight size={12} />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2 text-[11px] font-ui text-[#71717A]">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-[#18181B]">Global Balance Harmony:</span>
-                    <span className="font-num font-bold text-[#10B981]">{systemHarmonyScore}% Equilibrium</span>
-                  </div>
-                  <div className="p-2.5 rounded-[6px] bg-white border border-[#E2E8F0] text-[10.5px] text-[#71717A] flex items-center justify-between">
-                    <span>
-                      {topDomainExp && topDomainExp.value > 0 ? (
-                        <span>Leading: <strong className="text-[#18181B]">{topDomainExp.name} ({Math.round((topDomainExp.value / totalCategoryExp) * 100)}%)</strong></span>
-                      ) : (
-                        <span>Ready for operational logging</span>
-                      )}
-                    </span>
-                    <span className="font-num text-[10px] text-[#10B981] font-semibold bg-[#10B981]/10 px-1.5 py-0.2 rounded">Online</span>
-                  </div>
-                  <p className="text-[9.5px] text-[#71717A] leading-relaxed">
-                    Click any domain card on the right to lock 3D spherical node coordinates and inspect operational tracking.
-                  </p>
-                </div>
+            {/* Clean bottom interaction hint */}
+            <div className="w-full pt-2.5 mt-1 border-t border-[#E2E8F0] flex items-center justify-between text-[10px] font-ui text-[#71717A] z-10">
+              <span className="truncate">
+                {selectedGlobeDomain ? `Focused on ${selectedGlobeDomain} Domain • Drag to orbit` : 'Drag globe to rotate • Click domain cards to lock node'}
+              </span>
+              {selectedGlobeDomain && (
+                <button
+                  onClick={() => setSelectedGlobeDomain(null)}
+                  className="font-semibold text-[#18181B] hover:text-[#10B981] transition-colors flex-shrink-0"
+                >
+                  Reset Focus
+                </button>
               )}
             </div>
+
           </div>
 
           {/* Right Column (7 Cols): 6-Domain Life Balance & Kinetic EXP Breakdown */}
@@ -704,8 +595,10 @@ export const MasterDashboard: React.FC = () => {
                   return (
                     <div
                       key={item.domain}
-                      onClick={() => setSelectedGlobeDomain(isSelected ? null : item.domain)}
-                      className={`p-2.5 rounded-[8px] border transition-all cursor-pointer ${
+                      onClick={() => {
+                        setSelectedGlobeDomain(isSelected ? null : item.domain);
+                      }}
+                      className={`p-3 rounded-[8px] border transition-all cursor-pointer select-none ${
                         isSelected 
                           ? 'border-[#18181B] bg-white ring-2 ring-[#18181B]/15 shadow-sm' 
                           : 'border-[#E2E8F0] bg-[#F9FAFB] hover:border-[#CBD5E1] hover:bg-white'
@@ -722,7 +615,7 @@ export const MasterDashboard: React.FC = () => {
                       </div>
 
                       {/* Progress Bar */}
-                      <div className="w-full bg-[#E2E8F0] h-[4px] rounded-full overflow-hidden mb-1.5">
+                      <div className="w-full bg-[#E2E8F0] h-[4px] rounded-full overflow-hidden mb-2">
                         <div
                           className={`h-full rounded-full transition-all ${
                             item.score >= 80 ? 'bg-[#10B981]' : item.score >= 50 ? 'bg-[#18181B]' : 'bg-[#E11D48]'
@@ -731,9 +624,15 @@ export const MasterDashboard: React.FC = () => {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between text-[9px] text-[#71717A] font-ui">
-                        <span className="font-num font-medium text-[#18181B]">+{item.domainExp} EXP ({expShare}%)</span>
-                        <span className="font-semibold text-[#18181B]">{item.statusText}</span>
+                      <div className="space-y-1 text-[9.5px]">
+                        <div className="flex items-center justify-between text-[#71717A] font-ui">
+                          <span className="font-num font-semibold text-[#18181B]">+{item.domainExp} EXP</span>
+                          <span className="text-[9px] font-num text-[#71717A]">({expShare}% share)</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[9px] text-[#71717A] font-ui border-t border-[#F1F5F9] pt-1">
+                          <span>{item.habitsCompleted}/{item.domainHabitsCount} Habits</span>
+                          <span>{item.completedItemsCount}/{item.totalItemsCount} Total</span>
+                        </div>
                       </div>
                     </div>
                   );
