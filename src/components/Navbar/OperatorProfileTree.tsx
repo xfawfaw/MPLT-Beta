@@ -107,8 +107,8 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
 
   const handleLockWorkstation = () => {
     sound.playClick();
-    localStorage.removeItem('mplt_passcode_auth');
-    localStorage.removeItem('mplt_authenticated_operator');
+    sessionStorage.removeItem('mplt_passcode_auth');
+    sessionStorage.removeItem('mplt_authenticated_operator');
     window.location.reload();
   };
 

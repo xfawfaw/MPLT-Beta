@@ -13,7 +13,7 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ children }) => {
   const { switchOperator } = useApp();
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('mplt_passcode_auth') === 'true';
+    return sessionStorage.getItem('mplt_passcode_auth') === 'true';
   });
 
   const [pin, setPin] = useState('');
@@ -27,8 +27,8 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ children }) => {
     if (matchedOp) {
       sound.playLevelUp();
       switchOperator(matchedOp.id);
-      localStorage.setItem('mplt_passcode_auth', 'true');
-      localStorage.setItem('mplt_authenticated_operator', matchedOp.id);
+      sessionStorage.setItem('mplt_passcode_auth', 'true');
+      sessionStorage.setItem('mplt_authenticated_operator', matchedOp.id);
       setIsAuthenticated(true);
       setError(false);
     } else {
