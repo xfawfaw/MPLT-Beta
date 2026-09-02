@@ -265,11 +265,11 @@ export const YearlyStatsView: React.FC = () => {
     });
   }, [habits, tasks, goals]);
 
-  // True 6-Axis Polygonal Radar Geometry
+  // True 6-Axis Polygonal Radar Geometry (Compact & Precision)
   const radarGeometry = useMemo(() => {
-    const size = 260;
+    const size = 190;
     const center = size / 2;
-    const radius = 95;
+    const radius = 62;
     const angleStep = (Math.PI * 2) / 6;
 
     // Outer polygon points (100% boundary)
@@ -295,13 +295,13 @@ export const YearlyStatsView: React.FC = () => {
     // Actual Data polygon points
     const dataPoints = domainScores.map((d, i) => {
       const angle = i * angleStep - Math.PI / 2;
-      const normalizedScore = Math.max(0.1, d.score / 100);
+      const normalizedScore = Math.max(0.12, d.score / 100);
       return {
         ...d,
         x: center + radius * normalizedScore * Math.cos(angle),
         y: center + radius * normalizedScore * Math.sin(angle),
-        labelX: center + (radius + 24) * Math.cos(angle),
-        labelY: center + (radius + 20) * Math.sin(angle),
+        labelX: center + (radius + 15) * Math.cos(angle),
+        labelY: center + (radius + 13) * Math.sin(angle),
       };
     });
 
@@ -430,14 +430,14 @@ export const YearlyStatsView: React.FC = () => {
     },
   ], [profile, completedTasksCount, annualFinance, goals, habits]);
 
-  // SVG Chart Geometry for 52-Week Granular Curve
+  // SVG Chart Geometry for 52-Week Granular Curve (Expanded & High-Def)
   const chartGeometry = useMemo(() => {
     const width = 1000;
-    const height = 250;
+    const height = 290;
     const paddingLeft = 40;
     const paddingRight = 25;
-    const paddingTop = 22;
-    const paddingBottom = 34;
+    const paddingTop = 24;
+    const paddingBottom = 38;
 
     const plotWidth = width - paddingLeft - paddingRight;
     const plotHeight = height - paddingTop - paddingBottom;
@@ -813,19 +813,19 @@ export const YearlyStatsView: React.FC = () => {
       {/* ========================================================
           SECTION 2: 52-WEEK MOVING TRAJECTORY & 6-AXIS RADAR
           ======================================================== */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         
-        {/* Left (Span 7): 52-Week Detailed Granular Curve with 4-Week SMA */}
-        <div className="lg:col-span-7 mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between space-y-4">
+        {/* Left (Span 9): 52-Week Detailed Granular Curve with 4-Week SMA - Dominant & High-Def */}
+        <div className="lg:col-span-9 mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between space-y-4">
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
               <div>
-                <h3 className="text-[13.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
+                <h3 className="text-[14px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
                   <BarChart2 size={15} className="text-[#18181B]" />
                   <span>52-Week Velocity Trajectory & 4-Week Moving Average</span>
                 </h3>
                 <p className="text-[11px] text-[#71717A] font-ui">
-                  52-point granular velocity curve mapped with 4-week smoothed trendline
+                  52-point high-resolution velocity curve mapped with 4-week smoothed moving trendline
                 </p>
               </div>
 
@@ -844,16 +844,16 @@ export const YearlyStatsView: React.FC = () => {
               </div>
             </div>
 
-            {/* SVG 52-Week Granular Curve - Expanded Size */}
+            {/* SVG 52-Week Granular Curve - Expanded Size & High-Resolution Viewport */}
             <div className="w-full relative overflow-hidden pt-2">
               <svg 
                 viewBox={`0 0 ${chartGeometry.width} ${chartGeometry.height}`} 
-                className="w-full h-[240px] sm:h-[260px] overflow-visible select-none"
+                className="w-full h-[280px] sm:h-[300px] md:h-[320px] overflow-visible select-none"
               >
                 <defs>
                   <linearGradient id="granularGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#18181B" stopOpacity="0.20" />
-                    <stop offset="60%" stopColor="#18181B" stopOpacity="0.05" />
+                    <stop offset="0%" stopColor="#18181B" stopOpacity="0.18" />
+                    <stop offset="60%" stopColor="#18181B" stopOpacity="0.04" />
                     <stop offset="100%" stopColor="#18181B" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
@@ -902,7 +902,7 @@ export const YearlyStatsView: React.FC = () => {
                       <text
                         x={pt.x + 4}
                         y={chartGeometry.paddingTop + 12}
-                        className="text-[9px] font-ui fill-[#18181B] font-bold tracking-wider"
+                        className="text-[9.5px] font-ui fill-[#18181B] font-bold tracking-wider"
                       >
                         Q{idx + 2} BOUNDARY
                       </text>
@@ -918,8 +918,8 @@ export const YearlyStatsView: React.FC = () => {
                   d={chartGeometry.smaLinePath}
                   fill="none"
                   stroke="#10B981"
-                  strokeWidth="1.8"
-                  strokeDasharray="4 3"
+                  strokeWidth="2"
+                  strokeDasharray="5 4"
                   strokeLinecap="round"
                 />
 
@@ -928,7 +928,7 @@ export const YearlyStatsView: React.FC = () => {
                   d={chartGeometry.linePath}
                   fill="none"
                   stroke="#18181B"
-                  strokeWidth="2.5"
+                  strokeWidth="2.8"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -970,7 +970,7 @@ export const YearlyStatsView: React.FC = () => {
                         <circle
                           cx={pt.x}
                           cy={pt.y}
-                          r="7"
+                          r="7.5"
                           fill="#18181B"
                           fillOpacity="0.18"
                         />
@@ -979,10 +979,10 @@ export const YearlyStatsView: React.FC = () => {
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r={isHovered ? 4.5 : isPeak ? 3.5 : 2}
+                        r={isHovered ? 5 : isPeak ? 4 : 2.5}
                         fill={isHovered ? '#18181B' : isPeak ? '#10B981' : '#FFFFFF'}
                         stroke={isPeak ? '#10B981' : '#18181B'}
-                        strokeWidth={isHovered ? '2' : '1.5'}
+                        strokeWidth={isHovered ? '2.2' : '1.5'}
                       />
 
                       {/* X-Axis Week Labels every 4 weeks */}
@@ -991,9 +991,9 @@ export const YearlyStatsView: React.FC = () => {
                           x={pt.x}
                           y={chartGeometry.height - 8}
                           textAnchor="middle"
-                          className={`text-[9px] font-num ${
+                          className={`text-[9.5px] font-num ${
                             isHovered 
-                              ? 'fill-[#18181B] font-bold text-[10px]' 
+                              ? 'fill-[#18181B] font-bold text-[10.5px]' 
                               : isQuarterMarker
                               ? 'fill-[#18181B] font-semibold'
                               : 'fill-[#71717A]'
@@ -1026,29 +1026,26 @@ export const YearlyStatsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right (Span 5): True 6-Axis Polygonal Radar Chart */}
-        <div className="lg:col-span-5 mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between space-y-4">
+        {/* Right (Span 3): True 6-Axis Polygonal Radar Chart - Compact & Precision */}
+        <div className="lg:col-span-3 mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between space-y-3">
           <div>
-            <div className="pb-3 border-b border-[#E2E8F0] flex items-center justify-between">
+            <div className="pb-2 border-b border-[#E2E8F0] flex items-center justify-between">
               <div>
-                <h3 className="text-[13.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
-                  <Compass size={15} className="text-[#18181B]" />
-                  <span>6-Axis Polygonal Life Radar</span>
+                <h3 className="text-[12px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-1.5">
+                  <Compass size={13} className="text-[#18181B]" />
+                  <span>6-Axis Life Radar</span>
                 </h3>
-                <p className="text-[11px] text-[#71717A] font-ui">
-                  Real geometric balance across 6 sovereign life pillars
-                </p>
               </div>
-              <span className="text-[10px] font-ui font-bold px-2 py-0.5 rounded bg-[#10B981]/10 text-[#10B981]">
+              <span className="text-[9px] font-ui font-bold px-1.5 py-0.2 rounded bg-[#10B981]/10 text-[#10B981]">
                 EQUILIBRIUM
               </span>
             </div>
 
-            {/* SVG 6-Axis Polygonal Radar Canvas */}
-            <div className="w-full flex items-center justify-center py-4 relative">
+            {/* SVG 6-Axis Polygonal Radar Canvas - Compact */}
+            <div className="w-full flex items-center justify-center py-2 relative">
               <svg 
                 viewBox={`0 0 ${radarGeometry.size} ${radarGeometry.size}`} 
-                className="w-[250px] h-[250px] overflow-visible select-none"
+                className="w-[170px] h-[170px] sm:w-[180px] sm:h-[180px] overflow-visible select-none"
               >
                 {/* Concentric Guide Rings */}
                 {radarGeometry.rings.map((ring, idx) => {
@@ -1095,19 +1092,19 @@ export const YearlyStatsView: React.FC = () => {
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r="4"
+                        r="3.5"
                         fill="#18181B"
                         stroke="#10B981"
-                        strokeWidth="1.5"
+                        strokeWidth="1.2"
                       />
                       <text
                         x={pt.labelX}
                         y={pt.labelY}
                         textAnchor="middle"
                         dominantBaseline="central"
-                        className="text-[9.5px] font-ui fill-[#18181B] font-bold"
+                        className="text-[8px] font-ui fill-[#18181B] font-bold"
                       >
-                        {pt.area.split(' ')[0]} ({pt.score}%)
+                        {pt.area.split(' ')[0]}
                       </text>
                     </g>
                   );
@@ -1115,12 +1112,12 @@ export const YearlyStatsView: React.FC = () => {
               </svg>
             </div>
 
-            {/* 6 Domain Score Chips */}
-            <div className="grid grid-cols-3 gap-2 pt-2">
+            {/* 6 Domain Score Chips - Compact 2-Col Grid */}
+            <div className="grid grid-cols-2 gap-1.5 pt-1">
               {domainScores.map(d => (
-                <div key={d.area} className="p-2 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[6px] text-center">
-                  <div className="text-[9px] text-[#71717A] uppercase font-ui truncate font-semibold">{d.area}</div>
-                  <div className="text-[12px] font-bold font-num text-[#18181B] mt-0.5">{d.score}%</div>
+                <div key={d.area} className="p-1.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[5px] text-center">
+                  <div className="text-[8px] text-[#71717A] uppercase font-ui truncate font-semibold">{d.area}</div>
+                  <div className="text-[11px] font-bold font-num text-[#18181B] mt-0.2">{d.score}%</div>
                 </div>
               ))}
             </div>
