@@ -13,9 +13,12 @@ import {
   Clock, 
   ListFilter, 
   ArrowUpRight, 
-  CheckCircle2 
+  CheckCircle2,
+  BrainCircuit,
+  Target
 } from 'lucide-react';
 import { ExpandableTabs } from '@/components/ui/expandable-tabs';
+import { AgentPlanning, PlanStep, PlanStepStatus } from '@/components/ui/ai-planning';
 import { WeeklyTask, AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
@@ -35,7 +38,7 @@ export const WeeklyPlannerView: React.FC = () => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const sprintWeek = useMemo(() => dateUtils.getSprintWeekInfo(weekOffset), [weekOffset, today]);
 
-  const [activeViewMode, setActiveViewMode] = useState<'grid' | 'spotlight' | 'agenda'>('grid');
+  const [activeViewMode, setActiveViewMode] = useState<'grid' | 'spotlight' | 'ai-plan' | 'agenda'>('grid');
   const [selectedSpotlightDay, setSelectedSpotlightDay] = useState<number>(today.dayOfWeekIndex); // Default to today
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [activeDayModal, setActiveDayModal] = useState<number | null>(null);
@@ -87,6 +90,183 @@ export const WeeklyPlannerView: React.FC = () => {
 
   // Today spotlight tasks
   const spotlightDayData = dayStats.find(d => d.index === selectedSpotlightDay) || dayStats[today.dayOfWeekIndex] || dayStats[0];
+
+  // Synthesize Day Spotlight Tasks into Agent Planning Steps
+  const spotlightSteps: PlanStep[] = useMemo(() => {
+    return spotlightDayData.tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      status: (task.isCompleted ? 'success' : task.priority === 'High' ? 'active' : 'pending') as PlanStepStatus,
+      duration: task.timeEstimate || '45m',
+      priority: task.priority,
+      category: task.category,
+      expReward: task.expReward,
+      onToggle: () => {
+        toggleWeeklyTask(task.id);
+        sound.playPop();
+      },
+      onDelete: () => {
+        deleteWeeklyTask(task.id);
+        sound.playClick();
+      },
+      defaultExpanded: !task.isCompleted && task.priority === 'High',
+      content: (
+        <div className="space-y-2.5 pt-1 text-[11px] font-ui">
+          <div className="flex items-center justify-between gap-2 p-2.5 bg-[#F9FAFB] rounded-[8px] border border-[#E2E8F0] flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-[#71717A] font-medium">Domain:</span>
+              <span className="font-bold text-[#18181B]">{task.category}</span>
+              <span className="text-[#E2E8F0]">|</span>
+              <span className="text-[#71717A] font-medium">Priority:</span>
+              <span className={`font-bold ${
+                task.priority === 'High' ? 'text-[#E11D48]' : task.priority === 'Med' ? 'text-amber-600' : 'text-[#71717A]'
+              }`}>{task.priority}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  toggleWeeklyTask(task.id);
+                  sound.playPop();
+                }}
+                className={`px-2.5 py-1 rounded-[5px] text-[10.5px] font-bold border transition-colors cursor-pointer ${
+                  task.isCompleted
+                    ? 'bg-emerald-50 text-[#10B981] border-emerald-200 hover:bg-emerald-100'
+                    : 'bg-[#18181B] text-white border-[#18181B] hover:bg-[#27272A]'
+                }`}
+              >
+                {task.isCompleted ? '✓ Completed (Click to Reopen)' : 'Mark as Complete'}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  deleteWeeklyTask(task.id);
+                  sound.playClick();
+                }}
+                className="p-1 rounded-[5px] text-[#A1A1AA] hover:text-[#E11D48] hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                title="Delete task"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10.5px] font-num text-[#71717A]">
+            <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] flex items-center justify-between">
+              <span>Time Window:</span>
+              <strong className="text-[#18181B]">{task.timeEstimate || '45m'}</strong>
+            </div>
+            <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] flex items-center justify-between">
+              <span>Kinetics EXP:</span>
+              <strong className="text-[#10B981]">+{task.expReward} EXP</strong>
+            </div>
+            <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] flex items-center justify-between col-span-2 sm:col-span-1">
+              <span>Status:</span>
+              <strong className={task.isCompleted ? 'text-[#10B981]' : 'text-amber-600'}>
+                {task.isCompleted ? 'Resolved' : 'In Queue'}
+              </strong>
+            </div>
+          </div>
+        </div>
+      )
+    }));
+  }, [spotlightDayData, toggleWeeklyTask, deleteWeeklyTask]);
+
+  // Synthesize Complete AI Strategic Sprint Plan
+  const aiSprintPlanSteps: PlanStep[] = useMemo(() => {
+    return [
+      {
+        id: 'sprint-overview',
+        title: `Sprint Week Architecture (${sprintWeek.sprintWeekRangeStr})`,
+        status: completedTasks > 0 ? 'success' : 'active',
+        duration: 'Sprint Phase',
+        icon: <Target className="w-3.5 h-3.5" />,
+        defaultExpanded: true,
+        content: (
+          <div className="space-y-2 font-mono text-[11px] text-[#71717A] mt-2">
+            <div className="flex items-start gap-2 text-[#10B981] font-medium">
+              <Check className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span>Sprint Targets: {totalTasks} Workload Items mapped to 7 sprint trajectories</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 bg-[#F9FAFB] p-2.5 rounded-md border border-[#E2E8F0]">
+              <div>
+                <span className="text-[#71717A] text-[10px] block">COMPLETION:</span>
+                <span className="text-[#18181B] font-bold font-num">{completionPercentage}% ({completedTasks}/{totalTasks})</span>
+              </div>
+              <div>
+                <span className="text-[#71717A] text-[10px] block">TOTAL EXP:</span>
+                <span className="text-[#10B981] font-bold font-num">+{totalWeeklyExp} EXP</span>
+              </div>
+              <div>
+                <span className="text-[#71717A] text-[10px] block">HIGH PRIORITY:</span>
+                <span className="text-[#E11D48] font-bold font-num">{weekTasks.filter(t => t.priority === 'High').length} Tasks</span>
+              </div>
+              <div>
+                <span className="text-[#71717A] text-[10px] block">PACE STATUS:</span>
+                <span className="text-[#18181B] font-bold">Optimal Velocity</span>
+              </div>
+            </div>
+          </div>
+        )
+      },
+      ...dayStats.map((day) => {
+        const isPastOrToday = day.index <= today.dayOfWeekIndex;
+        const allDone = day.total > 0 && day.done === day.total;
+        const hasHigh = day.tasks.some(t => t.priority === 'High' && !t.isCompleted);
+        
+        return {
+          id: `day-plan-${day.index}`,
+          title: `${day.name} (${day.date}) — ${day.done}/${day.total} Executed (${day.displayPct})`,
+          status: (allDone ? 'success' : day.isToday ? 'active' : hasHigh && isPastOrToday ? 'error' : 'pending') as PlanStepStatus,
+          duration: `${day.tasks.reduce((acc, t) => acc + parseInt(t.timeEstimate || '45'), 0)}m`,
+          defaultExpanded: day.isToday,
+          content: (
+            <div className="space-y-2 mt-2">
+              <div className="p-3 bg-white border border-[#E2E8F0] rounded-lg shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-[11px] pb-1.5 border-b border-[#F1F5F9]">
+                  <span className="font-bold text-[#18181B]">{day.name} Task Pipeline</span>
+                  <span className="text-[#10B981] font-bold font-num">+{day.expEarned} / +{day.totalExp} EXP</span>
+                </div>
+                <div className="space-y-1.5">
+                  {day.tasks.map((task) => (
+                    <div 
+                      key={task.id}
+                      onClick={() => {
+                        toggleWeeklyTask(task.id);
+                        sound.playPop();
+                      }}
+                      className="flex items-center justify-between p-2 rounded bg-[#F9FAFB] hover:bg-[#F4F4F5] border border-[#E2E8F0] cursor-pointer transition-colors text-[11px]"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center ${
+                          task.isCompleted ? 'bg-[#18181B] text-white' : 'bg-white border-[#CBD5E1]'
+                        }`}>
+                          {task.isCompleted && <Check size={10} className="stroke-[3]" />}
+                        </div>
+                        <span className={`truncate font-ui ${task.isCompleted ? 'line-through text-[#71717A]' : 'text-[#18181B] font-medium'}`}>
+                          {task.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-num text-[#71717A] ml-2 flex-shrink-0">
+                        {task.timeEstimate || '45m'}
+                      </span>
+                    </div>
+                  ))}
+                  {day.tasks.length === 0 && (
+                    <div className="text-center py-2 text-[11px] text-[#A1A1AA]">
+                      No scheduled tasks for this day.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        };
+      })
+    ];
+  }, [sprintWeek, totalTasks, completedTasks, completionPercentage, totalWeeklyExp, weekTasks, dayStats, today, toggleWeeklyTask]);
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,11 +370,12 @@ export const WeeklyPlannerView: React.FC = () => {
               size="sm"
               tabs={[
                 { id: 'grid', title: 'Sprint Board', icon: LayoutGrid },
-                { id: 'spotlight', title: 'Day Spotlight', icon: Clock },
+                { id: 'spotlight', title: 'Day Spotlight & Timeline', icon: Clock },
+                { id: 'ai-plan', title: 'AI Strategic Protocol', icon: BrainCircuit },
                 { id: 'agenda', title: 'Agenda List', icon: ListFilter },
               ]}
               selectedIndex={
-                activeViewMode === 'grid' ? 0 : activeViewMode === 'spotlight' ? 1 : 2
+                activeViewMode === 'grid' ? 0 : activeViewMode === 'spotlight' ? 1 : activeViewMode === 'ai-plan' ? 2 : 3
               }
               activeBgColor="bg-[#18181B]"
               activeColor="text-white"
@@ -203,7 +384,8 @@ export const WeeklyPlannerView: React.FC = () => {
                 sound.playClick();
                 if (idx === 0) setActiveViewMode('grid');
                 else if (idx === 1) setActiveViewMode('spotlight');
-                else if (idx === 2) setActiveViewMode('agenda');
+                else if (idx === 2) setActiveViewMode('ai-plan');
+                else if (idx === 3) setActiveViewMode('agenda');
               }}
             />
           </div>
@@ -612,7 +794,7 @@ export const WeeklyPlannerView: React.FC = () => {
       )}
 
       {/* ========================================================
-          VIEW MODE 2: DAY SPOTLIGHT & TIME-BLOCKING VIEW
+          VIEW MODE 2: DAY SPOTLIGHT & AGENT PLANNING TIMELINE VIEW
           ======================================================== */}
       {activeViewMode === 'spotlight' && (
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -679,112 +861,49 @@ export const WeeklyPlannerView: React.FC = () => {
 
           </div>
 
-          {/* Right Column (Span 8): Dedicated Spacious Task Workstation */}
+          {/* Right Column (Span 8): Dedicated Spacious Task Workstation with AgentPlanning Timeline */}
           <div className="lg:col-span-8 space-y-4">
             <div className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0]">
               
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E2E8F0]">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E2E8F0] flex-wrap gap-3">
                 <div>
-                  <h2 className="text-[18px] font-bold text-[#18181B] font-ui">
-                    {spotlightDayData.name} — Task Execution Board
-                  </h2>
-                  <p className="text-[12px] text-[#71717A] font-num">
-                    Scheduled Date: {spotlightDayData.date}
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
+                    <h2 className="text-[18px] font-bold text-[#18181B] font-ui tracking-tight">
+                      {spotlightDayData.name} — Task Execution Timeline
+                    </h2>
+                  </div>
+                  <p className="text-[12px] text-[#71717A] font-num mt-0.5">
+                    Scheduled Date: {spotlightDayData.date} • {spotlightDayData.done}/{spotlightDayData.total} Completed ({spotlightDayData.displayPct})
                   </p>
                 </div>
 
                 <button
                   onClick={() => setActiveDayModal(spotlightDayData.index)}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all shadow-xs cursor-pointer"
                 >
                   <Plus size={14} />
                   <span>Add Task for Today</span>
                 </button>
               </div>
 
-              {/* Spacious Task List with Detailed Chips */}
-              <div className="space-y-3">
-                {spotlightDayData.tasks.map((task, idx) => {
-                  return (
-                    <div
-                      key={task.id}
-                      onClick={() => toggleWeeklyTask(task.id)}
-                      className={`group p-3.5 rounded-[8px] border transition-all cursor-pointer select-none flex items-center justify-between gap-4 ${
-                        task.isCompleted
-                          ? 'bg-[#F9FAFB] border-[#CBD5E1]'
-                          : 'bg-[#FFFFFF] border-[#E2E8F0] hover:border-[#18181B] hover:bg-[#FAFAFA]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                        {/* Checkbox */}
-                        <div
-                          className={`w-5 h-5 rounded-[4px] border flex-shrink-0 flex items-center justify-center transition-colors ${
-                            task.isCompleted
-                              ? 'bg-[#18181B] border-[#18181B] text-white'
-                              : 'bg-white border-[#18181B] group-hover:border-black'
-                          }`}
-                        >
-                          {task.isCompleted && <Check size={13} className="stroke-[3]" />}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-[14px] font-ui leading-tight ${
-                            task.isCompleted
-                              ? 'line-through text-[#71717A]'
-                              : 'text-[#18181B] font-medium'
-                          }`}>
-                            {idx + 1}. {task.title}
-                          </p>
-
-                          <div className="flex items-center gap-2 mt-1.5 text-[10.5px]">
-                            <span className={`font-num font-bold px-2 py-0.5 rounded uppercase ${
-                              task.priority === 'High'
-                                ? 'bg-rose-50 text-[#E11D48] border border-rose-200'
-                                : task.priority === 'Med'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-[#F1F5F9] text-[#71717A]'
-                            }`}>
-                              {task.priority} Priority
-                            </span>
-
-                            <span className="font-ui px-2 py-0.5 rounded bg-[#F1F5F9] text-[#71717A]">
-                              {task.category}
-                            </span>
-
-                            <span className="font-num text-[#71717A] flex items-center gap-1">
-                              <Clock size={11} />
-                              {task.timeEstimate || '45m'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Exp Badge & Action */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-2.5 py-1 rounded-[5px]">
-                          +{task.expReward} EXP
-                        </span>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteWeeklyTask(task.id);
-                          }}
-                          className="text-[#A1A1AA] hover:text-[#E11D48] p-1 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {spotlightDayData.tasks.length === 0 && (
-                  <div className="py-12 text-center text-[#71717A] font-ui text-[13px]">
-                    No tasks scheduled for {spotlightDayData.name}. Click "Add Task for Today" to plan.
-                  </div>
-                )}
-              </div>
+              {/* AgentPlanning Timeline Component */}
+              {spotlightSteps.length > 0 ? (
+                <AgentPlanning 
+                  title={`${spotlightDayData.name} Execution Architecture`}
+                  subtitle={`Target: ${spotlightDayData.total} items scheduled • ${spotlightDayData.done} resolved`}
+                  steps={spotlightSteps}
+                  isCollapsible={false}
+                  defaultExpanded={true}
+                  onAddStep={() => setActiveDayModal(spotlightDayData.index)}
+                />
+              ) : (
+                <div className="py-12 text-center text-[#71717A] font-ui text-[13px] border border-dashed border-[#E2E8F0] rounded-[10px] bg-[#F9FAFB]/50">
+                  <Calendar size={20} className="text-[#CBD5E1] mx-auto mb-2" />
+                  <p className="font-medium text-[#18181B]">No tasks scheduled for {spotlightDayData.name}</p>
+                  <p className="text-[11px] text-[#71717A] mt-0.5">Click "Add Task for Today" to construct this day's execution timeline.</p>
+                </div>
+              )}
 
             </div>
           </div>
@@ -793,7 +912,22 @@ export const WeeklyPlannerView: React.FC = () => {
       )}
 
       {/* ========================================================
-          VIEW MODE 3: AGENDA LIST VIEW
+          VIEW MODE 3: AI STRATEGIC SPRINT PROTOCOL
+          ======================================================== */}
+      {activeViewMode === 'ai-plan' && (
+        <section className="space-y-6">
+          <AgentPlanning 
+            title="Sprint Week Strategic Execution Protocol"
+            subtitle={`AI synthesized execution plan for sprint week ${sprintWeek.sprintWeekRangeStr}`}
+            steps={aiSprintPlanSteps}
+            isCollapsible={false}
+            defaultExpanded={true}
+          />
+        </section>
+      )}
+
+      {/* ========================================================
+          VIEW MODE 4: AGENDA LIST VIEW
           ======================================================== */}
       {activeViewMode === 'agenda' && (
         <section className="mplt-card bg-[#FFFFFF] border border-[#E2E8F0] p-6 space-y-4">

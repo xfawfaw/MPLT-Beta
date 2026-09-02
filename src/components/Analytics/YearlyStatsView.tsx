@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useApp, getUserRankTitle } from '../../context/AppContext';
 import { 
   Trophy, 
@@ -17,17 +17,89 @@ import {
   Award, 
   Zap, 
   Download, 
-  PieChart,
-  BarChart2,
-  Clock,
-  Compass,
-  CalendarCheck2,
-  CheckSquare
+  BarChart2, 
+  Clock, 
+  Compass, 
+  CalendarCheck2, 
+  CheckSquare,
+  PieChart
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
 import { ExpandableTabs } from '../ui/expandable-tabs';
+
+// Static Month Headers across 52 weeks
+const MONTH_HEADERS = [
+  { name: 'Jan', weekStart: 0, weekEnd: 4, weekSpan: 4 },
+  { name: 'Feb', weekStart: 4, weekEnd: 8, weekSpan: 4 },
+  { name: 'Mar', weekStart: 8, weekEnd: 13, weekSpan: 5 },
+  { name: 'Apr', weekStart: 13, weekEnd: 17, weekSpan: 4 },
+  { name: 'May', weekStart: 17, weekEnd: 21, weekSpan: 4 },
+  { name: 'Jun', weekStart: 21, weekEnd: 26, weekSpan: 5 },
+  { name: 'Jul', weekStart: 26, weekEnd: 30, weekSpan: 4 },
+  { name: 'Aug', weekStart: 30, weekEnd: 34, weekSpan: 4 },
+  { name: 'Sep', weekStart: 34, weekEnd: 39, weekSpan: 5 },
+  { name: 'Oct', weekStart: 39, weekEnd: 43, weekSpan: 4 },
+  { name: 'Nov', weekStart: 43, weekEnd: 47, weekSpan: 4 },
+  { name: 'Dec', weekStart: 47, weekEnd: 52, weekSpan: 5 },
+] as const;
+
+const DAYS_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+const formatIDR = (num: number) => `Rp ${Math.round(num).toLocaleString('id-ID')}`;
+
+type HeatmapMode = 'habits' | 'tasks' | 'exp' | 'finance';
+
+interface DayCell {
+  dayOfYear: number;
+  dateStr: string;
+  monthIdx: number;
+  dateNum: number;
+  dayOfWeek: number;
+  weekIdx: number;
+  habitPct: number;
+  tasksDone: number;
+  dayExp: number;
+  dayOutflow: number;
+}
+
+// Fast cell styling based on metric tier
+const getCellStyles = (mode: HeatmapMode, cell: DayCell): string => {
+  if (mode === 'habits') {
+    const pct = cell.habitPct;
+    if (pct >= 90) return 'bg-[#18181B] border-[#09090B] text-white';
+    if (pct >= 75) return 'bg-[#10B981] border-[#059669] text-white';
+    if (pct >= 50) return 'bg-[#6EE7B7] border-[#34D399] text-[#065F46]';
+    if (pct >= 25) return 'bg-[#D1FAE5] border-[#A7F3D0] text-[#065F46]';
+    return 'bg-[#FFFFFF] border-[#CBD5E1] text-[#94A3B8]';
+  }
+  if (mode === 'tasks') {
+    if (cell.tasksDone >= 5) return 'bg-[#18181B] border-[#09090B]';
+    if (cell.tasksDone >= 3) return 'bg-[#0284C7] border-[#0369A1]';
+    if (cell.tasksDone >= 1) return 'bg-[#BAE6FD] border-[#7DD3FC]';
+    return 'bg-[#FFFFFF] border-[#CBD5E1]';
+  }
+  if (mode === 'exp') {
+    if (cell.dayExp >= 150) return 'bg-[#F59E0B] border-[#D97706]';
+    if (cell.dayExp >= 75) return 'bg-[#FCD34D] border-[#FBBF24]';
+    if (cell.dayExp > 0) return 'bg-[#FEF3C7] border-[#FDE68A]';
+    return 'bg-[#FFFFFF] border-[#CBD5E1]';
+  }
+  // Finance mode
+  if (cell.dayOutflow > 500000) return 'bg-[#E11D48] border-[#BE123C]';
+  if (cell.dayOutflow > 100000) return 'bg-[#FDA4AF] border-[#FB7185]';
+  if (cell.dayOutflow > 0) return 'bg-[#FFE4E6] border-[#FECDD3]';
+  return 'bg-[#FFFFFF] border-[#CBD5E1]';
+};
+
+const getCellDisplayInfo = (mode: HeatmapMode, cell: DayCell) => {
+  if (mode === 'habits') return { value: `${cell.habitPct}%` };
+  if (mode === 'tasks') return { value: `${cell.tasksDone} tasks` };
+  if (mode === 'exp') return { value: `+${cell.dayExp} EXP` };
+  return { value: formatIDR(cell.dayOutflow) };
+};
 
 export const YearlyStatsView: React.FC = () => {
   const { profile, habits, tasks, goals, weeklyTasks, transactions, addExp } = useApp();
@@ -35,56 +107,42 @@ export const YearlyStatsView: React.FC = () => {
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
   
   // Heatmap Pivot Mode: 'habits' | 'tasks' | 'exp' | 'finance'
-  const [heatmapMode, setHeatmapMode] = useState<'habits' | 'tasks' | 'exp' | 'finance'>('habits');
+  const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('habits');
 
-  const [hoveredCell, setHoveredCell] = useState<{
-    dateStr: string;
-    dayOfYear: number;
-    weekIdx: number;
-    value: number;
-    unit: string;
-    tasksDone: number;
-    exp: number;
-  } | null>(null);
-
+  const [hoveredCell, setHoveredCell] = useState<DayCell | null>(null);
   const [hoveredWeek, setHoveredWeek] = useState<number | null>(null);
-
-  // Month names and week starts mapping (52 weeks across 12 months)
-  const monthHeaders = [
-    { name: 'Jan', weekStart: 0, weekEnd: 4 },
-    { name: 'Feb', weekStart: 4, weekEnd: 8 },
-    { name: 'Mar', weekStart: 8, weekEnd: 13 },
-    { name: 'Apr', weekStart: 13, weekEnd: 17 },
-    { name: 'May', weekStart: 17, weekEnd: 21 },
-    { name: 'Jun', weekStart: 21, weekEnd: 26 },
-    { name: 'Jul', weekStart: 26, weekEnd: 30 },
-    { name: 'Aug', weekStart: 30, weekEnd: 34 },
-    { name: 'Sep', weekStart: 34, weekEnd: 39 },
-    { name: 'Oct', weekStart: 39, weekEnd: 43 },
-    { name: 'Nov', weekStart: 43, weekEnd: 47 },
-    { name: 'Dec', weekStart: 47, weekEnd: 52 },
-  ];
-
-  // Currency format helper
-  const formatIDR = (num: number) => {
-    return `Rp ${Math.round(num).toLocaleString('id-ID')}`;
-  };
 
   // Completed Tasks Count
   const completedTasksCount = useMemo(() => {
     return tasks.filter(t => t.status === 'Completed').length + weeklyTasks.filter(t => t.isCompleted).length;
   }, [tasks, weeklyTasks]);
 
-  // Generate 365 Days Grid Data (52 weeks x 7 days) tied to multi-metric state
-  const heatmapData = useMemo(() => {
-    const days = [];
-    const startDate = new Date(today.year, 0, 1);
-    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // Pre-indexed transactions by "YYYY-M-D" for O(1) matching
+  const txExpenseMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const tx of transactions) {
+      if (tx.type === 'expense') {
+        const d = new Date(tx.date);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        map.set(key, (map.get(key) || 0) + tx.amount);
+      }
+    }
+    return map;
+  }, [transactions]);
 
-    for (let dayIdx = 0; dayIdx < 364; dayIdx++) { // 52 full weeks = 364 days
+  // Base 364 Days Grid & Pre-indexed Matrices (Single O(N) pass)
+  const { cellsByDayOfWeek, cellsByWeek } = useMemo(() => {
+    const days: DayCell[] = [];
+    const byDayOfWeek: DayCell[][] = Array.from({ length: 7 }, () => []);
+    const byWeek: DayCell[][] = Array.from({ length: 52 }, () => []);
+
+    const startDate = new Date(today.year, 0, 1);
+    const totalHabits = habits.length;
+
+    for (let dayIdx = 0; dayIdx < 364; dayIdx++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + dayIdx);
-      
+
       const monthIdx = currentDate.getMonth();
       const dateNum = currentDate.getDate();
       const dayOfWeek = (currentDate.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
@@ -93,48 +151,21 @@ export const YearlyStatsView: React.FC = () => {
       let habitPct = 0;
       let tasksDone = 0;
       let dayExp = 0;
-      let dayOutflow = 0;
 
-      // Authentic habit logs for current tracking
-      if (monthIdx === today.monthIndex && habits.length > 0) {
+      if (monthIdx === today.monthIndex && totalHabits > 0) {
         const doneHabits = habits.filter(h => !!h.logs[dateNum]);
         if (doneHabits.length > 0) {
-          habitPct = Math.round((doneHabits.length / habits.length) * 100);
+          habitPct = Math.round((doneHabits.length / totalHabits) * 100);
           tasksDone = doneHabits.length;
           dayExp = doneHabits.reduce((acc, h) => acc + h.expReward, 0);
         }
       }
 
-      // Authentic transaction dates if matching
-      const matchingTxs = transactions.filter(t => {
-        const txDate = new Date(t.date);
-        return txDate.getFullYear() === today.year && txDate.getMonth() === monthIdx && txDate.getDate() === dateNum;
-      });
-      if (matchingTxs.length > 0) {
-        dayOutflow = matchingTxs.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-      }
+      const txKey = `${today.year}-${monthIdx}-${dateNum}`;
+      const dayOutflow = txExpenseMap.get(txKey) || 0;
+      const dateStr = `${dateNum} ${MONTHS_SHORT[monthIdx]} ${today.year}`;
 
-      // Format date string
-      const dateStr = `${dateNum} ${monthsShort[monthIdx]} ${today.year}`;
-
-      // Calculate active display value based on heatmapMode
-      let displayValue = 0;
-      let unit = '%';
-      if (heatmapMode === 'habits') {
-        displayValue = habitPct;
-        unit = '%';
-      } else if (heatmapMode === 'tasks') {
-        displayValue = tasksDone;
-        unit = ' tasks';
-      } else if (heatmapMode === 'exp') {
-        displayValue = dayExp;
-        unit = ' EXP';
-      } else if (heatmapMode === 'finance') {
-        displayValue = dayOutflow;
-        unit = ' IDR';
-      }
-
-      days.push({
+      const cell: DayCell = {
         dayOfYear: dayIdx + 1,
         dateStr,
         monthIdx,
@@ -144,20 +175,23 @@ export const YearlyStatsView: React.FC = () => {
         habitPct,
         tasksDone,
         dayExp,
-        exp: dayExp,
         dayOutflow,
-        value: displayValue,
-        unit,
-      });
+      };
+
+      days.push(cell);
+      byDayOfWeek[dayOfWeek].push(cell);
+      if (weekIdx < 52) {
+        byWeek[weekIdx].push(cell);
+      }
     }
-    return days;
-  }, [habits, transactions, today, heatmapMode]);
+
+    return { allDays: days, cellsByDayOfWeek: byDayOfWeek, cellsByWeek: byWeek };
+  }, [habits, txExpenseMap, today]);
 
   // Day-of-Week Operational Rhythm (Mon-Sun Efficiency Profile)
   const dayOfWeekRhythm = useMemo(() => {
-    const daysLabel = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return daysLabel.map((label, idx) => {
-      const matchingCells = heatmapData.filter(d => d.dayOfWeek === idx && d.monthIdx === today.monthIndex);
+    return DAYS_LABELS.map((label, idx) => {
+      const matchingCells = cellsByDayOfWeek[idx].filter(d => d.monthIdx === today.monthIndex);
       const avgScore = matchingCells.length > 0
         ? Math.round(matchingCells.reduce((acc, d) => acc + d.habitPct, 0) / matchingCells.length)
         : 0;
@@ -172,7 +206,7 @@ export const YearlyStatsView: React.FC = () => {
         totalTasks,
       };
     });
-  }, [heatmapData, today.monthIndex]);
+  }, [cellsByDayOfWeek, today.monthIndex]);
 
   const peakDay = useMemo(() => {
     return [...dayOfWeekRhythm].sort((a, b) => b.avgScore - a.avgScore)[0] || dayOfWeekRhythm[1];
@@ -180,9 +214,7 @@ export const YearlyStatsView: React.FC = () => {
 
   // 52-Week Granular Trajectory Curve with 4-Week Simple Moving Average (SMA)
   const weeklyTrajectoryData = useMemo(() => {
-    const rawWeeks = [];
-    for (let w = 0; w < 52; w++) {
-      const weekDays = heatmapData.filter(d => d.weekIdx === w);
+    const rawWeeks = cellsByWeek.map((weekDays, w) => {
       const avgConsistency = weekDays.length > 0
         ? Math.round(weekDays.reduce((acc, d) => acc + d.habitPct, 0) / weekDays.length)
         : 0;
@@ -194,17 +226,19 @@ export const YearlyStatsView: React.FC = () => {
 
       const firstDay = weekDays[0];
       const lastDay = weekDays[weekDays.length - 1];
-      const rangeLabel = firstDay && lastDay ? `${firstDay.dateStr.split(' ')[0]} ${firstDay.dateStr.split(' ')[1]} — ${lastDay.dateStr.split(' ')[0]} ${lastDay.dateStr.split(' ')[1]}` : `Week ${weekNumber}`;
+      const rangeLabel = firstDay && lastDay
+        ? `${firstDay.dateStr.split(' ')[0]} ${firstDay.dateStr.split(' ')[1]} — ${lastDay.dateStr.split(' ')[0]} ${lastDay.dateStr.split(' ')[1]}`
+        : `Week ${weekNumber}`;
 
-      rawWeeks.push({
+      return {
         weekNumber,
         quarter,
         consistency: avgConsistency,
         tasks: totalTasks,
         exp: totalExp,
         rangeLabel,
-      });
-    }
+      };
+    });
 
     // Add 4-Week Rolling Moving Average
     return rawWeeks.map((week, idx, arr) => {
@@ -216,7 +250,7 @@ export const YearlyStatsView: React.FC = () => {
         sma,
       };
     });
-  }, [heatmapData]);
+  }, [cellsByWeek]);
 
   // 6-Domain Life Balance Authentic Scores
   const domainScores = useMemo(() => {
@@ -321,8 +355,7 @@ export const YearlyStatsView: React.FC = () => {
     const annualSavingsRate = totalIncome > 0 ? Math.round((annualRetainedCapital / totalIncome) * 100) : 0;
 
     // 12-Month distribution
-    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyBreakdown = monthsShort.map((m, idx) => {
+    const monthlyBreakdown = MONTHS_SHORT.map((m, idx) => {
       const monthTxs = transactions.filter(t => new Date(t.date).getMonth() === idx);
       const inc = monthTxs.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
       const exp = monthTxs.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
@@ -348,6 +381,15 @@ export const YearlyStatsView: React.FC = () => {
 
   // 4-Quarter Benchmark Matrix
   const quarterlyBenchmarks = useMemo(() => {
+    const strategyTitles: Record<string, string> = {
+      'Q1': 'Launch & Foundation',
+      'Q2': 'Acceleration & Traction',
+      'Q3': 'Mastery & Expansion',
+      'Q4': 'Harvest & Compounding',
+    };
+
+    const currentQuarter = today.monthIndex < 3 ? 'Q1' : today.monthIndex < 6 ? 'Q2' : today.monthIndex < 9 ? 'Q3' : 'Q4';
+
     return (['Q1', 'Q2', 'Q3', 'Q4'] as const).map(q => {
       const qNum = q === 'Q1' ? 1 : q === 'Q2' ? 2 : q === 'Q3' ? 3 : 4;
       const quarterWeeks = weeklyTrajectoryData.filter(w => w.quarter === q);
@@ -360,15 +402,8 @@ export const YearlyStatsView: React.FC = () => {
       const quarterGoals = goals.filter(g => g.quarterTarget === q);
       const completedGoals = quarterGoals.filter(g => g.status === 'Achieved').length;
 
-      const currentQuarter = today.monthIndex < 3 ? 'Q1' : today.monthIndex < 6 ? 'Q2' : today.monthIndex < 9 ? 'Q3' : 'Q4';
-      const status = q === currentQuarter ? 'In Progress' : qNum < (currentQuarter === 'Q1' ? 1 : currentQuarter === 'Q2' ? 2 : currentQuarter === 'Q3' ? 3 : 4) ? 'Completed' : 'Scheduled';
-
-      const strategyTitles: Record<string, string> = {
-        'Q1': 'Launch & Foundation',
-        'Q2': 'Acceleration & Traction',
-        'Q3': 'Mastery & Expansion',
-        'Q4': 'Harvest & Compounding',
-      };
+      const currentQNum = currentQuarter === 'Q1' ? 1 : currentQuarter === 'Q2' ? 2 : currentQuarter === 'Q3' ? 3 : 4;
+      const status = q === currentQuarter ? 'In Progress' : qNum < currentQNum ? 'Completed' : 'Scheduled';
 
       return {
         quarter: q,
@@ -457,34 +492,7 @@ export const YearlyStatsView: React.FC = () => {
     return { points, linePath, smaLinePath, areaPath, width, height, paddingLeft, paddingRight, paddingTop, paddingBottom, plotHeight, plotWidth };
   }, [weeklyTrajectoryData]);
 
-  // Cell Styles based on active Heatmap mode
-  const getCellStyles = (cell: typeof heatmapData[0]) => {
-    if (heatmapMode === 'habits') {
-      const pct = cell.habitPct;
-      if (pct >= 90) return 'bg-[#18181B] border-[#09090B] text-white';
-      if (pct >= 75) return 'bg-[#10B981] border-[#059669] text-white';
-      if (pct >= 50) return 'bg-[#6EE7B7] border-[#34D399] text-[#065F46]';
-      if (pct >= 25) return 'bg-[#D1FAE5] border-[#A7F3D0] text-[#065F46]';
-      return 'bg-[#FFFFFF] border-[#CBD5E1] text-[#94A3B8]';
-    } else if (heatmapMode === 'tasks') {
-      if (cell.tasksDone >= 5) return 'bg-[#18181B] border-[#09090B]';
-      if (cell.tasksDone >= 3) return 'bg-[#0284C7] border-[#0369A1]';
-      if (cell.tasksDone >= 1) return 'bg-[#BAE6FD] border-[#7DD3FC]';
-      return 'bg-[#FFFFFF] border-[#CBD5E1]';
-    } else if (heatmapMode === 'exp') {
-      if (cell.dayExp >= 150) return 'bg-[#F59E0B] border-[#D97706]';
-      if (cell.dayExp >= 75) return 'bg-[#FCD34D] border-[#FBBF24]';
-      if (cell.dayExp > 0) return 'bg-[#FEF3C7] border-[#FDE68A]';
-      return 'bg-[#FFFFFF] border-[#CBD5E1]';
-    } else {
-      if (cell.dayOutflow > 500000) return 'bg-[#E11D48] border-[#BE123C]';
-      if (cell.dayOutflow > 100000) return 'bg-[#FDA4AF] border-[#FB7185]';
-      if (cell.dayOutflow > 0) return 'bg-[#FFE4E6] border-[#FECDD3]';
-      return 'bg-[#FFFFFF] border-[#CBD5E1]';
-    }
-  };
-
-  const handleExportAudit = () => {
+  const handleExportAudit = useCallback(() => {
     sound.playPop();
     addExp(25, 'Exported Annual 2026 Audit Report');
     const data = {
@@ -506,7 +514,7 @@ export const YearlyStatsView: React.FC = () => {
     a.download = `MPLT_ZERO_${today.year}_ANNUAL_AUDIT_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, [addExp, annualFinance, domainScores, goals.length, habits.length, profile, quarterlyBenchmarks, tasks.length, today.year, transactions.length]);
 
   const activeHoveredWeek = hoveredWeek !== null ? weeklyTrajectoryData[hoveredWeek] : null;
 
@@ -663,7 +671,7 @@ export const YearlyStatsView: React.FC = () => {
                   className="grid gap-[3px] sm:gap-[3.5px] flex-1"
                   style={{ gridTemplateColumns: 'repeat(52, minmax(0, 1fr))' }}
                 >
-                  {monthHeaders.map(m => {
+                  {MONTH_HEADERS.map(m => {
                     const span = m.weekEnd - m.weekStart;
                     return (
                       <div 
@@ -678,16 +686,16 @@ export const YearlyStatsView: React.FC = () => {
                 </div>
               </div>
 
-              {/* 7 Rows (Mon to Sun) with Perfectly Aligned 52 Columns */}
+              {/* 7 Rows (Mon to Sun) with Perfectly Aligned 52 Columns - O(1) direct access */}
               {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => {
-                const dayCells = heatmapData.filter(d => d.dayOfWeek === dayOfWeek);
+                const dayCells = cellsByDayOfWeek[dayOfWeek];
 
                 return (
                   <div key={dayOfWeek} className="flex items-center">
                     
                     {/* Row Day Label */}
                     <span className="w-8 flex-shrink-0 text-[9.5px] font-ui font-bold text-[#71717A] text-right pr-2">
-                      {dayOfWeek === 0 ? 'Mon' : dayOfWeek === 1 ? 'Tue' : dayOfWeek === 2 ? 'Wed' : dayOfWeek === 3 ? 'Thu' : dayOfWeek === 4 ? 'Fri' : dayOfWeek === 5 ? 'Sat' : 'Sun'}
+                      {DAYS_LABELS[dayOfWeek]}
                     </span>
 
                     {/* 52 Cells across row matching Month Columns Grid */}
@@ -696,21 +704,13 @@ export const YearlyStatsView: React.FC = () => {
                       style={{ gridTemplateColumns: 'repeat(52, minmax(0, 1fr))' }}
                     >
                       {dayCells.map(cell => {
-                        const styleClasses = getCellStyles(cell);
+                        const styleClasses = getCellStyles(heatmapMode, cell);
                         const isHovered = hoveredCell?.dayOfYear === cell.dayOfYear;
 
                         return (
                           <div
                             key={cell.dayOfYear}
-                            onMouseEnter={() => setHoveredCell({
-                              dateStr: cell.dateStr,
-                              dayOfYear: cell.dayOfYear,
-                              weekIdx: cell.weekIdx,
-                              value: cell.value,
-                              unit: cell.unit,
-                              tasksDone: cell.tasksDone,
-                              exp: cell.dayExp,
-                            })}
+                            onMouseEnter={() => setHoveredCell(cell)}
                             onMouseLeave={() => setHoveredCell(null)}
                             className={`aspect-square w-full rounded-[2.5px] sm:rounded-[3px] border transition-all cursor-pointer ${styleClasses} ${
                               isHovered 
@@ -738,10 +738,10 @@ export const YearlyStatsView: React.FC = () => {
                     </span>
                     <span className="font-bold">{hoveredCell.dateStr}:</span>
                     <span className="text-[#10B981] font-bold">
-                      {heatmapMode === 'finance' ? formatIDR(hoveredCell.value) : `${hoveredCell.value}${hoveredCell.unit}`}
+                      {getCellDisplayInfo(heatmapMode, hoveredCell).value}
                     </span>
                     <span className="text-[#71717A] text-[10px]">
-                      ({hoveredCell.tasksDone} tasks done, +{hoveredCell.exp} EXP generated)
+                      ({hoveredCell.tasksDone} tasks done, +{hoveredCell.dayExp} EXP generated)
                     </span>
                   </div>
                 ) : (
