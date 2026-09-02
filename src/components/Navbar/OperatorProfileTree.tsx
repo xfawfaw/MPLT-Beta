@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp, getUserRankTitle } from '../../context/AppContext';
 import { 
   User, 
@@ -11,9 +11,13 @@ import {
   X, 
   Shield, 
   Activity, 
-  Layers,
-  Terminal,
-  Users
+  Layers, 
+  Terminal, 
+  Users, 
+  Lock, 
+  LogOut, 
+  KeyRound, 
+  ArrowRight 
 } from 'lucide-react';
 import { 
   TreeView, 
@@ -21,7 +25,7 @@ import {
   TreeFolder, 
   TreeItem 
 } from '@/components/ui/animated-file-tree';
-import { OPERATOR_LIST } from '../../types';
+import { OPERATOR_LIST, OperatorMeta, verifyOperatorPin } from '../../types';
 import { sound } from '../../utils/sound';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -56,6 +60,10 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
     updateProfile 
   } = useApp();
 
+  const [targetSwitchOp, setTargetSwitchOp] = useState<OperatorMeta | null>(null);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+
   const rankTitle = getUserRankTitle(profile.level);
   const expPercentage = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
 
@@ -69,6 +77,39 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
   const handleSelectGlyph = (avatarId: string) => {
     updateProfile({ avatarSeed: avatarId, avatarUrl: undefined });
     sound.playPop();
+  };
+
+  const handleOperatorClick = (op: OperatorMeta) => {
+    if (op.id === activeOperatorId) return;
+    setTargetSwitchOp(op);
+    setPinInput('');
+    setPinError('');
+    sound.playClick();
+  };
+
+  const handleVerifySwitch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetSwitchOp) return;
+
+    if (verifyOperatorPin(targetSwitchOp.id, pinInput)) {
+      sound.playLevelUp();
+      switchOperator(targetSwitchOp.id);
+      localStorage.setItem('mplt_authenticated_operator', targetSwitchOp.id);
+      setTargetSwitchOp(null);
+      setPinInput('');
+      setPinError('');
+      onClose();
+    } else {
+      sound.playClick();
+      setPinError(`Incorrect PIN for ${targetSwitchOp.label}`);
+    }
+  };
+
+  const handleLockWorkstation = () => {
+    sound.playClick();
+    localStorage.removeItem('mplt_passcode_auth');
+    localStorage.removeItem('mplt_authenticated_operator');
+    window.location.reload();
   };
 
   return (
@@ -198,11 +239,8 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                         id={`op-switch-${op.id}`}
                         label={op.label}
                         icon={op.isDev ? Terminal : Users}
-                        badge={isActive ? '● ACTIVE' : op.badge}
-                        onClick={() => {
-                          switchOperator(op.id);
-                          onClose();
-                        }}
+                        badge={isActive ? '● ACTIVE' : `${op.badge} • 🔒`}
+                        onClick={() => handleOperatorClick(op)}
                       />
                     );
                   })}
@@ -282,15 +320,75 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
               </TreeView>
             </div>
 
-            {/* Footer */}
+            {/* Target Operator PIN Verification Modal (Inline) */}
+            <AnimatePresence>
+              {targetSwitchOp && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="p-3 bg-[#F9FAFB] border border-[#CBD5E1] rounded-[10px] space-y-2.5 shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Lock size={13} className="text-[#10B981]" />
+                      <span className="text-[11px] font-bold text-[#18181B] font-ui">
+                        Unlock {targetSwitchOp.label}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTargetSwitchOp(null)}
+                      className="text-[#71717A] hover:text-[#18181B] p-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleVerifySwitch} className="space-y-2">
+                    <input
+                      type="password"
+                      autoFocus
+                      maxLength={10}
+                      placeholder={`PIN (e.g. ${targetSwitchOp.defaultPin})`}
+                      value={pinInput}
+                      onChange={(e) => setPinInput(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-[12px] font-num font-bold rounded-[6px] border border-[#CBD5E1] bg-white text-center tracking-[3px] focus:outline-none focus:border-[#18181B]"
+                    />
+                    {pinError && (
+                      <p className="text-[10px] text-[#E11D48] font-ui text-center font-medium">
+                        {pinError}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      className="w-full py-1.5 px-3 rounded-[6px] bg-[#18181B] text-white text-[11px] font-bold font-ui flex items-center justify-center gap-1.5 hover:bg-[#27272A] cursor-pointer"
+                    >
+                      <KeyRound size={12} />
+                      <span>Unlock & Switch</span>
+                      <ArrowRight size={12} />
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Footer & Lock Button */}
             <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[10px] text-[#71717A] font-ui">
               <span className="flex items-center gap-1.5">
                 <Shield size={11} className="text-[#10B981]" />
-                Sovereign Operator
+                <span>{profile.callsign || 'Sovereign Operator'}</span>
               </span>
-              <span className="font-num text-[#18181B] font-semibold">
-                {profile.joinedDate || '2026.09'}
-              </span>
+
+              <button
+                type="button"
+                onClick={handleLockWorkstation}
+                className="flex items-center gap-1 px-2 py-1 rounded-[4px] text-rose-600 hover:bg-rose-50 font-bold transition-colors cursor-pointer"
+                title="Lock Workstation & Sign Out"
+              >
+                <LogOut size={11} />
+                <span>Lock</span>
+              </button>
             </div>
           </motion.div>
         </>

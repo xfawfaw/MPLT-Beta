@@ -15,15 +15,79 @@ export interface OperatorMeta {
   defaultCallsign: string;
   badge: string;
   isDev?: boolean;
+  defaultPin: string;
+  validPins: string[];
 }
 
 export const OPERATOR_LIST: OperatorMeta[] = [
-  { id: 'dev', label: 'Developer Mode', role: 'System Architect & God Access', defaultCallsign: 'Dev Architect', badge: 'DEV', isDev: true },
-  { id: 'user-1', label: 'User 1', role: 'Primary Sovereign Operator', defaultCallsign: 'Operator 01', badge: 'U1' },
-  { id: 'user-2', label: 'User 2', role: 'Tactical Operator', defaultCallsign: 'Operator 02', badge: 'U2' },
-  { id: 'user-3', label: 'User 3', role: 'Tactical Operator', defaultCallsign: 'Operator 03', badge: 'U3' },
-  { id: 'user-4', label: 'User 4', role: 'Tactical Operator', defaultCallsign: 'Operator 04', badge: 'U4' },
+  { 
+    id: 'dev', 
+    label: 'Developer Mode', 
+    role: 'System Architect & God Access', 
+    defaultCallsign: 'Dev Architect', 
+    badge: 'DEV', 
+    isDev: true,
+    defaultPin: '7777',
+    validPins: ['7777', '2026', 'admin', 'dev']
+  },
+  { 
+    id: 'user-1', 
+    label: 'User 1', 
+    role: 'Primary Sovereign Operator', 
+    defaultCallsign: 'Operator 01', 
+    badge: 'U1',
+    defaultPin: '1001',
+    validPins: ['1001', '1111', 'user1']
+  },
+  { 
+    id: 'user-2', 
+    label: 'User 2', 
+    role: 'Tactical Operator 02', 
+    defaultCallsign: 'Operator 02', 
+    badge: 'U2',
+    defaultPin: '1002',
+    validPins: ['1002', '2222', 'user2']
+  },
+  { 
+    id: 'user-3', 
+    label: 'User 3', 
+    role: 'Tactical Operator 03', 
+    defaultCallsign: 'Operator 03', 
+    badge: 'U3',
+    defaultPin: '1003',
+    validPins: ['1003', '3333', 'user3']
+  },
+  { 
+    id: 'user-4', 
+    label: 'User 4', 
+    role: 'Tactical Operator 04', 
+    defaultCallsign: 'Operator 04', 
+    badge: 'U4',
+    defaultPin: '1004',
+    validPins: ['1004', '4444', 'user4']
+  },
 ];
+
+export const verifyOperatorPin = (opId: OperatorId, enteredPin: string): boolean => {
+  const clean = enteredPin.trim().toLowerCase();
+  const customPin = localStorage.getItem(`mplt_pin_${opId}`);
+  if (customPin && customPin.toLowerCase() === clean) return true;
+  const op = OPERATOR_LIST.find(o => o.id === opId);
+  if (!op) return false;
+  return op.validPins.map(p => p.toLowerCase()).includes(clean) || op.defaultPin.toLowerCase() === clean;
+};
+
+export const findOperatorByPin = (enteredPin: string): OperatorMeta | null => {
+  const clean = enteredPin.trim().toLowerCase();
+  for (const op of OPERATOR_LIST) {
+    const customPin = localStorage.getItem(`mplt_pin_${op.id}`);
+    if (customPin && customPin.toLowerCase() === clean) return op;
+    if (op.validPins.map(p => p.toLowerCase()).includes(clean) || op.defaultPin.toLowerCase() === clean) {
+      return op;
+    }
+  }
+  return null;
+};
 
 export interface UserProfile {
   operatorId?: OperatorId;

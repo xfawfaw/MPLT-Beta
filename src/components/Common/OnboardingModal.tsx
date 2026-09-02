@@ -38,7 +38,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
     'h-run', 'h-deep', 'h-food', 'h-finance'
   ]);
 
-  const [monthlyIncome, setMonthlyIncome] = useState<number>(15000000);
+  const [monthlyIncome, setMonthlyIncome] = useState<number>(0);
   const [budgetPreset, setBudgetPreset] = useState<'50/30/20' | '60/20/20' | '80/20'>('50/30/20');
 
   const toggleHabitSelection = (id: string) => {
@@ -48,7 +48,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
     );
   };
 
-  const handleFinish = () => {
+  const handleFinish = (isSkipped = false) => {
     sound.playLevelUp();
     
     // Trigger celebratory confetti
@@ -59,14 +59,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
       colors: ['#10B981', '#18181B', '#38BDF8', '#F59E0B']
     });
 
-    // Save income and budget config
-    if (budgetPreset === '50/30/20') {
-      setBudgetConfig(prev => ({ ...prev, incomeGoal: monthlyIncome, mode: '50/30/20', needsRatio: 50, wantsRatio: 30, savingsRatio: 20 }));
-    } else if (budgetPreset === '60/20/20') {
-      setBudgetConfig(prev => ({ ...prev, incomeGoal: monthlyIncome, mode: '60/20/20', needsRatio: 60, wantsRatio: 20, savingsRatio: 20 }));
-    } else {
-      setBudgetConfig(prev => ({ ...prev, incomeGoal: monthlyIncome, mode: '80/20', needsRatio: 80, wantsRatio: 0, savingsRatio: 20 }));
-    }
+    // Save income and budget config (0 income when skipped)
+    const finalIncome = isSkipped ? 0 : monthlyIncome;
+    setBudgetConfig(prev => ({
+      ...prev,
+      incomeGoal: finalIncome,
+      mode: budgetPreset,
+      needsRatio: budgetPreset === '50/30/20' ? 50 : budgetPreset === '60/20/20' ? 60 : 80,
+      wantsRatio: budgetPreset === '50/30/20' ? 30 : budgetPreset === '60/20/20' ? 20 : 0,
+      savingsRatio: 20,
+    }));
 
     // Award +50 Welcome EXP
     addExp(50, 'Completed Sovereign System Onboarding');
@@ -284,8 +286,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                   sound.playClick();
                   setStep((step - 1) as any);
                 } else {
-                  // Skip to finish
-                  handleFinish();
+                  // Skip to finish without nominal income
+                  handleFinish(true);
                 }
               }}
               className="text-[12px] font-medium text-[#71717A] hover:text-[#18181B] transition-colors"
