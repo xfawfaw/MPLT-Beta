@@ -349,10 +349,10 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                     <input
                       type="password"
                       autoFocus
-                      maxLength={10}
-                      placeholder={`PIN (e.g. ${targetSwitchOp.defaultPin})`}
+                      maxLength={6}
+                      placeholder="Enter 6-digit PIN"
                       value={pinInput}
-                      onChange={(e) => setPinInput(e.target.value)}
+                      onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
                       className="w-full px-2.5 py-1.5 text-[12px] font-num font-bold rounded-[6px] border border-[#CBD5E1] bg-white text-center tracking-[3px] focus:outline-none focus:border-[#18181B]"
                     />
                     {pinError && (

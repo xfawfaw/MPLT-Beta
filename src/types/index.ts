@@ -27,8 +27,8 @@ export const OPERATOR_LIST: OperatorMeta[] = [
     defaultCallsign: 'Dev Architect', 
     badge: 'DEV', 
     isDev: true,
-    defaultPin: '7777',
-    validPins: ['7777', '2026', 'admin', 'dev']
+    defaultPin: '777777',
+    validPins: ['777777']
   },
   { 
     id: 'user-1', 
@@ -36,8 +36,8 @@ export const OPERATOR_LIST: OperatorMeta[] = [
     role: 'Primary Sovereign Operator', 
     defaultCallsign: 'Operator 01', 
     badge: 'U1',
-    defaultPin: '1001',
-    validPins: ['1001', '1111', 'user1']
+    defaultPin: '439182',
+    validPins: ['439182']
   },
   { 
     id: 'user-2', 
@@ -45,8 +45,8 @@ export const OPERATOR_LIST: OperatorMeta[] = [
     role: 'Tactical Operator 02', 
     defaultCallsign: 'Operator 02', 
     badge: 'U2',
-    defaultPin: '1002',
-    validPins: ['1002', '2222', 'user2']
+    defaultPin: '581047',
+    validPins: ['581047']
   },
   { 
     id: 'user-3', 
@@ -54,8 +54,8 @@ export const OPERATOR_LIST: OperatorMeta[] = [
     role: 'Tactical Operator 03', 
     defaultCallsign: 'Operator 03', 
     badge: 'U3',
-    defaultPin: '1003',
-    validPins: ['1003', '3333', 'user3']
+    defaultPin: '726394',
+    validPins: ['726394']
   },
   { 
     id: 'user-4', 
@@ -63,8 +63,8 @@ export const OPERATOR_LIST: OperatorMeta[] = [
     role: 'Tactical Operator 04', 
     defaultCallsign: 'Operator 04', 
     badge: 'U4',
-    defaultPin: '1004',
-    validPins: ['1004', '4444', 'user4']
+    defaultPin: '903258',
+    validPins: ['903258']
   },
 ];
 
