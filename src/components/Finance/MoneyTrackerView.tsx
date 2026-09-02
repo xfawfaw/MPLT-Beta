@@ -41,7 +41,9 @@ export const MoneyTrackerView: React.FC = () => {
   };
 
   // Calculations
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0) || budget.incomeGoal;
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+  const effectiveBase = totalIncome > 0 ? totalIncome : budget.incomeGoal;
+
   const needsSpent = transactions.filter(t => t.type === 'expense' && t.bucket === 'Needs').reduce((acc, t) => acc + t.amount, 0);
   const wantsSpent = transactions.filter(t => t.type === 'expense' && t.bucket === 'Wants').reduce((acc, t) => acc + t.amount, 0);
   const savingsActual = transactions.filter(t => t.type === 'expense' && t.bucket === 'Savings').reduce((acc, t) => acc + t.amount, 0);
@@ -51,17 +53,21 @@ export const MoneyTrackerView: React.FC = () => {
   const effectiveSavingsRate = totalIncome > 0 ? Math.round((savingsActual / totalIncome) * 100) : 0;
 
   // Limits based on dynamic user ratio
-  const needsLimit = totalIncome * (budget.needsRatio / 100);
-  const wantsLimit = totalIncome * (budget.wantsRatio / 100);
-  const savingsGoal = totalIncome * (budget.savingsRatio / 100);
+  const needsLimit = effectiveBase * (budget.needsRatio / 100);
+  const wantsLimit = effectiveBase * (budget.wantsRatio / 100);
+  const savingsGoal = effectiveBase * (budget.savingsRatio / 100);
 
-  const isNeedsUnder = needsSpent <= needsLimit;
-  const isWantsUnder = wantsSpent <= wantsLimit;
-  const isSavingsMet = savingsActual >= savingsGoal;
+  const isNeedsUnder = needsLimit > 0 ? needsSpent <= needsLimit : needsSpent === 0;
+  const isWantsUnder = wantsLimit > 0 ? wantsSpent <= wantsLimit : wantsSpent === 0;
+  const isSavingsMet = savingsGoal > 0 ? savingsActual >= savingsGoal : savingsActual > 0;
+
+  const needsSpentPct = needsLimit > 0 ? Math.round((needsSpent / needsLimit) * 100) : 0;
+  const wantsSpentPct = wantsLimit > 0 ? Math.round((wantsSpent / wantsLimit) * 100) : 0;
+  const savingsGoalPct = savingsGoal > 0 ? Math.round((savingsActual / savingsGoal) * 100) : 0;
 
   // Safe daily spend calculation (dynamic based on remaining days in month)
   const remainingWantsBudget = Math.max(0, wantsLimit - wantsSpent);
-  const safeDailySpend = today.remainingDaysInMonth > 0 
+  const safeDailySpend = (today.remainingDaysInMonth > 0 && wantsLimit > 0)
     ? Math.round(remainingWantsBudget / today.remainingDaysInMonth) 
     : 0;
 
@@ -160,7 +166,7 @@ export const MoneyTrackerView: React.FC = () => {
               setShowAddModal(true);
               sound.playClick();
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-[6px] bg-[#18181B] text-white text-[12px] font-bold font-ui hover:bg-[#27272A] transition-colors self-start sm:self-auto"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-[6px] bg-[#18181B] text-white text-[12px] font-bold font-ui hover:bg-[#27272A] transition-colors self-start sm:self-auto cursor-pointer"
           >
             <Plus size={14} />
             <span>Record Transaction</span>
@@ -183,14 +189,18 @@ export const MoneyTrackerView: React.FC = () => {
             {formatIDR(totalIncome)}
           </div>
           <span className="text-[10px] text-[#71717A] font-ui block mt-1">
-            Verified Inflow Target
+            {totalIncome > 0 
+              ? 'Verified Inflow Logged' 
+              : budget.incomeGoal > 0 
+              ? `Target: ${formatIDR(budget.incomeGoal)}` 
+              : 'No Inflow Recorded'}
           </span>
         </div>
 
         {/* Metric 2: Needs Cap & Spent */}
         <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
           <div className="flex items-center justify-between text-[#71717A] text-[10.5px] font-ui uppercase tracking-wider mb-1">
-            <span>Needs (50%)</span>
+            <span>Needs ({budget.needsRatio}%)</span>
             <ShieldCheck size={13} className="text-[#18181B]" />
           </div>
           <div className="text-[17px] font-bold text-[#18181B] font-num tracking-tight">
@@ -198,14 +208,14 @@ export const MoneyTrackerView: React.FC = () => {
           </div>
           <div className="flex items-center justify-between text-[10px] font-num text-[#71717A] mt-1">
             <span>Cap: {formatIDR(needsLimit)}</span>
-            <span className="text-[#10B981] font-bold">56%</span>
+            <span className={needsSpentPct > 100 ? 'text-[#E11D48] font-bold' : 'text-[#10B981] font-bold'}>{needsSpentPct}%</span>
           </div>
         </div>
 
         {/* Metric 3: Wants Cap & Spent */}
         <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
           <div className="flex items-center justify-between text-[#71717A] text-[10.5px] font-ui uppercase tracking-wider mb-1">
-            <span>Wants (30%)</span>
+            <span>Wants ({budget.wantsRatio}%)</span>
             <CreditCard size={13} className="text-[#71717A]" />
           </div>
           <div className="text-[17px] font-bold text-[#18181B] font-num tracking-tight">
@@ -213,14 +223,14 @@ export const MoneyTrackerView: React.FC = () => {
           </div>
           <div className="flex items-center justify-between text-[10px] font-num text-[#71717A] mt-1">
             <span>Cap: {formatIDR(wantsLimit)}</span>
-            <span className="text-[#10B981] font-bold">46%</span>
+            <span className={wantsSpentPct > 100 ? 'text-[#E11D48] font-bold' : 'text-[#10B981] font-bold'}>{wantsSpentPct}%</span>
           </div>
         </div>
 
         {/* Metric 4: Savings & Investment Funded */}
         <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between">
           <div className="flex items-center justify-between text-[#71717A] text-[10.5px] font-ui uppercase tracking-wider mb-1">
-            <span>Savings (20%)</span>
+            <span>Savings ({budget.savingsRatio}%)</span>
             <TrendingUp size={13} className="text-[#10B981]" />
           </div>
           <div className="text-[17px] font-bold text-[#10B981] font-num tracking-tight">
@@ -228,7 +238,7 @@ export const MoneyTrackerView: React.FC = () => {
           </div>
           <div className="flex items-center justify-between text-[10px] font-num text-[#71717A] mt-1">
             <span>Rate: {effectiveSavingsRate}%</span>
-            <span className="text-[#10B981] font-bold">Funded</span>
+            <span className="text-[#10B981] font-bold">{savingsGoalPct}%</span>
           </div>
         </div>
 
@@ -496,8 +506,10 @@ export const MoneyTrackerView: React.FC = () => {
               <span className="text-[15px] font-bold font-num text-[#18181B]">
                 {formatIDR(totalSpent)}
               </span>
-              <span className="text-[9.5px] font-num text-[#10B981] mt-0.5 font-bold">
-                +{formatIDR(netCashFlow)} Net
+              <span className={`text-[9.5px] font-num mt-0.5 font-bold ${
+                netCashFlow > 0 ? 'text-[#10B981]' : netCashFlow < 0 ? 'text-[#E11D48]' : 'text-[#71717A]'
+              }`}>
+                {netCashFlow > 0 ? '+' : ''}{formatIDR(netCashFlow)} Net
               </span>
             </div>
           </div>

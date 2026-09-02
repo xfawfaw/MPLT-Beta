@@ -289,7 +289,7 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
               </div>
               <div className="p-2.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
                 <p className="text-[10px] font-bold text-[#71717A] uppercase font-ui">Target Inflow</p>
-                <p className="text-[16px] font-bold text-[#10B981] mt-0.5">{(budget.incomeGoal / 1000000).toFixed(1)}M</p>
+                <p className="text-[16px] font-bold text-[#10B981] mt-0.5">{budget.incomeGoal > 0 ? `${(budget.incomeGoal / 1000000).toFixed(1)}M` : '0M'}</p>
               </div>
             </div>
           </div>

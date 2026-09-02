@@ -104,17 +104,22 @@ export const MasterDashboard: React.FC = () => {
     : 0;
 
   // 4. Financial Calculations for 50/30/20
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0) || budget.incomeGoal;
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+  const effectiveBase = totalIncome > 0 ? totalIncome : budget.incomeGoal;
   const needsSpent = transactions.filter(t => t.type === 'expense' && t.bucket === 'Needs').reduce((acc, t) => acc + t.amount, 0);
   const wantsSpent = transactions.filter(t => t.type === 'expense' && t.bucket === 'Wants').reduce((acc, t) => acc + t.amount, 0);
   const savingsActual = transactions.filter(t => t.type === 'expense' && t.bucket === 'Savings').reduce((acc, t) => acc + t.amount, 0);
 
+  const needsLimit = effectiveBase * (budget.needsRatio / 100);
+  const wantsLimit = effectiveBase * (budget.wantsRatio / 100);
+  const savingsGoal = effectiveBase * (budget.savingsRatio / 100);
+
   const totalSpent = needsSpent + wantsSpent;
-  const spentPercent = totalIncome > 0 ? Math.round((totalSpent / totalIncome) * 100) : 0;
+  const spentPercent = effectiveBase > 0 ? Math.round((totalSpent / effectiveBase) * 100) : 0;
   const isUnderBudget = spentPercent <= (budget.needsRatio + budget.wantsRatio);
   const remainingDaysInMonth = today.remainingDaysInMonth;
-  const safeDailyBurn = remainingDaysInMonth > 0 
-    ? Math.max(0, Math.round(((totalIncome * (budget.wantsRatio / 100)) - wantsSpent) / remainingDaysInMonth))
+  const safeDailyBurn = (remainingDaysInMonth > 0 && wantsLimit > 0) 
+    ? Math.max(0, Math.round((wantsLimit - wantsSpent) / remainingDaysInMonth))
     : 0;
 
   // 5. Next Primary Quest Directive (Finds top uncompleted high-priority task)
@@ -1216,13 +1221,13 @@ export const MasterDashboard: React.FC = () => {
                 <div className="flex justify-between text-[11px] mb-1">
                   <span className="font-medium text-[#18181B]">Needs ({budget.needsRatio}%)</span>
                   <span className="font-num text-[#71717A]">
-                    {formatIDR(needsSpent)} / {formatIDR(totalIncome * (budget.needsRatio / 100))}
+                    {formatIDR(needsSpent)} / {formatIDR(needsLimit)}
                   </span>
                 </div>
                 <div className="w-full bg-[#E2E8F0] h-[7px] rounded-full overflow-hidden">
                   <div 
                     className="bg-[#18181B] h-full rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (needsSpent / (totalIncome * (budget.needsRatio / 100))) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (needsSpent / (needsLimit || 1)) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -1232,13 +1237,13 @@ export const MasterDashboard: React.FC = () => {
                 <div className="flex justify-between text-[11px] mb-1">
                   <span className="font-medium text-[#18181B]">Wants ({budget.wantsRatio}%)</span>
                   <span className="font-num text-[#71717A]">
-                    {formatIDR(wantsSpent)} / {formatIDR(totalIncome * (budget.wantsRatio / 100))}
+                    {formatIDR(wantsSpent)} / {formatIDR(wantsLimit)}
                   </span>
                 </div>
                 <div className="w-full bg-[#E2E8F0] h-[7px] rounded-full overflow-hidden">
                   <div 
                     className="bg-[#71717A] h-full rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (wantsSpent / (totalIncome * (budget.wantsRatio / 100))) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (wantsSpent / (wantsLimit || 1)) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -1248,13 +1253,13 @@ export const MasterDashboard: React.FC = () => {
                 <div className="flex justify-between text-[11px] mb-1">
                   <span className="font-medium text-[#18181B]">Savings ({budget.savingsRatio}%)</span>
                   <span className="font-num text-[#10B981] font-semibold">
-                    {formatIDR(savingsActual)} / {formatIDR(totalIncome * (budget.savingsRatio / 100))}
+                    {formatIDR(savingsActual)} / {formatIDR(savingsGoal)}
                   </span>
                 </div>
                 <div className="w-full bg-[#E2E8F0] h-[7px] rounded-full overflow-hidden">
                   <div 
                     className="bg-[#10B981] h-full rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (savingsActual / (totalIncome * (budget.savingsRatio / 100))) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (savingsActual / (savingsGoal || 1)) * 100)}%` }}
                   />
                 </div>
               </div>

@@ -429,7 +429,7 @@ export const CLEAN_BUDGET: BudgetConfig = {
   needsRatio: 50,
   wantsRatio: 30,
   savingsRatio: 20,
-  incomeGoal: 10000000,
+  incomeGoal: 0,
   startBalance: 0,
 };
 

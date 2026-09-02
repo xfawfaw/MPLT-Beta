@@ -264,7 +264,7 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                     id="base-income" 
                     label="Target Inflow" 
                     icon={Wallet} 
-                    badge={`Rp ${(budget.incomeGoal / 1000000).toFixed(1)}M`} 
+                    badge={budget.incomeGoal > 0 ? `Rp ${(budget.incomeGoal / 1000000).toFixed(1)}M` : 'Rp 0'} 
                   />
                   <TreeItem 
                     id="base-goals" 
