@@ -96,10 +96,10 @@ export const syncRoutineToGoogleCalendar = (
 /**
  * Generates universal .ICS file for Apple Calendar, Google Calendar, & Outlook
  */
-export const exportUniversalICS = (profile: UserProfile, habits: Habit[]) => {
-  const morningTime = profile.routineAlarmTimes?.morning || '06:00';
-  const deepWorkTime = profile.routineAlarmTimes?.deepWork || '09:00';
-  const eveningTime = profile.routineAlarmTimes?.evening || '21:00';
+export const exportUniversalICS = (_profile: UserProfile, habits: Habit[]) => {
+  const morningTime = '06:00';
+  const deepWorkTime = '09:00';
+  const eveningTime = '21:00';
 
   const formatICSDate = (timeStr: string, durationMin: number) => {
     const now = new Date();

@@ -87,12 +87,6 @@ export const CLEAN_PROFILE: UserProfile = {
   totalPoints: 0,
   streakDays: 0,
   joinedDate: '2026.09.01',
-  notificationsEnabled: true,
-  routineAlarmTimes: {
-    morning: '06:00',
-    deepWork: '09:00',
-    evening: '21:00',
-  },
 };
 
 // High-level demo profile for test drivers
@@ -106,12 +100,6 @@ export const DEMO_PROFILE: UserProfile = {
   totalPoints: 1240,
   streakDays: 28,
   joinedDate: '2026.08.01',
-  notificationsEnabled: true,
-  routineAlarmTimes: {
-    morning: '06:00',
-    deepWork: '09:00',
-    evening: '21:00',
-  },
 };
 
 // Initial 31-day habit logs generation for demo data

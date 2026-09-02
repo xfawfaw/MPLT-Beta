@@ -5,9 +5,7 @@ import {
   X, 
   Save, 
   Flame, 
-  Sparkles, 
-  Bell, 
-  Clock, 
+  Sparkles,
   Award
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
@@ -34,11 +32,6 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
   const [bio, setBio] = useState(profile.bio || 'Building discipline through quantified daily execution.');
   const [selectedAvatar, setSelectedAvatar] = useState(profile.avatarSeed || 'operator-1');
   
-  const [morningTime, setMorningTime] = useState(profile.routineAlarmTimes?.morning || '06:00');
-  const [deepWorkTime, setDeepWorkTime] = useState(profile.routineAlarmTimes?.deepWork || '09:00');
-  const [eveningTime, setEveningTime] = useState(profile.routineAlarmTimes?.evening || '21:00');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(profile.notificationsEnabled ?? true);
-
   // Lifetime telemetry calculations
   const totalHabitsLogged = Object.values(habits).reduce((acc, h) => {
     return acc + Object.values(h.logs).filter(Boolean).length;
@@ -52,19 +45,8 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
       callsign,
       bio,
       avatarSeed: selectedAvatar,
-      notificationsEnabled,
-      routineAlarmTimes: {
-        morning: morningTime,
-        deepWork: deepWorkTime,
-        evening: eveningTime,
-      }
     });
-
-    if (notificationsEnabled && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-
-    sound.playPop();
+    sound.playLevelUp();
     onClose();
   };
 
@@ -89,7 +71,7 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
                   <span>OPERATOR PROFILE & IDENTITY</span>
                 </h3>
                 <p className="text-[11.5px] text-[#71717A] font-ui">
-                  Personal configuration, lifetime operational telemetry, and routine alarms
+                  Personal configuration, avatar identity, and lifetime operational telemetry
                 </p>
               </div>
             </div>
@@ -215,82 +197,6 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
               <div className="p-2.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
                 <p className="text-[10px] font-bold text-[#71717A] uppercase font-ui">Target Inflow</p>
                 <p className="text-[16px] font-bold text-[#10B981] mt-0.5">{(budget.incomeGoal / 1000000).toFixed(1)}M</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Daily Routine Alarm & Notifications Setup */}
-          <div className="space-y-3 pt-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-[12px] font-bold text-[#18181B] font-ui flex items-center gap-1.5">
-                  <Clock size={13} className="text-[#10B981]" />
-                  <span>Routine Schedule & Alarms</span>
-                </h4>
-                <p className="text-[11px] text-[#71717A] font-ui">
-                  Schedule reminders for your 3 core daily discipline windows
-                </p>
-              </div>
-
-              {/* Notification Master Toggle */}
-              <button
-                type="button"
-                onClick={() => {
-                  setNotificationsEnabled(!notificationsEnabled);
-                  sound.playClick();
-                }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[11px] font-bold font-ui border transition-all ${
-                  notificationsEnabled
-                    ? 'bg-[#10B981]/10 text-[#059669] border-[#10B981]/30'
-                    : 'bg-[#F1F5F9] text-[#71717A] border-[#CBD5E1]'
-                }`}
-              >
-                <Bell size={12} />
-                <span>{notificationsEnabled ? 'Alarms Active' : 'Alarms Muted'}</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-num">
-              {/* Morning Protocol */}
-              <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#18181B] font-ui">Morning Launch</span>
-                  <span className="text-[10px] text-[#71717A]">Movement</span>
-                </div>
-                <input
-                  type="time"
-                  value={morningTime}
-                  onChange={(e) => setMorningTime(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-[4px] border border-[#CBD5E1] bg-white text-[12px] font-bold text-[#18181B] focus:border-[#18181B] focus:outline-none"
-                />
-              </div>
-
-              {/* Deep Work Sprint */}
-              <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#18181B] font-ui">Deep Work</span>
-                  <span className="text-[10px] text-[#71717A]">Focus Block</span>
-                </div>
-                <input
-                  type="time"
-                  value={deepWorkTime}
-                  onChange={(e) => setDeepWorkTime(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-[4px] border border-[#CBD5E1] bg-white text-[12px] font-bold text-[#18181B] focus:border-[#18181B] focus:outline-none"
-                />
-              </div>
-
-              {/* Evening Review */}
-              <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#18181B] font-ui">Evening Review</span>
-                  <span className="text-[10px] text-[#71717A]">Ledger & Sleep</span>
-                </div>
-                <input
-                  type="time"
-                  value={eveningTime}
-                  onChange={(e) => setEveningTime(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-[4px] border border-[#CBD5E1] bg-white text-[12px] font-bold text-[#18181B] focus:border-[#18181B] focus:outline-none"
-                />
               </div>
             </div>
           </div>

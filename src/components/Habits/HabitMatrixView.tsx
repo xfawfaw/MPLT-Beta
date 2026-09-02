@@ -785,11 +785,7 @@ export const HabitMatrixView: React.FC = () => {
                         type="button"
                         onClick={() => {
                           const routineKey = block.id === 'Morning' ? 'morning' : block.id === 'Deep Work' ? 'deepWork' : 'evening';
-                          const timeVal = block.id === 'Morning' 
-                            ? (profile.routineAlarmTimes?.morning || '06:00') 
-                            : block.id === 'Deep Work' 
-                            ? (profile.routineAlarmTimes?.deepWork || '09:00') 
-                            : (profile.routineAlarmTimes?.evening || '21:00');
+                          const timeVal = block.id === 'Morning' ? '06:00' : block.id === 'Deep Work' ? '09:00' : '21:00';
                           syncRoutineToGoogleCalendar(routineKey, timeVal);
                           sound.playClick();
                         }}

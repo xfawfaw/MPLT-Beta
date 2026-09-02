@@ -187,8 +187,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
       {
         id: 'sys-profile',
-        title: 'Open Operator Profile & Alarms',
-        subtitle: `Configured for ${profile.callsign || 'Operator'} • Routine Alarms & Lifetime Stats`,
+        title: 'Open Operator Profile & Dossier',
+        subtitle: `Configured for ${profile.callsign || 'Operator'} • Identity, Glyphs & Telemetry`,
         category: 'System',
         icon: User,
         action: () => {

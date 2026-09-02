@@ -651,38 +651,50 @@ export const YearlyStatsView: React.FC = () => {
           
           {/* 52-Week Horizontal Grid Container (10 Cols) - Dominant & Spacious */}
           <div className="lg:col-span-10 overflow-x-auto no-scrollbar p-4 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between">
-            <div className="min-w-[820px] space-y-2 select-none">
+            <div className="min-w-[840px] space-y-2 select-none">
               
-              {/* Month Labels Bar */}
-              <div className="flex items-center text-[10.5px] font-ui font-bold text-[#71717A] pl-9 mb-2 uppercase tracking-wider">
-                {monthHeaders.map(m => {
-                  const weekSpan = m.weekEnd - m.weekStart;
-                  return (
-                    <div 
-                      key={m.name} 
-                      style={{ flex: weekSpan }}
-                      className="text-left border-l border-[#CBD5E1] pl-2"
-                    >
-                      {m.name}
-                    </div>
-                  );
-                })}
+              {/* Month Labels Bar - Pixel-perfect alignment with 52 grid columns */}
+              <div className="flex items-center">
+                {/* Left Day Label Spacer */}
+                <div className="w-8 flex-shrink-0" />
+
+                {/* 52 Month Columns Grid */}
+                <div 
+                  className="grid gap-[3px] sm:gap-[3.5px] flex-1"
+                  style={{ gridTemplateColumns: 'repeat(52, minmax(0, 1fr))' }}
+                >
+                  {monthHeaders.map(m => {
+                    const span = m.weekEnd - m.weekStart;
+                    return (
+                      <div 
+                        key={m.name} 
+                        style={{ gridColumn: `span ${span} / span ${span}` }}
+                        className="text-[10px] sm:text-[10.5px] font-ui font-bold text-[#71717A] border-l-2 border-[#CBD5E1] pl-1.5 uppercase tracking-wider truncate"
+                      >
+                        {m.name}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* 7 Rows (Mon to Sun) with Enlarged Cells */}
+              {/* 7 Rows (Mon to Sun) with Perfectly Aligned 52 Columns */}
               {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => {
                 const dayCells = heatmapData.filter(d => d.dayOfWeek === dayOfWeek);
 
                 return (
-                  <div key={dayOfWeek} className="flex items-center gap-2">
+                  <div key={dayOfWeek} className="flex items-center">
                     
                     {/* Row Day Label */}
-                    <span className="w-7 text-[9.5px] font-ui font-bold text-[#71717A] text-right pr-1">
+                    <span className="w-8 flex-shrink-0 text-[9.5px] font-ui font-bold text-[#71717A] text-right pr-2">
                       {dayOfWeek === 0 ? 'Mon' : dayOfWeek === 1 ? 'Tue' : dayOfWeek === 2 ? 'Wed' : dayOfWeek === 3 ? 'Thu' : dayOfWeek === 4 ? 'Fri' : dayOfWeek === 5 ? 'Sat' : 'Sun'}
                     </span>
 
-                    {/* 52 Enlarged Cells across row */}
-                    <div className="flex items-center gap-[3.5px] sm:gap-[4px] flex-1">
+                    {/* 52 Cells across row matching Month Columns Grid */}
+                    <div 
+                      className="grid gap-[3px] sm:gap-[3.5px] flex-1"
+                      style={{ gridTemplateColumns: 'repeat(52, minmax(0, 1fr))' }}
+                    >
                       {dayCells.map(cell => {
                         const styleClasses = getCellStyles(cell);
                         const isHovered = hoveredCell?.dayOfYear === cell.dayOfYear;
@@ -700,7 +712,7 @@ export const YearlyStatsView: React.FC = () => {
                               exp: cell.dayExp,
                             })}
                             onMouseLeave={() => setHoveredCell(null)}
-                            className={`w-[13px] h-[13px] sm:w-[14.5px] sm:h-[14.5px] md:w-[15px] md:h-[15px] rounded-[3px] border transition-all cursor-pointer ${styleClasses} ${
+                            className={`aspect-square w-full rounded-[2.5px] sm:rounded-[3px] border transition-all cursor-pointer ${styleClasses} ${
                               isHovered 
                                 ? 'scale-150 z-30 ring-2 ring-[#18181B] shadow-md' 
                                 : 'hover:scale-125'

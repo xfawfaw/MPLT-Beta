@@ -4,19 +4,14 @@ import {
   User, 
   Sparkles, 
   Flame, 
-  Clock, 
-  Calendar, 
-  Bell, 
   CheckCircle2, 
   Target, 
   Wallet, 
   Edit3, 
   X, 
-  CalendarPlus,
-  Zap,
-  Shield,
-  Activity,
-  Layers
+  Shield, 
+  Activity, 
+  Layers 
 } from 'lucide-react';
 import { 
   TreeView, 
@@ -25,7 +20,6 @@ import {
   TreeItem 
 } from '@/components/ui/animated-file-tree';
 import { sound } from '../../utils/sound';
-import { syncRoutineToGoogleCalendar, exportUniversalICS } from '../../utils/calendar';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface OperatorProfileTreeProps {
@@ -63,12 +57,6 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
   const handleSelectGlyph = (avatarId: string) => {
     updateProfile({ avatarSeed: avatarId });
     sound.playPop();
-  };
-
-  const handleToggleNotifications = () => {
-    const nextState = !profile.notificationsEnabled;
-    updateProfile({ notificationsEnabled: nextState });
-    sound.playClick();
   };
 
   return (
@@ -156,33 +144,6 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
 
             {/* Quick Action Toolbar */}
             <div className="flex items-center justify-between gap-1.5 p-1.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
-              {/* Sync GCal Button */}
-              <button
-                onClick={() => {
-                  exportUniversalICS(profile, habits);
-                  sound.playPop();
-                }}
-                title="Export Daily Routines to Google / Apple Calendar"
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-[6px] bg-white text-[#18181B] hover:bg-[#F4F4F5] border border-[#E2E8F0] text-[10px] font-ui font-bold transition-colors shadow-2xs cursor-pointer"
-              >
-                <CalendarPlus size={12} className="text-[#10B981]" />
-                <span>Sync .ICS</span>
-              </button>
-
-              {/* Notification Alarm Toggle */}
-              <button
-                onClick={handleToggleNotifications}
-                title={profile.notificationsEnabled ? 'Alarms Active' : 'Alarms Muted'}
-                className={`p-1.5 rounded-[6px] border transition-colors flex items-center justify-center shadow-2xs ${
-                  profile.notificationsEnabled
-                    ? 'bg-[#10B981]/10 text-[#059669] border-[#10B981]/30'
-                    : 'bg-white text-[#71717A] border-[#E2E8F0]'
-                }`}
-              >
-                <Bell size={13} />
-              </button>
-
-              {/* Edit Full Profile */}
               <button
                 onClick={() => {
                   onOpenEditModal();
@@ -190,10 +151,10 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                   sound.playClick();
                 }}
                 title="Open Full Profile Settings"
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[10px] font-ui font-bold transition-colors shadow-2xs cursor-pointer"
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[10.5px] font-ui font-bold transition-colors shadow-2xs cursor-pointer"
               >
-                <User size={11} />
-                <span>Edit Profile</span>
+                <User size={12} />
+                <span>Configure Profile Dossier</span>
               </button>
             </div>
 
@@ -255,48 +216,7 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                   />
                 </TreeSection>
 
-                {/* 3. ROUTINE PROTOCOLS & ALARMS */}
-                <TreeSection title="Routine Protocols & Alarms" defaultExpanded={true}>
-                  <TreeItem 
-                    id="alarm-morning" 
-                    label="Morning Launch (06:00)" 
-                    icon={Clock} 
-                    badge={profile.routineAlarmTimes?.morning || '06:00'}
-                    onClick={() => {
-                      syncRoutineToGoogleCalendar('morning', profile.routineAlarmTimes?.morning || '06:00');
-                      sound.playClick();
-                    }}
-                  />
-                  <TreeItem 
-                    id="alarm-deepwork" 
-                    label="Deep Work Block (09:00)" 
-                    icon={Zap} 
-                    badge={profile.routineAlarmTimes?.deepWork || '09:00'}
-                    onClick={() => {
-                      syncRoutineToGoogleCalendar('deepWork', profile.routineAlarmTimes?.deepWork || '09:00');
-                      sound.playClick();
-                    }}
-                  />
-                  <TreeItem 
-                    id="alarm-evening" 
-                    label="Evening Review (21:00)" 
-                    icon={Calendar} 
-                    badge={profile.routineAlarmTimes?.evening || '21:00'}
-                    onClick={() => {
-                      syncRoutineToGoogleCalendar('evening', profile.routineAlarmTimes?.evening || '21:00');
-                      sound.playClick();
-                    }}
-                  />
-                  <TreeItem 
-                    id="alarm-notifications" 
-                    label="Audio Telemetry" 
-                    icon={Bell} 
-                    badge={profile.notificationsEnabled ? 'ENABLED' : 'MUTED'}
-                    onClick={handleToggleNotifications}
-                  />
-                </TreeSection>
-
-                {/* 4. STRATEGIC TARGETS */}
+                {/* 3. STRATEGIC BASELINES */}
                 <TreeSection title="Strategic Baselines" defaultExpanded={false}>
                   <TreeItem 
                     id="base-income" 

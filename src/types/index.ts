@@ -16,12 +16,6 @@ export interface UserProfile {
   totalPoints: number;
   streakDays: number;
   joinedDate?: string;
-  notificationsEnabled?: boolean;
-  routineAlarmTimes?: {
-    morning?: string;
-    deepWork?: string;
-    evening?: string;
-  };
 }
 
 export interface HabitMilestoneTier {
