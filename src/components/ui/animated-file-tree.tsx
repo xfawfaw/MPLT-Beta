@@ -14,7 +14,6 @@ import {
   useState,
 } from "react";
 import type {
-  ButtonHTMLAttributes,
   ComponentType,
   HTMLAttributes,
   KeyboardEvent,
@@ -22,7 +21,7 @@ import type {
   ReactNode,
 } from "react";
 
-import { LayoutGroup, motion } from "framer-motion";
+import { LayoutGroup, motion, type HTMLMotionProps } from "framer-motion";
 
 import {
   ChevronDown,
@@ -236,7 +235,7 @@ export function TreeList({ children, className, ...props }: TreeListProps) {
   );
 }
 
-export interface TreeItemProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface TreeItemProps extends Omit<HTMLMotionProps<"button">, "id"> {
   id: string;
   label: string;
   icon?: LucideIcon | ComponentType<{ className?: string }>;
@@ -282,7 +281,7 @@ export const TreeItem = forwardRef<HTMLButtonElement, TreeItemProps>(
     };
 
     return (
-      <button
+      <motion.button
         ref={ref}
         type="button"
         role="treeitem"
@@ -292,6 +291,8 @@ export const TreeItem = forwardRef<HTMLButtonElement, TreeItemProps>(
         onClick={handleClick}
         onMouseEnter={handleMouseEnter}
         onKeyDown={handleKeyDown}
+        whileTap={{ scale: 0.96, filter: 'blur(1.2px)' }}
+        transition={{ duration: 0.12 }}
         className={cn(
           "group relative flex h-8 cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 pl-8 text-left text-sm outline-none transition-colors select-none",
           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
@@ -353,7 +354,7 @@ export const TreeItem = forwardRef<HTMLButtonElement, TreeItemProps>(
             {badge}
           </span>
         )}
-      </button>
+      </motion.button>
     );
   }
 );
@@ -418,7 +419,7 @@ export function TreeFolder({
 
   return (
     <div className={cn("flex flex-col gap-0.5", className)} {...props}>
-      <button
+      <motion.button
         type="button"
         role="treeitem"
         aria-expanded={isExpanded}
@@ -427,6 +428,8 @@ export function TreeFolder({
         onClick={handleToggle}
         onMouseEnter={handleMouseEnter}
         onKeyDown={handleKeyDown}
+        whileTap={{ scale: 0.97, filter: 'blur(0.8px)' }}
+        transition={{ duration: 0.1 }}
         className={cn(
           "group relative flex h-8 cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 pl-8 text-left text-sm font-normal text-muted-foreground outline-none select-none",
           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
@@ -467,7 +470,7 @@ export function TreeFolder({
             )}
           />
         </div>
-      </button>
+      </motion.button>
 
       <div
         id={contentId}

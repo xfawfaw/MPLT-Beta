@@ -70,15 +70,15 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={onClose}
-            className="fixed inset-0 top-[64px] bg-black/15 backdrop-blur-[3px] z-40"
+            className="fixed inset-0 top-[64px] bg-black/20 backdrop-blur-[6px] z-40"
           />
 
-          {/* Floating Operator Tree Card */}
+          {/* Floating Operator Tree Card with Kinetic Motion Blur */}
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.97, filter: 'blur(4px)' }}
+            initial={{ opacity: 0, y: 12, scale: 0.96, filter: 'blur(12px)' }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: 8, scale: 0.97, filter: 'blur(4px)' }}
-            transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+            exit={{ opacity: 0, y: 10, scale: 0.96, filter: 'blur(12px)' }}
+            transition={{ type: 'spring', stiffness: 480, damping: 32 }}
             className="absolute right-0 top-[calc(100%+8px)] w-[330px] sm:w-[360px] bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E2E8F0] shadow-2xl z-50 p-3.5 flex flex-col gap-3 overflow-hidden select-none"
           >
             {/* Header: Operator Avatar, Call-sign & Rank */}
@@ -144,18 +144,20 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
 
             {/* Quick Action Toolbar */}
             <div className="flex items-center justify-between gap-1.5 p-1.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
-              <button
+              <motion.button
                 onClick={() => {
                   onOpenEditModal();
                   onClose();
                   sound.playClick();
                 }}
+                whileTap={{ scale: 0.95, filter: 'blur(1px)' }}
+                transition={{ duration: 0.1 }}
                 title="Open Full Profile Settings"
                 className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[10.5px] font-ui font-bold transition-colors shadow-2xs cursor-pointer"
               >
                 <User size={12} />
                 <span>Configure Profile Dossier</span>
-              </button>
+              </motion.button>
             </div>
 
             {/* Interactive Operator Profile TreeView */}

@@ -181,13 +181,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
         <div className="flex items-center gap-2">
           {/* Operator Profile Trigger Button & Floating Tree Container */}
           <div className="relative" ref={profileTreeRef}>
-            <button
+            <motion.button
               type="button"
               onClick={() => {
                 setIsProfileTreeOpen(prev => !prev);
                 setIsWorkstationOpen(false);
                 sound.playPop();
               }}
+              whileTap={{ scale: 0.94, filter: 'blur(1.2px)' }}
+              transition={{ duration: 0.12 }}
               title="Operator Profile & Identity"
               className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-[8px] h-[38px] transition-all cursor-pointer shadow-2xs select-none border ${
                 isProfileTreeOpen
@@ -208,7 +210,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
               }`}>
                 LVL {profile.level}
               </span>
-            </button>
+            </motion.button>
 
             {/* Operator Profile Tree Popover */}
             <OperatorProfileTree 
@@ -220,13 +222,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
 
           {/* Workstation Trigger Button & Floating Modal Container */}
           <div className="relative" ref={workstationRef}>
-            <button
+            <motion.button
               type="button"
               onClick={() => {
                 setIsWorkstationOpen(prev => !prev);
                 setIsProfileTreeOpen(false);
                 sound.playPop();
               }}
+              whileTap={{ scale: 0.94, filter: 'blur(1.2px)' }}
+              transition={{ duration: 0.12 }}
               className={`flex items-center gap-2 border px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-[8px] h-[38px] text-[11.5px] font-medium transition-all select-none cursor-pointer ${
                 isWorkstationOpen
                   ? 'bg-[#18181B] text-white border-[#18181B] shadow-sm'
@@ -234,43 +238,43 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
               }`}
               title="Toggle Workstation"
             >
-            <FolderTree size={14} className={isWorkstationOpen ? 'text-white' : 'text-[#10B981]'} />
-            <span className="font-ui font-semibold text-[11.5px] sm:text-[12px] tracking-tight">Workstation</span>
-            <span className={`text-[10px] font-num px-1.5 py-0.5 rounded font-bold border transition-colors ${
-              isWorkstationOpen 
-                ? 'bg-zinc-800 text-white border-zinc-700' 
-                : 'bg-white text-[#18181B] border-[#E2E8F0]'
-            }`}>
-              {currentNav.label}
-            </span>
-            <ChevronRight 
-              size={13} 
-              className={`transition-transform duration-200 ${isWorkstationOpen ? 'rotate-90 text-white' : 'text-[#71717A]'}`} 
-            />
-          </button>
+              <FolderTree size={14} className={isWorkstationOpen ? 'text-white' : 'text-[#10B981]'} />
+              <span className="font-ui font-semibold text-[11.5px] sm:text-[12px] tracking-tight">Workstation</span>
+              <span className={`text-[10px] font-num px-1.5 py-0.5 rounded font-bold border transition-colors ${
+                isWorkstationOpen 
+                  ? 'bg-zinc-800 text-white border-zinc-700' 
+                  : 'bg-white text-[#18181B] border-[#E2E8F0]'
+              }`}>
+                {currentNav.label}
+              </span>
+              <ChevronRight 
+                size={13} 
+                className={`transition-transform duration-200 ${isWorkstationOpen ? 'rotate-90 text-white' : 'text-[#71717A]'}`} 
+              />
+            </motion.button>
 
-          {/* Floating Workstation Popover Card with Motion & Backdrop Blur */}
-          <AnimatePresence>
-            {isWorkstationOpen && (
-              <>
-                {/* Subtle Screen Motion Blur Backdrop */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.18 }}
-                  onClick={() => setIsWorkstationOpen(false)}
-                  className="fixed inset-0 top-[64px] bg-black/15 backdrop-blur-[3px] z-40"
-                />
+            {/* Floating Workstation Popover Card with Motion & Backdrop Blur */}
+            <AnimatePresence>
+              {isWorkstationOpen && (
+                <>
+                  {/* Subtle Screen Motion Blur Backdrop */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    onClick={() => setIsWorkstationOpen(false)}
+                    className="fixed inset-0 top-[64px] bg-black/20 backdrop-blur-[6px] z-40"
+                  />
 
-                {/* Floating Card Anchored on the Top Right */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.97, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: 8, scale: 0.97, filter: 'blur(4px)' }}
-                  transition={{ type: "spring", stiffness: 480, damping: 34 }}
-                  className="absolute right-0 top-[calc(100%+8px)] w-[320px] sm:w-[350px] bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E2E8F0] shadow-2xl z-50 p-3.5 flex flex-col gap-3 overflow-hidden"
-                >
+                  {/* Floating Card Anchored on the Top Right with Motion Blur */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 12, scale: 0.96, filter: 'blur(12px)' }}
+                    animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: 10, scale: 0.96, filter: 'blur(12px)' }}
+                    transition={{ type: "spring", stiffness: 480, damping: 32 }}
+                    className="absolute right-0 top-[calc(100%+8px)] w-[320px] sm:w-[350px] bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E2E8F0] shadow-2xl z-50 p-3.5 flex flex-col gap-3 overflow-hidden"
+                  >
                   {/* Header with Rightward Breadcrumb Indicator */}
                   <div className="flex items-center justify-between pb-2.5 border-b border-[#E2E8F0]">
                     <div className="flex items-center gap-2">
