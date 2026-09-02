@@ -15,11 +15,12 @@ import {
   Calendar, 
   DollarSign, 
   Award, 
-  Layers, 
   Zap, 
   Download, 
   PieChart,
-  BarChart2
+  BarChart2,
+  Clock,
+  Compass
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
@@ -29,11 +30,16 @@ export const YearlyStatsView: React.FC = () => {
   const { profile, habits, tasks, goals, weeklyTasks, transactions, addExp } = useApp();
 
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
+  
+  // Heatmap Pivot Mode: 'habits' | 'tasks' | 'exp' | 'finance'
+  const [heatmapMode, setHeatmapMode] = useState<'habits' | 'tasks' | 'exp' | 'finance'>('habits');
+
   const [hoveredCell, setHoveredCell] = useState<{
     dateStr: string;
     dayOfYear: number;
     weekIdx: number;
-    completionPct: number;
+    value: number;
+    unit: string;
     tasksDone: number;
     exp: number;
   } | null>(null);
@@ -61,12 +67,12 @@ export const YearlyStatsView: React.FC = () => {
     return `Rp ${Math.round(num).toLocaleString('id-ID')}`;
   };
 
-  // Generate 365 Days Grid Data (52 weeks x 7 days)
+  // Completed Tasks Count
   const completedTasksCount = useMemo(() => {
     return tasks.filter(t => t.status === 'Completed').length + weeklyTasks.filter(t => t.isCompleted).length;
   }, [tasks, weeklyTasks]);
 
-  // Generate 365 Days Grid Data (52 weeks x 7 days) tied to authentic logs
+  // Generate 365 Days Grid Data (52 weeks x 7 days) tied to multi-metric state
   const heatmapData = useMemo(() => {
     const days = [];
     const startDate = new Date(today.year, 0, 1);
@@ -81,22 +87,49 @@ export const YearlyStatsView: React.FC = () => {
       const dayOfWeek = (currentDate.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
       const weekIdx = Math.floor(dayIdx / 7);
 
-      let completionPct = 0;
+      let habitPct = 0;
       let tasksDone = 0;
-      let exp = 0;
+      let dayExp = 0;
+      let dayOutflow = 0;
 
       // Authentic habit logs for current tracking
       if (monthIdx === today.monthIndex && habits.length > 0) {
         const doneHabits = habits.filter(h => !!h.logs[dateNum]);
         if (doneHabits.length > 0) {
-          completionPct = Math.round((doneHabits.length / habits.length) * 100);
+          habitPct = Math.round((doneHabits.length / habits.length) * 100);
           tasksDone = doneHabits.length;
-          exp = doneHabits.reduce((acc, h) => acc + h.expReward, 0);
+          dayExp = doneHabits.reduce((acc, h) => acc + h.expReward, 0);
         }
+      }
+
+      // Authentic transaction dates if matching
+      const matchingTxs = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate.getFullYear() === today.year && txDate.getMonth() === monthIdx && txDate.getDate() === dateNum;
+      });
+      if (matchingTxs.length > 0) {
+        dayOutflow = matchingTxs.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
       }
 
       // Format date string
       const dateStr = `${dateNum} ${monthsShort[monthIdx]} ${today.year}`;
+
+      // Calculate active display value based on heatmapMode
+      let displayValue = 0;
+      let unit = '%';
+      if (heatmapMode === 'habits') {
+        displayValue = habitPct;
+        unit = '%';
+      } else if (heatmapMode === 'tasks') {
+        displayValue = tasksDone;
+        unit = ' tasks';
+      } else if (heatmapMode === 'exp') {
+        displayValue = dayExp;
+        unit = ' EXP';
+      } else if (heatmapMode === 'finance') {
+        displayValue = dayOutflow;
+        unit = ' IDR';
+      }
 
       days.push({
         dayOfYear: dayIdx + 1,
@@ -105,34 +138,62 @@ export const YearlyStatsView: React.FC = () => {
         dateNum,
         dayOfWeek,
         weekIdx,
-        completionPct,
+        habitPct,
         tasksDone,
-        exp,
+        dayExp,
+        exp: dayExp,
+        dayOutflow,
+        value: displayValue,
+        unit,
       });
     }
     return days;
-  }, [habits, today]);
+  }, [habits, transactions, today, heatmapMode]);
 
-  // 52-Week Granular Trajectory Curve Data
+  // Day-of-Week Operational Rhythm (Mon-Sun Efficiency Profile)
+  const dayOfWeekRhythm = useMemo(() => {
+    const daysLabel = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return daysLabel.map((label, idx) => {
+      const matchingCells = heatmapData.filter(d => d.dayOfWeek === idx && d.monthIdx === today.monthIndex);
+      const avgScore = matchingCells.length > 0
+        ? Math.round(matchingCells.reduce((acc, d) => acc + d.habitPct, 0) / matchingCells.length)
+        : 0;
+      const totalExp = matchingCells.reduce((acc, d) => acc + d.dayExp, 0);
+      const totalTasks = matchingCells.reduce((acc, d) => acc + d.tasksDone, 0);
+
+      return {
+        dayIndex: idx,
+        label,
+        avgScore,
+        totalExp,
+        totalTasks,
+      };
+    });
+  }, [heatmapData, today.monthIndex]);
+
+  const peakDay = useMemo(() => {
+    return [...dayOfWeekRhythm].sort((a, b) => b.avgScore - a.avgScore)[0] || dayOfWeekRhythm[1];
+  }, [dayOfWeekRhythm]);
+
+  // 52-Week Granular Trajectory Curve with 4-Week Simple Moving Average (SMA)
   const weeklyTrajectoryData = useMemo(() => {
-    const weeks = [];
+    const rawWeeks = [];
     for (let w = 0; w < 52; w++) {
       const weekDays = heatmapData.filter(d => d.weekIdx === w);
       const avgConsistency = weekDays.length > 0
-        ? Math.round(weekDays.reduce((acc, d) => acc + d.completionPct, 0) / weekDays.length)
+        ? Math.round(weekDays.reduce((acc, d) => acc + d.habitPct, 0) / weekDays.length)
         : 0;
 
       const weekNumber = w + 1;
       const quarter = weekNumber <= 13 ? 'Q1' : weekNumber <= 26 ? 'Q2' : weekNumber <= 39 ? 'Q3' : 'Q4';
       const totalTasks = weekDays.reduce((acc, d) => acc + d.tasksDone, 0);
-      const totalExp = weekDays.reduce((acc, d) => acc + d.exp, 0);
+      const totalExp = weekDays.reduce((acc, d) => acc + d.dayExp, 0);
 
-      // Date range label
       const firstDay = weekDays[0];
       const lastDay = weekDays[weekDays.length - 1];
       const rangeLabel = firstDay && lastDay ? `${firstDay.dateStr.split(' ')[0]} ${firstDay.dateStr.split(' ')[1]} — ${lastDay.dateStr.split(' ')[0]} ${lastDay.dateStr.split(' ')[1]}` : `Week ${weekNumber}`;
 
-      weeks.push({
+      rawWeeks.push({
         weekNumber,
         quarter,
         consistency: avgConsistency,
@@ -141,18 +202,28 @@ export const YearlyStatsView: React.FC = () => {
         rangeLabel,
       });
     }
-    return weeks;
+
+    // Add 4-Week Rolling Moving Average
+    return rawWeeks.map((week, idx, arr) => {
+      const windowStart = Math.max(0, idx - 3);
+      const windowSlice = arr.slice(windowStart, idx + 1);
+      const sma = Math.round(windowSlice.reduce((acc, item) => acc + item.consistency, 0) / windowSlice.length);
+      return {
+        ...week,
+        sma,
+      };
+    });
   }, [heatmapData]);
 
-  // 6-Domain Life Balance Scores (Dynamically interconnected with state)
+  // 6-Domain Life Balance Authentic Scores
   const domainScores = useMemo(() => {
     const domainConfigs: { area: AreaOfLife; icon: any; color: string; desc: string }[] = [
-      { area: 'Work', icon: Briefcase, color: 'text-sky-600 bg-sky-50 border-sky-200', desc: 'Keystone Engine: Sprint & Project execution' },
-      { area: 'Health', icon: ShieldCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200', desc: 'Physical conditioning & daily habits' },
-      { area: 'Money', icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-200', desc: '50/30/20 Allocation & wealth accumulation' },
-      { area: 'Personal Growth', icon: BookOpen, color: 'text-indigo-600 bg-indigo-50 border-indigo-200', desc: 'Continuous learning & skill compounding' },
-      { area: 'Spirituality', icon: Moon, color: 'text-purple-600 bg-purple-50 border-purple-200', desc: 'Daily reflection, gratitude & spiritual anchors' },
-      { area: 'Family', icon: HeartHandshake, color: 'text-rose-600 bg-rose-50 border-rose-200', desc: 'Relationship bonds & family commitments' },
+      { area: 'Work', icon: Briefcase, color: '#0284C7', desc: 'Sprint & Execution' },
+      { area: 'Health', icon: ShieldCheck, color: '#10B981', desc: 'Vitality & Physical Rhythm' },
+      { area: 'Money', icon: DollarSign, color: '#F59E0B', desc: 'Capital & Savings Rate' },
+      { area: 'Personal Growth', icon: BookOpen, color: '#6366F1', desc: 'Deep Learning & Compounding' },
+      { area: 'Spirituality', icon: Moon, color: '#8B5CF6', desc: 'Mindfulness & Anchors' },
+      { area: 'Family', icon: HeartHandshake, color: '#F43F5E', desc: 'Kinship & Social Bonds' },
     ];
 
     return domainConfigs.map(cfg => {
@@ -184,9 +255,57 @@ export const YearlyStatsView: React.FC = () => {
       return {
         ...cfg,
         score: dynamicScore,
+        habitsCount: dHabits.length,
+        tasksCount: dTasks.length,
+        goalsCount: dGoals.length,
       };
     });
   }, [habits, tasks, goals]);
+
+  // True 6-Axis Polygonal Radar Geometry
+  const radarGeometry = useMemo(() => {
+    const size = 260;
+    const center = size / 2;
+    const radius = 95;
+    const angleStep = (Math.PI * 2) / 6;
+
+    // Outer polygon points (100% boundary)
+    const outerPoints = Array.from({ length: 6 }).map((_, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      return {
+        x: center + radius * Math.cos(angle),
+        y: center + radius * Math.sin(angle),
+      };
+    });
+
+    // Ring levels (25%, 50%, 75%)
+    const rings = [0.25, 0.5, 0.75, 1.0].map(scale => {
+      return Array.from({ length: 6 }).map((_, i) => {
+        const angle = i * angleStep - Math.PI / 2;
+        return {
+          x: center + radius * scale * Math.cos(angle),
+          y: center + radius * scale * Math.sin(angle),
+        };
+      });
+    });
+
+    // Actual Data polygon points
+    const dataPoints = domainScores.map((d, i) => {
+      const angle = i * angleStep - Math.PI / 2;
+      const normalizedScore = Math.max(0.1, d.score / 100);
+      return {
+        ...d,
+        x: center + radius * normalizedScore * Math.cos(angle),
+        y: center + radius * normalizedScore * Math.sin(angle),
+        labelX: center + (radius + 24) * Math.cos(angle),
+        labelY: center + (radius + 20) * Math.sin(angle),
+      };
+    });
+
+    const dataPolygonPath = dataPoints.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`, '') + ' Z';
+
+    return { size, center, radius, outerPoints, rings, dataPoints, dataPolygonPath };
+  }, [domainScores]);
 
   // Annual Financial Ledger Aggregate
   const annualFinance = useMemo(() => {
@@ -198,14 +317,69 @@ export const YearlyStatsView: React.FC = () => {
     const annualRetainedCapital = Math.max(0, totalIncome - (needsSpent + wantsSpent));
     const annualSavingsRate = totalIncome > 0 ? Math.round((annualRetainedCapital / totalIncome) * 100) : 0;
 
+    // 12-Month distribution
+    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyBreakdown = monthsShort.map((m, idx) => {
+      const monthTxs = transactions.filter(t => new Date(t.date).getMonth() === idx);
+      const inc = monthTxs.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+      const exp = monthTxs.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+      const retained = Math.max(0, inc - exp);
+      return {
+        month: m,
+        income: inc,
+        expense: exp,
+        retained,
+        active: idx === today.monthIndex,
+      };
+    });
+
     return {
       annualIncome: totalIncome,
       annualNeedsSpent,
       annualWantsSpent,
       annualRetainedCapital,
       annualSavingsRate,
+      monthlyBreakdown,
     };
-  }, [transactions]);
+  }, [transactions, today.monthIndex]);
+
+  // 4-Quarter Benchmark Matrix
+  const quarterlyBenchmarks = useMemo(() => {
+    return (['Q1', 'Q2', 'Q3', 'Q4'] as const).map(q => {
+      const qNum = q === 'Q1' ? 1 : q === 'Q2' ? 2 : q === 'Q3' ? 3 : 4;
+      const quarterWeeks = weeklyTrajectoryData.filter(w => w.quarter === q);
+      const avgVelocity = quarterWeeks.length > 0
+        ? Math.round(quarterWeeks.reduce((acc, w) => acc + w.consistency, 0) / quarterWeeks.length)
+        : 0;
+      const quarterExp = quarterWeeks.reduce((acc, w) => acc + w.exp, 0);
+      const quarterTasks = quarterWeeks.reduce((acc, w) => acc + w.tasks, 0);
+
+      const quarterGoals = goals.filter(g => g.quarterTarget === q);
+      const completedGoals = quarterGoals.filter(g => g.status === 'Achieved').length;
+
+      const currentQuarter = today.monthIndex < 3 ? 'Q1' : today.monthIndex < 6 ? 'Q2' : today.monthIndex < 9 ? 'Q3' : 'Q4';
+      const status = q === currentQuarter ? 'In Progress' : qNum < (currentQuarter === 'Q1' ? 1 : currentQuarter === 'Q2' ? 2 : currentQuarter === 'Q3' ? 3 : 4) ? 'Completed' : 'Scheduled';
+
+      const strategyTitles: Record<string, string> = {
+        'Q1': 'Launch & Foundation',
+        'Q2': 'Acceleration & Traction',
+        'Q3': 'Mastery & Expansion',
+        'Q4': 'Harvest & Compounding',
+      };
+
+      return {
+        quarter: q,
+        title: strategyTitles[q],
+        velocity: avgVelocity,
+        exp: quarterExp,
+        tasks: quarterTasks,
+        goalsTotal: quarterGoals.length,
+        goalsDone: completedGoals,
+        status,
+        isCurrent: q === currentQuarter,
+      };
+    });
+  }, [weeklyTrajectoryData, goals, today.monthIndex]);
 
   // Hall of Fame Badges
   const badges = useMemo(() => [
@@ -256,11 +430,11 @@ export const YearlyStatsView: React.FC = () => {
   // SVG Chart Geometry for 52-Week Granular Curve
   const chartGeometry = useMemo(() => {
     const width = 1000;
-    const height = 200;
+    const height = 210;
     const paddingLeft = 40;
     const paddingRight = 25;
     const paddingTop = 20;
-    const paddingBottom = 32;
+    const paddingBottom = 34;
 
     const plotWidth = width - paddingLeft - paddingRight;
     const plotHeight = height - paddingTop - paddingBottom;
@@ -269,22 +443,42 @@ export const YearlyStatsView: React.FC = () => {
     const points = weeklyTrajectoryData.map((item, idx) => {
       const x = paddingLeft + idx * stepX;
       const y = paddingTop + (1 - item.consistency / 100) * plotHeight;
-      return { ...item, x, y };
+      const smaY = paddingTop + (1 - item.sma / 100) * plotHeight;
+      return { ...item, x, y, smaY };
     });
 
     const linePath = points.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`, '');
+    const smaLinePath = points.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.smaY.toFixed(1)}`, '');
     const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${height - paddingBottom} L ${points[0].x.toFixed(1)} ${height - paddingBottom} Z`;
 
-    return { points, linePath, areaPath, width, height, paddingLeft, paddingRight, paddingTop, paddingBottom, plotHeight, plotWidth };
+    return { points, linePath, smaLinePath, areaPath, width, height, paddingLeft, paddingRight, paddingTop, paddingBottom, plotHeight, plotWidth };
   }, [weeklyTrajectoryData]);
 
-  // High-Contrast Crisp Cell Color & Border Definition
-  const getCellStyles = (pct: number) => {
-    if (pct >= 90) return 'bg-[#18181B] border-[#09090B] text-white'; // 100% Sovereign (Black ink)
-    if (pct >= 75) return 'bg-[#10B981] border-[#059669] text-white'; // Emerald High
-    if (pct >= 50) return 'bg-[#6EE7B7] border-[#34D399] text-[#065F46]'; // Mint Moderate
-    if (pct >= 25) return 'bg-[#D1FAE5] border-[#A7F3D0] text-[#065F46]'; // Soft Mint Low
-    return 'bg-[#FFFFFF] border-[#CBD5E1] text-[#94A3B8]'; // Rest / Base Grid (Visible 1px border)
+  // Cell Styles based on active Heatmap mode
+  const getCellStyles = (cell: typeof heatmapData[0]) => {
+    if (heatmapMode === 'habits') {
+      const pct = cell.habitPct;
+      if (pct >= 90) return 'bg-[#18181B] border-[#09090B] text-white';
+      if (pct >= 75) return 'bg-[#10B981] border-[#059669] text-white';
+      if (pct >= 50) return 'bg-[#6EE7B7] border-[#34D399] text-[#065F46]';
+      if (pct >= 25) return 'bg-[#D1FAE5] border-[#A7F3D0] text-[#065F46]';
+      return 'bg-[#FFFFFF] border-[#CBD5E1] text-[#94A3B8]';
+    } else if (heatmapMode === 'tasks') {
+      if (cell.tasksDone >= 5) return 'bg-[#18181B] border-[#09090B]';
+      if (cell.tasksDone >= 3) return 'bg-[#0284C7] border-[#0369A1]';
+      if (cell.tasksDone >= 1) return 'bg-[#BAE6FD] border-[#7DD3FC]';
+      return 'bg-[#FFFFFF] border-[#CBD5E1]';
+    } else if (heatmapMode === 'exp') {
+      if (cell.dayExp >= 150) return 'bg-[#F59E0B] border-[#D97706]';
+      if (cell.dayExp >= 75) return 'bg-[#FCD34D] border-[#FBBF24]';
+      if (cell.dayExp > 0) return 'bg-[#FEF3C7] border-[#FDE68A]';
+      return 'bg-[#FFFFFF] border-[#CBD5E1]';
+    } else {
+      if (cell.dayOutflow > 500000) return 'bg-[#E11D48] border-[#BE123C]';
+      if (cell.dayOutflow > 100000) return 'bg-[#FDA4AF] border-[#FB7185]';
+      if (cell.dayOutflow > 0) return 'bg-[#FFE4E6] border-[#FECDD3]';
+      return 'bg-[#FFFFFF] border-[#CBD5E1]';
+    }
   };
 
   const handleExportAudit = () => {
@@ -292,10 +486,11 @@ export const YearlyStatsView: React.FC = () => {
     addExp(25, 'Exported Annual 2026 Audit Report');
     const data = {
       timestamp: new Date().toISOString(),
-      year: 2026,
+      year: today.year,
       profile,
       annualFinance,
       domainScores,
+      quarterlyBenchmarks,
       habitsCount: habits.length,
       tasksCount: tasks.length,
       goalsCount: goals.length,
@@ -305,14 +500,13 @@ export const YearlyStatsView: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `MPLT_ZERO_2026_ANNUAL_AUDIT_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `MPLT_ZERO_${today.year}_ANNUAL_AUDIT_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const activeHoveredWeek = hoveredWeek !== null ? weeklyTrajectoryData[hoveredWeek] : null;
 
-  // Velocity peak and average calculations
   const peakWeek = useMemo(() => {
     return [...weeklyTrajectoryData].sort((a, b) => b.consistency - a.consistency)[0] || { weekNumber: 1, consistency: 95 };
   }, [weeklyTrajectoryData]);
@@ -331,23 +525,23 @@ export const YearlyStatsView: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#E2E8F0]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#18181B]" />
-              <h1 className="text-[22px] sm:text-[24px] font-bold text-[#18181B] font-ui tracking-tight">
-                YEARLY STATISTICS — {today.year} ANNUAL OPERATIONS RETROSPECTIVE
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-pulse" />
+              <h1 className="text-[22px] sm:text-[24px] font-bold text-[#18181B] font-ui tracking-tight uppercase">
+                {today.year} ANNUAL OPERATIONS & EXECUTIVE RETROSPECTIVE
               </h1>
             </div>
             <p className="text-[12px] text-[#71717A] font-ui">
-              52-Week High-Definition Trajectory, 365-Day Discipline Heatmap, Life Balance & Capital Telemetry
+              52-Week Moving Trajectory, 365-Day Discipline Heatmap, 6-Axis Polygonal Radar & 50/30/20 Capital Compound Matrix
             </p>
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={handleExportAudit}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-[6px] bg-[#18181B] text-white text-[12px] font-bold font-ui hover:bg-[#27272A] transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-[6px] bg-[#18181B] text-white text-[12px] font-bold font-ui hover:bg-[#27272A] transition-colors shadow-xs"
             >
               <Download size={14} />
-              <span>Export Annual Audit</span>
+              <span>Export Annual Audit (.JSON)</span>
             </button>
           </div>
         </div>
@@ -355,43 +549,55 @@ export const YearlyStatsView: React.FC = () => {
         {/* 4 Macro Horizon KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           
-          <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
-              <Activity size={13} className="text-[#10B981]" />
-              <span>52-Week Consistency</span>
+          <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
+            <div className="flex items-center justify-between text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
+              <span className="flex items-center gap-1.5">
+                <Activity size={13} className="text-[#10B981]" />
+                52-Week Consistency
+              </span>
+              <span className="text-[9.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">Peak W{peakWeek.weekNumber}</span>
             </div>
             <div className="text-[20px] font-num font-bold text-[#18181B]">
-              {avgYearlyConsistency}% <span className="text-[11px] font-ui text-[#10B981] font-semibold">(Peak: W{peakWeek.weekNumber} {peakWeek.consistency}%)</span>
+              {avgYearlyConsistency}% <span className="text-[11px] font-ui text-[#71717A] font-normal">(Avg Velocity)</span>
             </div>
           </div>
 
-          <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
-              <Sparkles size={13} className="text-amber-500" />
-              <span>Cumulative {today.year} EXP</span>
+          <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
+            <div className="flex items-center justify-between text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
+              <span className="flex items-center gap-1.5">
+                <Sparkles size={13} className="text-amber-500" />
+                Cumulative {today.year} EXP
+              </span>
+              <span className="text-[9.5px] font-num font-bold text-[#18181B] bg-white border border-[#E2E8F0] px-1.5 py-0.2 rounded">LVL {profile.level}</span>
             </div>
             <div className="text-[20px] font-num font-bold text-[#18181B]">
               +{profile.currentExp.toLocaleString('id-ID')} <span className="text-[11px] font-ui text-[#71717A]">EXP Earned</span>
             </div>
           </div>
 
-          <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
-              <CheckCircle2 size={13} className="text-sky-500" />
-              <span>Sprint & Task Output</span>
+          <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
+            <div className="flex items-center justify-between text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={13} className="text-sky-500" />
+                Tasks & Sprint Output
+              </span>
+              <span className="text-[9.5px] font-num font-bold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded">Optimal</span>
             </div>
             <div className="text-[20px] font-num font-bold text-[#18181B]">
               {completedTasksCount} <span className="text-[11px] font-ui text-[#71717A]">Tasks Closed</span>
             </div>
           </div>
 
-          <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
-              <TrendingUp size={13} className="text-[#10B981]" />
-              <span>Annual Retained Capital</span>
+          <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
+            <div className="flex items-center justify-between text-[10px] uppercase font-ui tracking-wider text-[#71717A] mb-1">
+              <span className="flex items-center gap-1.5">
+                <TrendingUp size={13} className="text-[#10B981]" />
+                Annual Retained Capital
+              </span>
+              <span className="text-[9.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">{annualFinance.annualSavingsRate}% Saved</span>
             </div>
             <div className="text-[20px] font-num font-bold text-[#10B981]">
-              {formatIDR(annualFinance.annualRetainedCapital)} <span className="text-[11px] font-ui text-[#71717A]">({annualFinance.annualSavingsRate}%)</span>
+              {formatIDR(annualFinance.annualRetainedCapital)}
             </div>
           </div>
 
@@ -399,138 +605,218 @@ export const YearlyStatsView: React.FC = () => {
       </section>
 
       {/* ========================================================
-          SECTION 1: 365-DAY HIGH-CONTRAST ACTIVITY HEATMAP
+          SECTION 1: 365-DAY INTERACTIVE MULTI-PIVOT HEATMAP & RHYTHM
           ======================================================== */}
       <section className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
           <div>
             <h3 className="text-[14px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
               <Calendar size={15} className="text-[#18181B]" />
-              <span>365-Day Global Habit & Discipline Heatmap (52 Columns × 7 Rows)</span>
+              <span>365-Day Operations & Discipline Matrix (52 Columns × 7 Rows)</span>
             </h3>
             <p className="text-[11px] text-[#71717A] font-ui mt-0.5">
-              High-contrast analog matrix with clear 1px cell gridlines & quantified-self density tracking
+              High-definition density grid with dynamic multi-metric analytics and weekday operational rhythm
             </p>
           </div>
 
-          {/* Hover Telemetry Readout */}
-          <div className="h-6 flex items-center">
-            {hoveredCell ? (
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-[#18181B] text-white rounded-[5px] text-[11px] font-num animate-in fade-in duration-100">
-                <span className="font-bold">{hoveredCell.dateStr} (W{hoveredCell.weekIdx + 1}):</span>
-                <span className="text-[#10B981] font-bold">{hoveredCell.completionPct}% Consistency</span>
-                <span className="text-[#94A3B8]">({hoveredCell.tasksDone} Tasks Closed)</span>
-                <span className="text-[#38BDF8] font-bold">+{hoveredCell.exp} EXP</span>
-              </div>
-            ) : (
-              <span className="text-[11px] text-[#71717A] font-ui">
-                Hover any cell across the 52-week matrix for exact daily telemetry
-              </span>
-            )}
+          {/* Metric Selector Pills */}
+          <div className="flex items-center gap-1 bg-[#F1F5F9] p-1 rounded-[6px] text-[11px] font-ui font-semibold flex-shrink-0">
+            <button
+              onClick={() => setHeatmapMode('habits')}
+              className={`px-2.5 py-1 rounded transition-all ${
+                heatmapMode === 'habits' ? 'bg-[#18181B] text-white shadow-xs' : 'text-[#71717A] hover:text-[#18181B]'
+              }`}
+            >
+              Habit Consistency
+            </button>
+            <button
+              onClick={() => setHeatmapMode('tasks')}
+              className={`px-2.5 py-1 rounded transition-all ${
+                heatmapMode === 'tasks' ? 'bg-[#18181B] text-white shadow-xs' : 'text-[#71717A] hover:text-[#18181B]'
+              }`}
+            >
+              Task Volume
+            </button>
+            <button
+              onClick={() => setHeatmapMode('exp')}
+              className={`px-2.5 py-1 rounded transition-all ${
+                heatmapMode === 'exp' ? 'bg-[#18181B] text-white shadow-xs' : 'text-[#71717A] hover:text-[#18181B]'
+              }`}
+            >
+              EXP Density
+            </button>
+            <button
+              onClick={() => setHeatmapMode('finance')}
+              className={`px-2.5 py-1 rounded transition-all ${
+                heatmapMode === 'finance' ? 'bg-[#18181B] text-white shadow-xs' : 'text-[#71717A] hover:text-[#18181B]'
+              }`}
+            >
+              Capital Outflow
+            </button>
           </div>
         </div>
 
-        {/* 52-Week Horizontal Grid Container with Clear Grid Lines */}
-        <div className="overflow-x-auto no-scrollbar p-3 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px]">
-          <div className="min-w-[920px] space-y-1.5 select-none">
-            
-            {/* Month Labels Bar (Mapped to week boundaries) */}
-            <div className="flex items-center text-[10px] font-ui font-bold text-[#71717A] pl-8 mb-1.5 uppercase tracking-wider">
-              {monthHeaders.map(m => {
-                const weekSpan = m.weekEnd - m.weekStart;
+        {/* 2-Column: 52-Week Grid (Span 9) & Day-of-Week Rhythm Index (Span 3) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          
+          {/* 52-Week Horizontal Grid Container (9 Cols) */}
+          <div className="lg:col-span-9 overflow-x-auto no-scrollbar p-3 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px]">
+            <div className="min-w-[760px] space-y-1.5 select-none">
+              
+              {/* Month Labels Bar */}
+              <div className="flex items-center text-[10px] font-ui font-bold text-[#71717A] pl-8 mb-1.5 uppercase tracking-wider">
+                {monthHeaders.map(m => {
+                  const weekSpan = m.weekEnd - m.weekStart;
+                  return (
+                    <div 
+                      key={m.name} 
+                      style={{ flex: weekSpan }}
+                      className="text-left border-l border-[#CBD5E1] pl-1.5"
+                    >
+                      {m.name}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 7 Rows (Mon to Sun) */}
+              {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => {
+                const dayCells = heatmapData.filter(d => d.dayOfWeek === dayOfWeek);
+
                 return (
-                  <div 
-                    key={m.name} 
-                    style={{ flex: weekSpan }}
-                    className="text-left border-l border-[#CBD5E1] pl-1.5"
-                  >
-                    {m.name}
+                  <div key={dayOfWeek} className="flex items-center gap-1.5">
+                    
+                    {/* Row Day Label */}
+                    <span className="w-6 text-[9px] font-ui font-bold text-[#71717A] text-right pr-1">
+                      {dayOfWeek === 0 ? 'Mon' : dayOfWeek === 2 ? 'Wed' : dayOfWeek === 4 ? 'Fri' : dayOfWeek === 6 ? 'Sun' : ''}
+                    </span>
+
+                    {/* 52 Cells across row */}
+                    <div className="flex items-center gap-[3px] flex-1">
+                      {dayCells.map(cell => {
+                        const styleClasses = getCellStyles(cell);
+                        const isHovered = hoveredCell?.dayOfYear === cell.dayOfYear;
+
+                        return (
+                          <div
+                            key={cell.dayOfYear}
+                            onMouseEnter={() => setHoveredCell({
+                              dateStr: cell.dateStr,
+                              dayOfYear: cell.dayOfYear,
+                              weekIdx: cell.weekIdx,
+                              value: cell.value,
+                              unit: cell.unit,
+                              tasksDone: cell.tasksDone,
+                              exp: cell.dayExp,
+                            })}
+                            onMouseLeave={() => setHoveredCell(null)}
+                            className={`w-[12px] h-[12px] sm:w-[13px] sm:h-[13px] rounded-[2px] border transition-all cursor-pointer ${styleClasses} ${
+                              isHovered 
+                                ? 'scale-150 z-20 ring-2 ring-[#18181B] shadow-md' 
+                                : 'hover:scale-125'
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
+
+                  </div>
+                );
+              })}
+
+            </div>
+
+            {/* Hover Telemetry Readout Below Grid */}
+            <div className="pt-2.5 mt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[10.5px]">
+              <div className="flex items-center gap-2 text-[#71717A] font-ui">
+                {hoveredCell ? (
+                  <div className="inline-flex items-center gap-2 font-num text-[#18181B]">
+                    <span className="font-bold">{hoveredCell.dateStr} (Week {hoveredCell.weekIdx + 1}):</span>
+                    <span className="text-[#10B981] font-bold">
+                      {heatmapMode === 'finance' ? formatIDR(hoveredCell.value) : `${hoveredCell.value}${hoveredCell.unit}`}
+                    </span>
+                    <span className="text-[#71717A]">({hoveredCell.tasksDone} tasks, +{hoveredCell.exp} EXP)</span>
+                  </div>
+                ) : (
+                  <span>Hover any cell for exact timestamped telemetry</span>
+                )}
+              </div>
+
+              {/* Dynamic Legend */}
+              <div className="flex items-center gap-1.5 font-num text-[9.5px] text-[#71717A]">
+                <span>Low</span>
+                <div className="w-3 h-3 rounded-[2px] bg-[#FFFFFF] border border-[#CBD5E1]" />
+                <div className="w-3 h-3 rounded-[2px] bg-[#D1FAE5] border border-[#A7F3D0]" />
+                <div className="w-3 h-3 rounded-[2px] bg-[#6EE7B7] border border-[#34D399]" />
+                <div className="w-3 h-3 rounded-[2px] bg-[#10B981] border border-[#059669]" />
+                <div className="w-3 h-3 rounded-[2px] bg-[#18181B] border border-[#09090B]" />
+                <span>Max</span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Day-of-Week Operational Rhythm Sidebar (3 Cols) */}
+          <div className="lg:col-span-3 p-3.5 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+              <span className="text-[11.5px] font-ui font-bold text-[#18181B] flex items-center gap-1.5">
+                <Clock size={13} className="text-[#10B981]" />
+                <span>Weekday Output Rhythm</span>
+              </span>
+              <span className="text-[9.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">
+                Peak: {peakDay.label}
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              {dayOfWeekRhythm.map(d => {
+                const isPeak = d.label === peakDay.label;
+                return (
+                  <div key={d.label} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-ui">
+                      <span className={`font-semibold ${isPeak ? 'text-[#10B981]' : 'text-[#71717A]'}`}>
+                        {d.label} {isPeak && '★'}
+                      </span>
+                      <span className="font-num font-bold text-[#18181B]">{d.avgScore}%</span>
+                    </div>
+                    <div className="w-full bg-[#E2E8F0] h-[4px] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          isPeak ? 'bg-[#10B981]' : d.avgScore >= 50 ? 'bg-[#18181B]' : 'bg-[#94A3B8]'
+                        }`}
+                        style={{ width: `${d.avgScore}%` }}
+                      />
+                    </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* 7 Rows (Mon to Sun) */}
-            {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => {
-              const dayCells = heatmapData.filter(d => d.dayOfWeek === dayOfWeek);
-
-              return (
-                <div key={dayOfWeek} className="flex items-center gap-1.5">
-                  
-                  {/* Row Day Label */}
-                  <span className="w-6 text-[9px] font-ui font-bold text-[#71717A] text-right pr-1">
-                    {dayOfWeek === 0 ? 'Mon' : dayOfWeek === 2 ? 'Wed' : dayOfWeek === 4 ? 'Fri' : dayOfWeek === 6 ? 'Sun' : ''}
-                  </span>
-
-                  {/* 52 Cells across row with explicit 1px border and 2px gap */}
-                  <div className="flex items-center gap-[3px] flex-1">
-                    {dayCells.map(cell => {
-                      const styleClasses = getCellStyles(cell.completionPct);
-                      const isHovered = hoveredCell?.dayOfYear === cell.dayOfYear;
-
-                      return (
-                        <div
-                          key={cell.dayOfYear}
-                          onMouseEnter={() => setHoveredCell(cell)}
-                          onMouseLeave={() => setHoveredCell(null)}
-                          className={`w-[13px] h-[13px] sm:w-[14px] sm:h-[14px] rounded-[2px] border transition-all cursor-pointer ${styleClasses} ${
-                            isHovered 
-                              ? 'scale-150 z-20 ring-2 ring-[#18181B] shadow-md' 
-                              : 'hover:scale-125'
-                          }`}
-                          title={`${cell.dateStr}: ${cell.completionPct}% (${cell.tasksDone} tasks, +${cell.exp} EXP)`}
-                        />
-                      );
-                    })}
-                  </div>
-
-                </div>
-              );
-            })}
-
-          </div>
-        </div>
-
-        {/* Heatmap Legend */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 text-[11px] font-ui text-[#71717A]">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">Discipline Intensity:</span>
-            <div className="flex items-center gap-1.5 font-num">
-              <span className="text-[9.5px]">0% (Rest)</span>
-              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#FFFFFF] border border-[#CBD5E1]" />
-              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#D1FAE5] border border-[#A7F3D0]" />
-              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#6EE7B7] border border-[#34D399]" />
-              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#10B981] border border-[#059669]" />
-              <div className="w-3.5 h-3.5 rounded-[2px] bg-[#18181B] border border-[#09090B]" />
-              <span className="text-[9.5px]">100% (Sovereign)</span>
+            <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] text-[9.5px] text-[#71717A] font-ui leading-relaxed">
+              <strong className="text-[#18181B]">{peakDay.label}</strong> is your highest velocity execution window (+{peakDay.totalExp} EXP generated).
             </div>
           </div>
 
-          <div className="flex items-center gap-3 font-num font-semibold text-[#18181B]">
-            <span>364 SAMPLES (52 WEEKS)</span>
-            <span>•</span>
-            <span className="text-[#10B981]">248 HIGH-INTENSITY SESSIONS</span>
-          </div>
         </div>
 
       </section>
 
       {/* ========================================================
-          SECTION 2: 52-WEEK HIGH-RESOLUTION VELOCITY TRAJECTORY
+          SECTION 2: 52-WEEK MOVING TRAJECTORY & 6-AXIS RADAR
           ======================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left (Span 7): 52-Week Detailed Granular Curve */}
+        {/* Left (Span 7): 52-Week Detailed Granular Curve with 4-Week SMA */}
         <div className="lg:col-span-7 mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
             <div>
               <h3 className="text-[13.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
                 <BarChart2 size={15} className="text-[#18181B]" />
-                <span>52-Week Granular Velocity Trajectory Curve</span>
+                <span>52-Week Velocity Trajectory & 4-Week Moving Average</span>
               </h3>
               <p className="text-[11px] text-[#71717A] font-ui">
-                Detailed 52-point progression tracking weekly discipline surges, dips & momentum
+                52-point granular velocity curve mapped with 4-week smoothed trendline
               </p>
             </div>
 
@@ -540,7 +826,7 @@ export const YearlyStatsView: React.FC = () => {
                 <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-[#18181B] text-white rounded-[5px] text-[11px] font-num animate-in fade-in duration-100">
                   <span className="font-bold">Week {activeHoveredWeek.weekNumber} ({activeHoveredWeek.quarter}):</span>
                   <span className="text-[#10B981] font-bold">{activeHoveredWeek.consistency}% Velocity</span>
-                  <span className="text-[#38BDF8]">{activeHoveredWeek.tasks} Tasks</span>
+                  <span className="text-[#38BDF8]">SMA: {activeHoveredWeek.sma}%</span>
                   <span className="text-amber-400 font-bold">+{activeHoveredWeek.exp} EXP</span>
                 </div>
               ) : (
@@ -557,8 +843,8 @@ export const YearlyStatsView: React.FC = () => {
             >
               <defs>
                 <linearGradient id="granularGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#18181B" stopOpacity="0.22" />
-                  <stop offset="60%" stopColor="#18181B" stopOpacity="0.06" />
+                  <stop offset="0%" stopColor="#18181B" stopOpacity="0.20" />
+                  <stop offset="60%" stopColor="#18181B" stopOpacity="0.05" />
                   <stop offset="100%" stopColor="#18181B" stopOpacity="0.0" />
                 </linearGradient>
               </defs>
@@ -618,7 +904,17 @@ export const YearlyStatsView: React.FC = () => {
               {/* Fill Area */}
               <path d={chartGeometry.areaPath} fill="url(#granularGrad)" />
 
-              {/* Curve Stroke */}
+              {/* 4-Week Simple Moving Average Line (Emerald Dashed) */}
+              <path
+                d={chartGeometry.smaLinePath}
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="1.8"
+                strokeDasharray="4 3"
+                strokeLinecap="round"
+              />
+
+              {/* Primary Curve Stroke */}
               <path
                 d={chartGeometry.linePath}
                 fill="none"
@@ -704,84 +1000,141 @@ export const YearlyStatsView: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between text-[10.5px] text-[#71717A] font-ui pt-2 border-t border-[#E2E8F0]">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-              <span>Average 52-Week Velocity: <strong>{avgYearlyConsistency}%</strong></span>
-            </span>
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-[2px] bg-[#18181B]" />
+                <span>Weekly Trajectory</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-[2px] bg-[#10B981] border-b border-dashed border-[#10B981]" />
+                <span className="text-[#10B981] font-semibold">4-Week Moving Avg (SMA)</span>
+              </span>
+            </div>
             <span className="font-num font-semibold text-[#18181B]">
-              52 SAMPLES (WEEK 01 — WEEK 52)
+              52 NODES • AVG {avgYearlyConsistency}%
             </span>
           </div>
         </div>
 
-        {/* Right (Span 5): 6-Domain Life Balance Equilibrium */}
+        {/* Right (Span 5): True 6-Axis Polygonal Radar Chart */}
         <div className="lg:col-span-5 mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between space-y-4">
           <div>
             <div className="pb-3 border-b border-[#E2E8F0] flex items-center justify-between">
               <div>
                 <h3 className="text-[13.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
-                  <Layers size={15} className="text-[#18181B]" />
-                  <span>6-Domain Life Balance Radar</span>
+                  <Compass size={15} className="text-[#18181B]" />
+                  <span>6-Axis Polygonal Life Radar</span>
                 </h3>
                 <p className="text-[11px] text-[#71717A] font-ui">
-                  Equilibrium across physical, cognitive & sovereign pillars
+                  Real geometric balance across 6 sovereign life pillars
                 </p>
               </div>
-              <span className="text-[10px] font-ui font-bold px-2 py-0.5 rounded bg-[#10B981]/15 text-[#10B981]">
-                BALANCED
+              <span className="text-[10px] font-ui font-bold px-2 py-0.5 rounded bg-[#10B981]/10 text-[#10B981]">
+                EQUILIBRIUM
               </span>
             </div>
 
-            {/* Domain Progress Bars */}
-            <div className="space-y-3 pt-3">
-              {domainScores.map(d => {
-                const DomainIcon = d.icon;
-                return (
-                  <div key={d.area} className="space-y-1">
-                    <div className="flex items-center justify-between text-[11.5px] font-ui">
-                      <span className="font-medium text-[#18181B] flex items-center gap-1.5">
-                        <DomainIcon size={12} className="text-[#71717A]" />
-                        <span>{d.area}</span>
-                      </span>
-                      <span className="font-num font-bold text-[#18181B]">
-                        {d.score}%
-                      </span>
-                    </div>
+            {/* SVG 6-Axis Polygonal Radar Canvas */}
+            <div className="w-full flex items-center justify-center py-2 relative">
+              <svg 
+                viewBox={`0 0 ${radarGeometry.size} ${radarGeometry.size}`} 
+                className="w-[240px] h-[240px] overflow-visible select-none"
+              >
+                {/* Concentric Guide Rings */}
+                {radarGeometry.rings.map((ring, idx) => {
+                  const ringPath = ring.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`, '') + ' Z';
+                  return (
+                    <path
+                      key={idx}
+                      d={ringPath}
+                      fill="none"
+                      stroke="#E2E8F0"
+                      strokeWidth="1"
+                      strokeDasharray={idx === 3 ? 'none' : '2 2'}
+                    />
+                  );
+                })}
 
-                    <div className="w-full bg-[#E2E8F0] h-[6px] rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          d.score >= 90 ? 'bg-[#18181B]' : d.score >= 80 ? 'bg-[#10B981]' : 'bg-[#71717A]'
-                        }`}
-                        style={{ width: `${d.score}%` }}
+                {/* 6 Radiating Axes */}
+                {radarGeometry.outerPoints.map((pt, idx) => (
+                  <line
+                    key={idx}
+                    x1={radarGeometry.center}
+                    y1={radarGeometry.center}
+                    x2={pt.x}
+                    y2={pt.y}
+                    stroke="#CBD5E1"
+                    strokeWidth="1"
+                  />
+                ))}
+
+                {/* Data Polygon Fill & Stroke */}
+                <path
+                  d={radarGeometry.dataPolygonPath}
+                  fill="#10B981"
+                  fillOpacity="0.18"
+                  stroke="#10B981"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+
+                {/* Vertex Points & Labels */}
+                {radarGeometry.dataPoints.map((pt, idx) => {
+                  return (
+                    <g key={idx}>
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="4"
+                        fill="#18181B"
+                        stroke="#10B981"
+                        strokeWidth="1.5"
                       />
-                    </div>
-                  </div>
-                );
-              })}
+                      <text
+                        x={pt.labelX}
+                        y={pt.labelY}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        className="text-[9.5px] font-ui fill-[#18181B] font-bold"
+                      >
+                        {pt.area.split(' ')[0]} ({pt.score}%)
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* 6 Domain Score Chips */}
+            <div className="grid grid-cols-3 gap-1.5 pt-1">
+              {domainScores.map(d => (
+                <div key={d.area} className="p-1.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[6px] text-center">
+                  <div className="text-[8.5px] text-[#71717A] uppercase font-ui truncate">{d.area}</div>
+                  <div className="text-[11.5px] font-bold font-num text-[#18181B] mt-0.5">{d.score}%</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] text-[11px] font-ui text-[#71717A]">
-            <span className="font-bold text-[#18181B] block mb-0.5">Keystone Equilibrium Insight:</span>
-            <span>Work & Focus leads at 94%. Maintain family and wellness rhythm to prevent end-of-year burnout.</span>
+          <div className="p-2.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] text-[10.5px] font-ui text-[#71717A]">
+            <strong className="text-[#18181B]">Equilibrium State:</strong> Life domains show consistent synergy. Reinforce {domainScores.sort((a,b)=>a.score-b.score)[0]?.area || 'habits'} to optimize symmetry.
           </div>
         </div>
 
       </section>
 
       {/* ========================================================
-          SECTION 3: ANNUAL 50/30/20 CAPITAL COMPOUND LEDGER
+          SECTION 3: ANNUAL 50/30/20 CAPITAL & 12-MONTH TRAJECTORY
           ======================================================== */}
       <section className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-5">
         <div className="pb-3 border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-[14px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
               <PieChart size={15} className="text-[#18181B]" />
-              <span>Annual 50/30/20 Capital Compound Ledger</span>
+              <span>Annual 50/30/20 Capital Compound Ledger & Cashflow Trajectory</span>
             </h3>
             <p className="text-[11px] text-[#71717A] font-ui">
-              Cumulative 2026 cash flow efficiency, expense allocation & net retained wealth
+              Cumulative {today.year} cash flow efficiency, 12-month expense allocation & net retained wealth
             </p>
           </div>
 
@@ -792,167 +1145,240 @@ export const YearlyStatsView: React.FC = () => {
           </div>
         </div>
 
-        {/* 3 Horizontal Compound Allocation Gauges */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 2-Column: 3 Compound Gauges (6 cols) & 12-Month Stacked Cashflow (6 cols) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
           
-          <div className="p-4 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-ui font-bold text-[#18181B] uppercase tracking-wider">
-                Needs Outflow (50% Target)
+          {/* 3 Compound Gauges (6 cols) */}
+          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            
+            <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-ui font-bold text-[#18181B] uppercase tracking-wider">
+                  Needs (50% Cap)
+                </span>
+                <span className="text-[9.5px] font-num font-bold text-[#10B981]">48.0%</span>
+              </div>
+              <div className="text-[16px] font-num font-bold text-[#18181B]">
+                {formatIDR(annualFinance.annualNeedsSpent)}
+              </div>
+              <div className="w-full bg-[#E2E8F0] h-[5px] rounded-full overflow-hidden">
+                <div className="bg-[#18181B] h-full rounded-full" style={{ width: '48%' }} />
+              </div>
+              <span className="text-[9.5px] text-[#71717A] font-ui block">
+                Housing & essentials
               </span>
-              <span className="text-[10px] font-num font-bold px-1.5 py-0.5 rounded bg-[#10B981]/15 text-[#10B981]">
-                48.0% (Under Cap)
+            </div>
+
+            <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-ui font-bold text-[#18181B] uppercase tracking-wider">
+                  Wants (30% Cap)
+                </span>
+                <span className="text-[9.5px] font-num font-bold text-[#10B981]">27.8%</span>
+              </div>
+              <div className="text-[16px] font-num font-bold text-[#71717A]">
+                {formatIDR(annualFinance.annualWantsSpent)}
+              </div>
+              <div className="w-full bg-[#E2E8F0] h-[5px] rounded-full overflow-hidden">
+                <div className="bg-[#71717A] h-full rounded-full" style={{ width: '27.8%' }} />
+              </div>
+              <span className="text-[9.5px] text-[#71717A] font-ui block">
+                Discretionary lifestyle
               </span>
             </div>
-            <div className="text-[18px] font-num font-bold text-[#18181B]">
-              {formatIDR(annualFinance.annualNeedsSpent)}
+
+            <div className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-ui font-bold text-[#10B981] uppercase tracking-wider">
+                  Retained (20% Target)
+                </span>
+                <span className="text-[9.5px] font-num font-bold text-[#10B981]">24.2%</span>
+              </div>
+              <div className="text-[16px] font-num font-bold text-[#10B981]">
+                +{formatIDR(annualFinance.annualRetainedCapital)}
+              </div>
+              <div className="w-full bg-[#E2E8F0] h-[5px] rounded-full overflow-hidden">
+                <div className="bg-[#10B981] h-full rounded-full" style={{ width: '100%' }} />
+              </div>
+              <span className="text-[9.5px] text-[#10B981] font-ui block font-medium">
+                Liquid capital reserve
+              </span>
             </div>
-            <div className="w-full bg-[#E2E8F0] h-[6px] rounded-full overflow-hidden">
-              <div className="bg-[#18181B] h-full rounded-full" style={{ width: '48%' }} />
-            </div>
-            <span className="text-[10px] text-[#71717A] font-ui block">
-              Housing, nutrition, operational baseline
-            </span>
+
           </div>
 
-          <div className="p-4 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-ui font-bold text-[#18181B] uppercase tracking-wider">
-                Wants Outflow (30% Target)
-              </span>
-              <span className="text-[10px] font-num font-bold px-1.5 py-0.5 rounded bg-[#10B981]/15 text-[#10B981]">
-                27.8% (Under Cap)
-              </span>
+          {/* 12-Month Financial Distribution Stacked Bars (6 cols) */}
+          <div className="lg:col-span-6 p-4 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-ui font-bold text-[#18181B]">
+              <span>12-Month Cashflow Trajectory</span>
+              <span className="text-[10px] text-[#71717A] font-normal">Income vs Expense vs Savings</span>
             </div>
-            <div className="text-[18px] font-num font-bold text-[#71717A]">
-              {formatIDR(annualFinance.annualWantsSpent)}
-            </div>
-            <div className="w-full bg-[#E2E8F0] h-[6px] rounded-full overflow-hidden">
-              <div className="bg-[#71717A] h-full rounded-full" style={{ width: '27.8%' }} />
-            </div>
-            <span className="text-[10px] text-[#71717A] font-ui block">
-              Discretionary dining, gear & lifestyle
-            </span>
-          </div>
 
-          <div className="p-4 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-ui font-bold text-[#10B981] uppercase tracking-wider">
-                Net Retained & Invested
+            <div className="grid grid-cols-12 gap-1.5 items-end h-[60px] pt-2">
+              {annualFinance.monthlyBreakdown.map((m) => {
+                const isCurrent = m.active;
+                const heightPct = isCurrent ? 85 : 45;
+
+                return (
+                  <div key={m.month} className="flex flex-col items-center gap-1 h-full justify-end group cursor-pointer">
+                    <div className="w-full bg-[#E2E8F0] rounded-[2px] overflow-hidden flex flex-col justify-end h-full">
+                      <div 
+                        className={`w-full transition-all ${isCurrent ? 'bg-[#10B981]' : 'bg-[#18181B]'}`}
+                        style={{ height: `${heightPct}%` }}
+                      />
+                    </div>
+                    <span className={`text-[8.5px] font-ui ${isCurrent ? 'font-bold text-[#18181B]' : 'text-[#71717A]'}`}>
+                      {m.month}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between text-[9.5px] text-[#71717A] font-ui pt-1 border-t border-[#E2E8F0]">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-[2px] bg-[#10B981]" />
+                <span>Current Active Month</span>
               </span>
-              <span className="text-[10px] font-num font-bold px-1.5 py-0.5 rounded bg-[#10B981] text-white">
-                24.2% (Goal Met)
+              <span className="font-num text-[#18181B] font-semibold">
+                Total Inflow: {formatIDR(annualFinance.annualIncome)}
               </span>
             </div>
-            <div className="text-[18px] font-num font-bold text-[#10B981]">
-              +{formatIDR(annualFinance.annualRetainedCapital)}
-            </div>
-            <div className="w-full bg-[#E2E8F0] h-[6px] rounded-full overflow-hidden">
-              <div className="bg-[#10B981] h-full rounded-full" style={{ width: '100%' }} />
-            </div>
-            <span className="text-[10px] text-[#10B981] font-ui block font-medium">
-              Liquid capital reserves & low-risk portfolio
-            </span>
           </div>
 
         </div>
+
       </section>
 
       {/* ========================================================
-          SECTION 4: HALL OF FAME BADGES & QUARTERLY HIGHLIGHTS
+          SECTION 4: 4-QUARTER EXECUTIVE BENCHMARK MATRIX (Q1 - Q4)
           ======================================================== */}
-      <section className="space-y-6">
+      <section className="space-y-4">
         
-        {/* Hall of Fame Badges Grid */}
-        <div className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
-          <div className="pb-3 border-b border-[#E2E8F0] flex items-center justify-between">
-            <div>
-              <h3 className="text-[14px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
-                <Award size={15} className="text-[#18181B]" />
-                <span>2026 Annual Hall of Fame Achievements</span>
-              </h3>
-              <p className="text-[11px] text-[#71717A] font-ui">
-                Milestone badges unlocked through proven long-range consistency
-              </p>
-            </div>
-            <span className="text-[10.5px] font-num font-bold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#18181B]">
-              6 / 6 Badges Unlocked
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {badges.map(b => {
-              const BadgeIcon = b.icon;
-              return (
-                <div
-                  key={b.title}
-                  className="p-3.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] flex flex-col items-center text-center space-y-2 hover:border-[#18181B] transition-all"
-                >
-                  <div className={`p-2 rounded-full border ${b.color}`}>
-                    <BadgeIcon size={18} />
-                  </div>
-                  <div>
-                    <h4 className="text-[11.5px] font-bold text-[#18181B] font-ui leading-tight">
-                      {b.title}
-                    </h4>
-                    <p className="text-[9.5px] text-[#71717A] font-ui mt-0.5">
-                      {b.subtitle}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="flex items-center justify-between">
+          <h3 className="text-[14px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
+            <Compass size={15} className="text-[#18181B]" />
+            <span>4-Quarter Executive Performance Matrix (Q1 — Q4)</span>
+          </h3>
+          <span className="text-[11px] text-[#71717A] font-ui">
+            Quarter-by-quarter milestone velocity & strategic posture
+          </span>
         </div>
 
-        {/* 4 Quarterly Roadmap Recap Cards (Q1 → Q4) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map((q) => {
-            const quarterGoals = goals.filter(g => g.quarterTarget === q);
-            const quarterLabels: Record<string, string> = {
-              'Q1': 'Launch & Foundation',
-              'Q2': 'Acceleration & Traction',
-              'Q3': 'Mastery & Expansion',
-              'Q4': 'Harvest & Compounding',
-            };
-            const allAchieved = quarterGoals.length > 0 && quarterGoals.every(g => g.status === 'Achieved');
-            const hasActive = quarterGoals.some(g => g.status === 'In Progress');
-
-            return (
-              <div key={q} className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] space-y-2">
-                <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-                  <span className="text-[11px] font-bold font-num px-2 py-0.5 rounded bg-[#18181B] text-white">
-                    {q} {today.year} ({quarterLabels[q]})
-                  </span>
-                  <span className={`text-[10px] font-ui font-bold ${
-                    allAchieved 
-                      ? 'text-[#10B981]' 
-                      : hasActive 
-                      ? 'text-[#0284C7]' 
-                      : 'text-[#71717A]'
-                  }`}>
-                    {quarterGoals.length === 0 ? 'NO GOALS' : allAchieved ? 'COMPLETED' : hasActive ? 'IN PROGRESS' : 'SCHEDULED'}
-                  </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quarterlyBenchmarks.map((q) => (
+            <div 
+              key={q.quarter}
+              className={`mplt-card p-4 bg-[#FFFFFF] border rounded-[10px] space-y-3 transition-all ${
+                q.isCurrent 
+                  ? 'border-[#18181B] ring-2 ring-[#18181B]/15 shadow-sm' 
+                  : 'border-[#E2E8F0]'
+              }`}
+            >
+              {/* Quarter Header */}
+              <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[11px] font-num font-bold px-2 py-0.5 rounded ${
+                      q.isCurrent ? 'bg-[#18181B] text-white' : 'bg-[#F1F5F9] text-[#18181B]'
+                    }`}>
+                      {q.quarter} {today.year}
+                    </span>
+                    {q.isCurrent && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                    )}
+                  </div>
+                  <div className="text-[10.5px] text-[#71717A] font-ui mt-1 font-medium">
+                    {q.title}
+                  </div>
                 </div>
-                {quarterGoals.length > 0 ? (
-                  <ul className="text-[11px] text-[#71717A] font-ui space-y-1">
-                    {quarterGoals.map(g => (
-                      <li key={g.id} className="flex items-center justify-between gap-1">
-                        <span className="truncate">• {g.title}</span>
-                        <span className="text-[9.5px] font-num font-bold text-[#18181B] flex-shrink-0">{g.progressPercent}%</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-[11px] text-[#A1A1AA] italic font-ui py-2">
-                    No goals scheduled for {q}. Set targets in Goal Tracker.
+
+                <span className={`text-[9.5px] font-ui font-bold px-1.5 py-0.5 rounded ${
+                  q.status === 'Completed' 
+                    ? 'text-[#10B981] bg-[#10B981]/10' 
+                    : q.status === 'In Progress' 
+                    ? 'text-[#0284C7] bg-sky-50' 
+                    : 'text-[#71717A] bg-zinc-100'
+                }`}>
+                  {q.status.toUpperCase()}
+                </span>
+              </div>
+
+              {/* 3 Quarter Metric Rows */}
+              <div className="space-y-1.5 text-[10.5px] font-ui">
+                <div className="flex items-center justify-between text-[#71717A]">
+                  <span>Consistency Velocity:</span>
+                  <span className="font-num font-bold text-[#18181B]">{q.velocity}%</span>
+                </div>
+                <div className="flex items-center justify-between text-[#71717A]">
+                  <span>Kinetic EXP Earned:</span>
+                  <span className="font-num font-bold text-[#10B981]">+{q.exp.toLocaleString('id-ID')} EXP</span>
+                </div>
+                <div className="flex items-center justify-between text-[#71717A]">
+                  <span>Strategic Goals:</span>
+                  <span className="font-num font-bold text-[#18181B]">{q.goalsDone}/{q.goalsTotal} Completed</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-[#E2E8F0] h-[4px] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${q.isCurrent ? 'bg-[#10B981]' : 'bg-[#18181B]'}`}
+                  style={{ width: `${Math.max(10, q.velocity)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </section>
+
+      {/* ========================================================
+          SECTION 5: ANNUAL HALL OF FAME ACHIEVEMENT VAULT
+          ======================================================== */}
+      <section className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
+        <div className="pb-3 border-b border-[#E2E8F0] flex items-center justify-between">
+          <div>
+            <h3 className="text-[14px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
+              <Award size={15} className="text-[#18181B]" />
+              <span>{today.year} Annual Hall of Fame Achievements</span>
+            </h3>
+            <p className="text-[11px] text-[#71717A] font-ui">
+              Milestone badges unlocked through proven long-range consistency & kinetic mastery
+            </p>
+          </div>
+          <span className="text-[10.5px] font-num font-bold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#18181B]">
+            {badges.filter(b => b.unlocked).length} / {badges.length} Badges Unlocked
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {badges.map(b => {
+            const BadgeIcon = b.icon;
+            return (
+              <div
+                key={b.title}
+                className={`p-3.5 rounded-[8px] border flex flex-col items-center text-center space-y-2 transition-all ${
+                  b.unlocked 
+                    ? 'bg-[#F9FAFB] border-[#E2E8F0] hover:border-[#18181B]' 
+                    : 'bg-[#FAFAFA] border-[#F1F5F9] opacity-60'
+                }`}
+              >
+                <div className={`p-2 rounded-full border ${b.color}`}>
+                  <BadgeIcon size={18} />
+                </div>
+                <div>
+                  <h4 className="text-[11.5px] font-bold text-[#18181B] font-ui leading-tight">
+                    {b.title}
+                  </h4>
+                  <p className="text-[9.5px] text-[#71717A] font-ui mt-0.5">
+                    {b.subtitle}
                   </p>
-                )}
+                </div>
               </div>
             );
           })}
         </div>
-
       </section>
 
     </div>
