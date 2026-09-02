@@ -20,11 +20,14 @@ import {
   PieChart,
   BarChart2,
   Clock,
-  Compass
+  Compass,
+  CalendarCheck2,
+  CheckSquare
 } from 'lucide-react';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
+import { ExpandableTabs } from '../ui/expandable-tabs';
 
 export const YearlyStatsView: React.FC = () => {
   const { profile, habits, tasks, goals, weeklyTasks, transactions, addExp } = useApp();
@@ -620,53 +623,45 @@ export const YearlyStatsView: React.FC = () => {
             </p>
           </div>
 
-          {/* Metric Selector Tabs */}
-          <div className="flex items-center gap-1.5 bg-[#F1F5F9] p-1 rounded-[8px] border border-[#E2E8F0] text-[11px] font-ui font-semibold flex-wrap">
-            {[
-              { id: 'habits', label: 'Habit Consistency', icon: Calendar },
-              { id: 'tasks', label: 'Task Volume', icon: CheckCircle2 },
-              { id: 'exp', label: 'EXP Density', icon: Sparkles },
-              { id: 'finance', label: 'Capital Outflow', icon: DollarSign },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = heatmapMode === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setHeatmapMode(tab.id as any);
-                    sound.playPop();
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] transition-all cursor-pointer ${
-                    isActive 
-                      ? 'bg-[#18181B] text-white shadow-xs font-bold' 
-                      : 'text-[#71717A] hover:text-[#18181B] hover:bg-white/60'
-                  }`}
-                >
-                  <Icon size={12} className={isActive ? 'text-[#10B981]' : 'text-[#71717A]'} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Segmented Switcher via ExpandableTabs */}
+          <ExpandableTabs
+            size="sm"
+            tabs={[
+              { id: 'habits', title: 'Habit Consistency', icon: CalendarCheck2 },
+              { id: 'tasks', title: 'Task Volume', icon: CheckSquare },
+              { id: 'exp', title: 'EXP Density', icon: Sparkles },
+              { id: 'finance', title: 'Capital Outflow', icon: DollarSign },
+            ]}
+            selectedIndex={heatmapMode === 'habits' ? 0 : heatmapMode === 'tasks' ? 1 : heatmapMode === 'exp' ? 2 : 3}
+            activeBgColor="bg-[#18181B]"
+            activeColor="text-white"
+            className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+            onChange={(idx) => {
+              sound.playClick();
+              if (idx === 0) setHeatmapMode('habits');
+              else if (idx === 1) setHeatmapMode('tasks');
+              else if (idx === 2) setHeatmapMode('exp');
+              else if (idx === 3) setHeatmapMode('finance');
+            }}
+          />
         </div>
 
-        {/* 2-Column: 52-Week Grid (Span 9) & Day-of-Week Rhythm Index (Span 3) with Equal Height */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* 2-Column: 52-Week Expanded Grid (Span 10) & Tiny Weekday Rhythm (Span 2) with Equal Height */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
           
-          {/* 52-Week Horizontal Grid Container (9 Cols) */}
-          <div className="lg:col-span-9 overflow-x-auto no-scrollbar p-4 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between">
-            <div className="min-w-[760px] space-y-1.5 select-none">
+          {/* 52-Week Horizontal Grid Container (10 Cols) - Dominant & Spacious */}
+          <div className="lg:col-span-10 overflow-x-auto no-scrollbar p-4 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between">
+            <div className="min-w-[820px] space-y-2 select-none">
               
               {/* Month Labels Bar */}
-              <div className="flex items-center text-[10px] font-ui font-bold text-[#71717A] pl-8 mb-1.5 uppercase tracking-wider">
+              <div className="flex items-center text-[10.5px] font-ui font-bold text-[#71717A] pl-9 mb-2 uppercase tracking-wider">
                 {monthHeaders.map(m => {
                   const weekSpan = m.weekEnd - m.weekStart;
                   return (
                     <div 
                       key={m.name} 
                       style={{ flex: weekSpan }}
-                      className="text-left border-l border-[#CBD5E1] pl-1.5"
+                      className="text-left border-l border-[#CBD5E1] pl-2"
                     >
                       {m.name}
                     </div>
@@ -674,20 +669,20 @@ export const YearlyStatsView: React.FC = () => {
                 })}
               </div>
 
-              {/* 7 Rows (Mon to Sun) */}
+              {/* 7 Rows (Mon to Sun) with Enlarged Cells */}
               {[0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => {
                 const dayCells = heatmapData.filter(d => d.dayOfWeek === dayOfWeek);
 
                 return (
-                  <div key={dayOfWeek} className="flex items-center gap-1.5">
+                  <div key={dayOfWeek} className="flex items-center gap-2">
                     
                     {/* Row Day Label */}
-                    <span className="w-6 text-[9px] font-ui font-bold text-[#71717A] text-right pr-1">
-                      {dayOfWeek === 0 ? 'Mon' : dayOfWeek === 2 ? 'Wed' : dayOfWeek === 4 ? 'Fri' : dayOfWeek === 6 ? 'Sun' : ''}
+                    <span className="w-7 text-[9.5px] font-ui font-bold text-[#71717A] text-right pr-1">
+                      {dayOfWeek === 0 ? 'Mon' : dayOfWeek === 1 ? 'Tue' : dayOfWeek === 2 ? 'Wed' : dayOfWeek === 3 ? 'Thu' : dayOfWeek === 4 ? 'Fri' : dayOfWeek === 5 ? 'Sat' : 'Sun'}
                     </span>
 
-                    {/* 52 Cells across row */}
-                    <div className="flex items-center gap-[3px] flex-1">
+                    {/* 52 Enlarged Cells across row */}
+                    <div className="flex items-center gap-[3.5px] sm:gap-[4px] flex-1">
                       {dayCells.map(cell => {
                         const styleClasses = getCellStyles(cell);
                         const isHovered = hoveredCell?.dayOfYear === cell.dayOfYear;
@@ -705,9 +700,9 @@ export const YearlyStatsView: React.FC = () => {
                               exp: cell.dayExp,
                             })}
                             onMouseLeave={() => setHoveredCell(null)}
-                            className={`w-[12px] h-[12px] sm:w-[13px] sm:h-[13px] rounded-[2px] border transition-all cursor-pointer ${styleClasses} ${
+                            className={`w-[13px] h-[13px] sm:w-[14.5px] sm:h-[14.5px] md:w-[15px] md:h-[15px] rounded-[3px] border transition-all cursor-pointer ${styleClasses} ${
                               isHovered 
-                                ? 'scale-150 z-20 ring-2 ring-[#18181B] shadow-md' 
+                                ? 'scale-150 z-30 ring-2 ring-[#18181B] shadow-md' 
                                 : 'hover:scale-125'
                             }`}
                           />
@@ -722,60 +717,65 @@ export const YearlyStatsView: React.FC = () => {
             </div>
 
             {/* Hover Telemetry Readout Below Grid */}
-            <div className="pt-3 mt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[10.5px]">
+            <div className="pt-3.5 mt-3 border-t border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3 text-[11px]">
               <div className="flex items-center gap-2 text-[#71717A] font-ui">
                 {hoveredCell ? (
-                  <div className="inline-flex items-center gap-2 font-num text-[#18181B]">
-                    <span className="font-bold">{hoveredCell.dateStr} (Week {hoveredCell.weekIdx + 1}):</span>
+                  <div className="inline-flex items-center gap-2.5 font-num text-[#18181B]">
+                    <span className="font-bold bg-[#18181B] text-white px-2 py-0.5 rounded-[4px] text-[10px]">
+                      W{hoveredCell.weekIdx + 1}
+                    </span>
+                    <span className="font-bold">{hoveredCell.dateStr}:</span>
                     <span className="text-[#10B981] font-bold">
                       {heatmapMode === 'finance' ? formatIDR(hoveredCell.value) : `${hoveredCell.value}${hoveredCell.unit}`}
                     </span>
-                    <span className="text-[#71717A]">({hoveredCell.tasksDone} tasks, +{hoveredCell.exp} EXP)</span>
+                    <span className="text-[#71717A] text-[10px]">
+                      ({hoveredCell.tasksDone} tasks done, +{hoveredCell.exp} EXP generated)
+                    </span>
                   </div>
                 ) : (
-                  <span>Hover any cell for exact timestamped telemetry</span>
+                  <span>Hover any cell to inspect timestamped telemetry & operations</span>
                 )}
               </div>
 
               {/* Dynamic Legend */}
-              <div className="flex items-center gap-1.5 font-num text-[9.5px] text-[#71717A]">
+              <div className="flex items-center gap-2 font-num text-[10px] text-[#71717A]">
                 <span>Low</span>
-                <div className="w-3 h-3 rounded-[2px] bg-[#FFFFFF] border border-[#CBD5E1]" />
-                <div className="w-3 h-3 rounded-[2px] bg-[#D1FAE5] border border-[#A7F3D0]" />
-                <div className="w-3 h-3 rounded-[2px] bg-[#6EE7B7] border border-[#34D399]" />
-                <div className="w-3 h-3 rounded-[2px] bg-[#10B981] border border-[#059669]" />
-                <div className="w-3 h-3 rounded-[2px] bg-[#18181B] border border-[#09090B]" />
+                <div className="w-3.5 h-3.5 rounded-[3px] bg-[#FFFFFF] border border-[#CBD5E1]" />
+                <div className="w-3.5 h-3.5 rounded-[3px] bg-[#D1FAE5] border border-[#A7F3D0]" />
+                <div className="w-3.5 h-3.5 rounded-[3px] bg-[#6EE7B7] border border-[#34D399]" />
+                <div className="w-3.5 h-3.5 rounded-[3px] bg-[#10B981] border border-[#059669]" />
+                <div className="w-3.5 h-3.5 rounded-[3px] bg-[#18181B] border border-[#09090B]" />
                 <span>Max</span>
               </div>
             </div>
 
           </div>
 
-          {/* Day-of-Week Operational Rhythm Sidebar (3 Cols) with Equal Height */}
-          <div className="lg:col-span-3 p-4 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between space-y-3">
+          {/* Tiny Weekday Operational Rhythm Sidebar (2 Cols) - Compact & Clean */}
+          <div className="lg:col-span-2 p-3 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between space-y-2">
             <div>
-              <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-[#E2E8F0]">
-                <span className="text-[11.5px] font-ui font-bold text-[#18181B] flex items-center gap-1.5">
-                  <Clock size={13} className="text-[#10B981]" />
-                  <span>Weekday Output Rhythm</span>
+              <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-[#E2E8F0]">
+                <span className="text-[10.5px] font-ui font-bold text-[#18181B] flex items-center gap-1">
+                  <Clock size={11} className="text-[#10B981]" />
+                  <span>Weekday Rhythm</span>
                 </span>
-                <span className="text-[9.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">
-                  Peak: {peakDay.label}
+                <span className="text-[8.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1 py-0.2 rounded">
+                  {peakDay.label} ★
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {dayOfWeekRhythm.map(d => {
                   const isPeak = d.label === peakDay.label;
                   return (
                     <div key={d.label} className="space-y-0.5">
-                      <div className="flex items-center justify-between text-[10.5px] font-ui">
+                      <div className="flex items-center justify-between text-[9px] font-ui">
                         <span className={`font-semibold ${isPeak ? 'text-[#10B981]' : 'text-[#71717A]'}`}>
                           {d.label} {isPeak && '★'}
                         </span>
                         <span className="font-num font-bold text-[#18181B]">{d.avgScore}%</span>
                       </div>
-                      <div className="w-full bg-[#E2E8F0] h-[5px] rounded-full overflow-hidden">
+                      <div className="w-full bg-[#E2E8F0] h-[3.5px] rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${
                             isPeak ? 'bg-[#10B981]' : d.avgScore >= 50 ? 'bg-[#18181B]' : 'bg-[#94A3B8]'
@@ -789,8 +789,8 @@ export const YearlyStatsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-2.5 rounded-[6px] bg-white border border-[#E2E8F0] text-[10px] text-[#71717A] font-ui leading-relaxed">
-              <strong className="text-[#18181B]">{peakDay.label}</strong> is your highest velocity execution window (+{peakDay.totalExp} EXP generated).
+            <div className="p-1.5 rounded-[4px] bg-white border border-[#E2E8F0] text-[8.5px] text-[#71717A] font-ui text-center leading-tight">
+              Peak: <strong className="text-[#18181B]">{peakDay.label}</strong> (+{peakDay.totalExp} EXP)
             </div>
           </div>
 
