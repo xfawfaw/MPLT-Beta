@@ -1,23 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
-  Check, 
   Plus, 
   Trash2, 
   Calendar, 
   ChevronLeft, 
   ChevronRight, 
   TrendingUp, 
-  Flame, 
-  LayoutGrid, 
-  Clock, 
-  ListFilter, 
-  ArrowUpRight, 
-  CheckCircle2,
-  BrainCircuit,
-  Target
+  Flame
 } from 'lucide-react';
-import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { AgentPlanning, PlanStep, PlanStepStatus } from '@/components/ui/ai-planning';
 import { WeeklyTask, AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
@@ -38,9 +29,7 @@ export const WeeklyPlannerView: React.FC = () => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const sprintWeek = useMemo(() => dateUtils.getSprintWeekInfo(weekOffset), [weekOffset, today]);
 
-  const [activeViewMode, setActiveViewMode] = useState<'grid' | 'spotlight' | 'ai-plan' | 'agenda'>('grid');
   const [selectedSpotlightDay, setSelectedSpotlightDay] = useState<number>(today.dayOfWeekIndex); // Default to today
-  const [filterPriority, setFilterPriority] = useState<string>('all');
   const [activeDayModal, setActiveDayModal] = useState<number | null>(null);
   
   // Task form state
@@ -174,100 +163,6 @@ export const WeeklyPlannerView: React.FC = () => {
     }));
   }, [spotlightDayData, toggleWeeklyTask, deleteWeeklyTask]);
 
-  // Synthesize Complete AI Strategic Sprint Plan
-  const aiSprintPlanSteps: PlanStep[] = useMemo(() => {
-    return [
-      {
-        id: 'sprint-overview',
-        title: `Sprint Week Architecture (${sprintWeek.sprintWeekRangeStr})`,
-        status: completedTasks > 0 ? 'success' : 'active',
-        duration: 'Sprint Phase',
-        icon: <Target className="w-3.5 h-3.5" />,
-        defaultExpanded: true,
-        content: (
-          <div className="space-y-2 font-mono text-[11px] text-[#71717A] mt-2">
-            <div className="flex items-start gap-2 text-[#10B981] font-medium">
-              <Check className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-              <span>Sprint Targets: {totalTasks} Workload Items mapped to 7 sprint trajectories</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 bg-[#F9FAFB] p-2.5 rounded-md border border-[#E2E8F0]">
-              <div>
-                <span className="text-[#71717A] text-[10px] block">COMPLETION:</span>
-                <span className="text-[#18181B] font-bold font-num">{completionPercentage}% ({completedTasks}/{totalTasks})</span>
-              </div>
-              <div>
-                <span className="text-[#71717A] text-[10px] block">TOTAL EXP:</span>
-                <span className="text-[#10B981] font-bold font-num">+{totalWeeklyExp} EXP</span>
-              </div>
-              <div>
-                <span className="text-[#71717A] text-[10px] block">HIGH PRIORITY:</span>
-                <span className="text-[#E11D48] font-bold font-num">{weekTasks.filter(t => t.priority === 'High').length} Tasks</span>
-              </div>
-              <div>
-                <span className="text-[#71717A] text-[10px] block">PACE STATUS:</span>
-                <span className="text-[#18181B] font-bold">Optimal Velocity</span>
-              </div>
-            </div>
-          </div>
-        )
-      },
-      ...dayStats.map((day) => {
-        const isPastOrToday = day.index <= today.dayOfWeekIndex;
-        const allDone = day.total > 0 && day.done === day.total;
-        const hasHigh = day.tasks.some(t => t.priority === 'High' && !t.isCompleted);
-        
-        return {
-          id: `day-plan-${day.index}`,
-          title: `${day.name} (${day.date}) — ${day.done}/${day.total} Executed (${day.displayPct})`,
-          status: (allDone ? 'success' : day.isToday ? 'active' : hasHigh && isPastOrToday ? 'error' : 'pending') as PlanStepStatus,
-          duration: `${day.tasks.reduce((acc, t) => acc + parseInt(t.timeEstimate || '45'), 0)}m`,
-          defaultExpanded: day.isToday,
-          content: (
-            <div className="space-y-2 mt-2">
-              <div className="p-3 bg-white border border-[#E2E8F0] rounded-lg shadow-2xs space-y-2">
-                <div className="flex items-center justify-between text-[11px] pb-1.5 border-b border-[#F1F5F9]">
-                  <span className="font-bold text-[#18181B]">{day.name} Task Pipeline</span>
-                  <span className="text-[#10B981] font-bold font-num">+{day.expEarned} / +{day.totalExp} EXP</span>
-                </div>
-                <div className="space-y-1.5">
-                  {day.tasks.map((task) => (
-                    <div 
-                      key={task.id}
-                      onClick={() => {
-                        toggleWeeklyTask(task.id);
-                        sound.playPop();
-                      }}
-                      className="flex items-center justify-between p-2 rounded bg-[#F9FAFB] hover:bg-[#F4F4F5] border border-[#E2E8F0] cursor-pointer transition-colors text-[11px]"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center ${
-                          task.isCompleted ? 'bg-[#18181B] text-white' : 'bg-white border-[#CBD5E1]'
-                        }`}>
-                          {task.isCompleted && <Check size={10} className="stroke-[3]" />}
-                        </div>
-                        <span className={`truncate font-ui ${task.isCompleted ? 'line-through text-[#71717A]' : 'text-[#18181B] font-medium'}`}>
-                          {task.title}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-num text-[#71717A] ml-2 flex-shrink-0">
-                        {task.timeEstimate || '45m'}
-                      </span>
-                    </div>
-                  ))}
-                  {day.tasks.length === 0 && (
-                    <div className="text-center py-2 text-[11px] text-[#A1A1AA]">
-                      No scheduled tasks for this day.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        };
-      })
-    ];
-  }, [sprintWeek, totalTasks, completedTasks, completionPercentage, totalWeeklyExp, weekTasks, dayStats, today, toggleWeeklyTask]);
-
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeDayModal === null || !newTaskTitle.trim()) return;
@@ -364,30 +259,14 @@ export const WeeklyPlannerView: React.FC = () => {
             </div>
           </div>
 
-          {/* View Mode Switcher */}
           <div className="flex items-center gap-2">
-            <ExpandableTabs
-              size="sm"
-              tabs={[
-                { id: 'grid', title: 'Sprint Board', icon: LayoutGrid },
-                { id: 'spotlight', title: 'Day Spotlight & Timeline', icon: Clock },
-                { id: 'ai-plan', title: 'AI Strategic Protocol', icon: BrainCircuit },
-                { id: 'agenda', title: 'Agenda List', icon: ListFilter },
-              ]}
-              selectedIndex={
-                activeViewMode === 'grid' ? 0 : activeViewMode === 'spotlight' ? 1 : activeViewMode === 'ai-plan' ? 2 : 3
-              }
-              activeBgColor="bg-[#18181B]"
-              activeColor="text-white"
-              className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
-              onChange={(idx) => {
-                sound.playClick();
-                if (idx === 0) setActiveViewMode('grid');
-                else if (idx === 1) setActiveViewMode('spotlight');
-                else if (idx === 2) setActiveViewMode('ai-plan');
-                else if (idx === 3) setActiveViewMode('agenda');
-              }}
-            />
+            <button
+              onClick={() => setActiveDayModal(selectedSpotlightDay)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all shadow-xs cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>Schedule New Task</span>
+            </button>
           </div>
         </div>
 
@@ -425,7 +304,6 @@ export const WeeklyPlannerView: React.FC = () => {
                     key={d.index}
                     onClick={() => {
                       setSelectedSpotlightDay(d.index);
-                      if (activeViewMode !== 'spotlight') setActiveViewMode('spotlight');
                       sound.playClick();
                     }}
                     className={`flex flex-col items-center gap-1.5 cursor-pointer p-1.5 rounded-[6px] transition-all select-none ${
@@ -531,488 +409,137 @@ export const WeeklyPlannerView: React.FC = () => {
       </section>
 
       {/* ========================================================
-          VIEW MODE 1: SPRINT BOARD (SPACIOUS 7-DAY WORKSTATION)
+          UNIFIED DAY EXECUTION & AGENT PLANNING WORKSTATION
           ======================================================== */}
-      {activeViewMode === 'grid' && (
-        <section className="space-y-4">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Column (Span 4): Day Selector & Daily Progress Card */}
+        <div className="lg:col-span-4 space-y-4">
           
-          {/* Quick Day Navigator Pills */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-              {daysConfig.map((d) => {
+          {/* Day Selector List */}
+          <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0]">
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#E2E8F0]">
+              <h3 className="text-[12px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
+                Sprint Days
+              </h3>
+              <span className="text-[10.5px] font-num text-[#71717A]">
+                7 Days Protocol
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              {dayStats.map((d) => {
                 const isSelected = selectedSpotlightDay === d.index;
-                const stats = dayStats[d.index];
                 return (
                   <button
                     key={d.index}
                     onClick={() => {
                       setSelectedSpotlightDay(d.index);
-                      setActiveViewMode('spotlight');
                       sound.playClick();
                     }}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] text-[11px] font-ui font-medium border transition-all ${
+                    className={`w-full flex items-center justify-between p-2.5 rounded-[8px] text-left transition-all cursor-pointer select-none border ${
                       isSelected
-                        ? 'bg-[#18181B] text-white border-[#18181B]'
-                        : 'bg-white text-[#71717A] border-[#E2E8F0] hover:border-[#CBD5E1]'
+                        ? 'bg-[#18181B] text-white shadow-sm font-bold border-[#18181B]'
+                        : 'hover:bg-[#F4F4F5] text-[#18181B] bg-white border-[#E2E8F0]/60'
                     }`}
                   >
-                    <span>{d.name}</span>
-                    <span className={`font-num px-1.5 py-0.2 rounded text-[10px] ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-[#F1F5F9] text-[#18181B]'
-                    }`}>
-                      {stats.done}/{stats.total}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="text-[11px] text-[#71717A] font-ui">
-              Click any day column to expand spotlight
-            </div>
-          </div>
-
-          {/* Responsive Comfortable Multi-Column Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3.5 items-stretch">
-            {dayStats.map((day) => {
-              const isToday = day.isToday;
-              const isAllCompleted = day.total > 0 && day.done === day.total;
-
-              return (
-                <div
-                  key={day.index}
-                  className={`bg-white border rounded-[12px] overflow-hidden flex flex-col min-h-[500px] transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)] relative group/column ${
-                    isToday
-                      ? 'border-[#18181B] ring-1 ring-[#18181B]/15 shadow-sm'
-                      : isAllCompleted
-                      ? 'border-emerald-200 hover:border-emerald-300'
-                      : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
-                  }`}
-                >
-                  {/* Top accent highlight bar */}
-                  {isToday && (
-                    <div className="h-[3px] w-full bg-[#18181B] absolute top-0 left-0" />
-                  )}
-                  {!isToday && isAllCompleted && (
-                    <div className="h-[3px] w-full bg-[#10B981] absolute top-0 left-0" />
-                  )}
-
-                  {/* Column Header */}
-                  <div className="p-3.5 border-b border-[#F1F5F9] bg-[#FFFFFF] flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <h3 className="text-[13px] font-bold tracking-tight text-[#18181B] font-ui truncate">
-                          {day.name}
-                        </h3>
-                        <span className="text-[11px] font-num text-[#71717A] flex-shrink-0">
-                          {day.date.split('.').slice(0, 2).join('.')}
-                        </span>
-                        {isToday && (
-                          <span className="bg-[#18181B] text-white text-[8.5px] font-bold font-ui px-1.5 py-0.5 rounded-[3px] tracking-wide flex-shrink-0">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[13px] font-ui">{d.name}</span>
+                        {d.isToday && (
+                          <span className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-[#18181B] text-white'
+                          }`}>
                             TODAY
                           </span>
                         )}
                       </div>
-
-                      <div className="flex items-center gap-0.5 flex-shrink-0">
-                        <button
-                          onClick={() => setActiveDayModal(day.index)}
-                          className="p-1 rounded-[4px] text-[#71717A] hover:text-[#18181B] hover:bg-[#F1F5F9] transition-colors"
-                          title={`Add task to ${day.name}`}
-                        >
-                          <Plus size={13} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedSpotlightDay(day.index);
-                            setActiveViewMode('spotlight');
-                            sound.playClick();
-                          }}
-                          className="p-1 rounded-[4px] text-[#71717A] hover:text-[#18181B] hover:bg-[#F1F5F9] transition-colors"
-                          title="Open Day Spotlight"
-                        >
-                          <ArrowUpRight size={13} />
-                        </button>
-                      </div>
+                      <span className={`text-[10px] font-num ${isSelected ? 'text-[#94A3B8]' : 'text-[#71717A]'}`}>
+                        {d.date}
+                      </span>
                     </div>
 
-                    {/* Integrated Progress Bar & Stats */}
-                    <div>
-                      <div className="w-full h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden flex">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            day.pct >= 100 ? 'bg-[#10B981]' : day.pct > 0 ? 'bg-[#18181B]' : 'bg-transparent'
-                          }`}
-                          style={{ width: `${Math.min(100, Math.max(0, day.pct))}%` }}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between mt-1.5 text-[10px]">
-                        <span className="font-num text-[#71717A]">
-                          {day.done}/{day.total} Done
-                        </span>
-                        <span className={`font-num font-bold flex items-center gap-1 ${
-                          day.pct >= 100 ? 'text-[#10B981]' : day.pct > 0 ? 'text-[#18181B]' : 'text-[#A1A1AA]'
-                        }`}>
-                          {day.pct >= 100 && <CheckCircle2 size={11} className="stroke-[2.5]" />}
-                          <span>{day.displayPct}</span>
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2 font-num">
+                      <span className={`text-[10.5px] px-2 py-0.5 rounded font-bold ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-[#F1F5F9] text-[#71717A]'
+                      }`}>
+                        {d.done}/{d.total}
+                      </span>
+                      <span className={`text-[12px] font-bold w-11 text-right ${
+                        isSelected ? 'text-[#10B981]' : d.pct >= 100 ? 'text-[#10B981]' : 'text-[#18181B]'
+                      }`}>
+                        {d.displayPct}
+                      </span>
                     </div>
-                  </div>
-
-                  {/* Task Card Stack */}
-                  <div className="p-2.5 flex-1 space-y-2 overflow-y-auto max-h-[380px] bg-[#FAFAFC]/40">
-                    {day.tasks.map((task) => {
-                      return (
-                        <div
-                          key={task.id}
-                          onClick={() => toggleWeeklyTask(task.id)}
-                          className={`group/card p-2.5 rounded-[8px] border text-left transition-all duration-150 cursor-pointer select-none relative ${
-                            task.isCompleted
-                              ? 'bg-[#F9FAFB]/90 border-[#E2E8F0]/80 opacity-75 hover:opacity-100'
-                              : 'bg-[#FFFFFF] border-[#E2E8F0] hover:border-[#18181B] hover:shadow-[0_2px_6px_rgba(0,0,0,0.03)]'
-                          }`}
-                        >
-                          <div className="flex items-start gap-2">
-                            {/* Tactile Checkbox */}
-                            <div
-                              className={`w-4 h-4 rounded-[3.5px] border mt-0.5 flex-shrink-0 flex items-center justify-center transition-all ${
-                                task.isCompleted
-                                  ? 'bg-[#18181B] border-[#18181B] text-white shadow-xs'
-                                  : 'bg-white border-[#CBD5E1] group-hover/card:border-[#18181B]'
-                              }`}
-                            >
-                              {task.isCompleted && <Check size={11} className="stroke-[3]" />}
-                            </div>
-
-                            {/* Task Content */}
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-[12px] font-ui leading-snug break-words ${
-                                task.isCompleted
-                                  ? 'line-through text-[#94A3B8]'
-                                  : 'text-[#18181B] font-medium group-hover/card:text-black'
-                              }`}>
-                                {task.title}
-                              </p>
-
-                              {/* Meta Tags Row */}
-                              <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[9px]">
-                                <span className={`font-num font-bold px-1.5 py-0.5 rounded-[3.5px] flex items-center gap-1 uppercase ${
-                                  task.priority === 'High'
-                                    ? 'bg-rose-50 text-[#E11D48] border border-rose-200/70'
-                                    : task.priority === 'Med'
-                                    ? 'bg-amber-50 text-amber-700 border border-amber-200/70'
-                                    : 'bg-[#F1F5F9] text-[#71717A] border border-[#E2E8F0]'
-                                }`}>
-                                  <span className={`w-1 h-1 rounded-full ${
-                                    task.priority === 'High'
-                                      ? 'bg-[#E11D48]'
-                                      : task.priority === 'Med'
-                                      ? 'bg-amber-500'
-                                      : 'bg-[#71717A]'
-                                  }`} />
-                                  {task.priority}
-                                </span>
-
-                                <span className="font-ui font-medium px-1.5 py-0.5 rounded-[3.5px] bg-[#F1F5F9] text-[#71717A] border border-[#E2E8F0]/50">
-                                  {task.category}
-                                </span>
-
-                                {task.timeEstimate && (
-                                  <span className="font-num text-[#71717A] flex items-center gap-0.5 ml-auto sm:ml-0">
-                                    <Clock size={9.5} className="text-[#A1A1AA]" />
-                                    {task.timeEstimate}
-                                  </span>
-                                )}
-
-                                <span className="font-num text-[#10B981] font-semibold ml-auto">
-                                  +{task.expReward}xp
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Delete Action on Hover */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteWeeklyTask(task.id);
-                                sound.playClick();
-                              }}
-                              className="opacity-0 group-hover/card:opacity-100 text-[#A1A1AA] hover:text-[#E11D48] p-1 hover:bg-rose-50 rounded transition-all flex-shrink-0"
-                              title="Delete task"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {day.tasks.length === 0 && (
-                      <div className="py-7 px-3 text-center rounded-[8px] border border-dashed border-[#E2E8F0] bg-white my-1 flex flex-col items-center justify-center gap-1.5">
-                        <Calendar size={16} className="text-[#CBD5E1]" />
-                        <span className="text-[11px] text-[#A1A1AA] font-ui">
-                          No tasks scheduled
-                        </span>
-                        <button
-                          onClick={() => setActiveDayModal(day.index)}
-                          className="text-[10.5px] text-[#18181B] font-medium hover:underline flex items-center gap-1 mt-0.5 font-ui"
-                        >
-                          <Plus size={11} />
-                          <span>Add first task</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Column Footer */}
-                  <div className="p-2.5 border-t border-[#F1F5F9] bg-[#FFFFFF] flex flex-col gap-1.5">
-                    <button
-                      onClick={() => setActiveDayModal(day.index)}
-                      className="w-full py-1.5 px-2.5 rounded-[6px] border border-dashed border-[#CBD5E1] hover:border-[#18181B] hover:bg-[#F8FAFC] text-[11px] font-medium text-[#71717A] hover:text-[#18181B] flex items-center justify-center gap-1.5 transition-all duration-150 group/add font-ui"
-                    >
-                      <Plus size={12} className="text-[#A1A1AA] group-hover/add:text-[#18181B] group-hover/add:scale-110 transition-transform" />
-                      <span>Add Task</span>
-                    </button>
-
-                    {day.tasks.length > 0 && (
-                      <div className="flex items-center justify-between text-[9.5px] font-num text-[#A1A1AA] px-0.5 pt-0.5">
-                        <span>EXP Yield</span>
-                        <span className="text-[#10B981] font-medium">
-                          +{day.expEarned} / +{day.totalExp} XP
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </section>
-      )}
 
-      {/* ========================================================
-          VIEW MODE 2: DAY SPOTLIGHT & AGENT PLANNING TIMELINE VIEW
-          ======================================================== */}
-      {activeViewMode === 'spotlight' && (
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Left Column (Span 4): Day Selector & Daily Progress Card */}
-          <div className="lg:col-span-4 space-y-4">
+          {/* Quick Summary Card */}
+          <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0] text-center">
+            <span className="text-[11px] font-ui uppercase tracking-wider text-[#71717A]">
+              {spotlightDayData.name} Completion Pace
+            </span>
+            <div className="text-[28px] font-num font-bold text-[#18181B] my-1">
+              {spotlightDayData.displayPct}
+            </div>
+            <p className="text-[11px] text-[#71717A] font-ui">
+              {spotlightDayData.done} completed out of {spotlightDayData.total} planned items
+            </p>
+          </div>
+
+        </div>
+
+        {/* Right Column (Span 8): Dedicated Spacious Task Workstation with AgentPlanning Timeline */}
+        <div className="lg:col-span-8 space-y-4">
+          <div className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0]">
             
-            {/* Day Selector List */}
-            <div className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0]">
-              <h3 className="text-[12px] font-bold text-[#18181B] font-ui uppercase tracking-wider mb-3 pb-2 border-b border-[#E2E8F0]">
-                Select Active Day
-              </h3>
-
-              <div className="space-y-1.5">
-                {dayStats.map((d) => {
-                  const isSelected = selectedSpotlightDay === d.index;
-                  return (
-                    <button
-                      key={d.index}
-                      onClick={() => setSelectedSpotlightDay(d.index)}
-                      className={`w-full flex items-center justify-between p-2.5 rounded-[6px] text-left transition-all ${
-                        isSelected
-                          ? 'bg-[#18181B] text-white shadow-sm font-bold'
-                          : 'hover:bg-[#F4F4F5] text-[#18181B]'
-                      }`}
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-ui">{d.name}</span>
-                        <span className={`text-[10px] font-num ${isSelected ? 'text-[#94A3B8]' : 'text-[#71717A]'}`}>
-                          {d.date}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 font-num">
-                        <span className={`text-[11px] px-2 py-0.5 rounded ${
-                          isSelected ? 'bg-white/20 text-white' : 'bg-[#F1F5F9] text-[#71717A]'
-                        }`}>
-                          {d.done}/{d.total}
-                        </span>
-                        <span className={`text-[12px] font-bold w-10 text-right ${
-                          isSelected ? 'text-[#10B981]' : d.pct >= 100 ? 'text-[#10B981]' : 'text-[#18181B]'
-                        }`}>
-                          {d.displayPct}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Quick Summary Card */}
-            <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0] text-center">
-              <span className="text-[11px] font-ui uppercase tracking-wider text-[#71717A]">
-                {spotlightDayData.name} Completion Pace
-              </span>
-              <div className="text-[28px] font-num font-bold text-[#18181B] my-1">
-                {spotlightDayData.displayPct}
-              </div>
-              <p className="text-[11px] text-[#71717A] font-ui">
-                {spotlightDayData.done} completed out of {spotlightDayData.total} planned items
-              </p>
-            </div>
-
-          </div>
-
-          {/* Right Column (Span 8): Dedicated Spacious Task Workstation with AgentPlanning Timeline */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0]">
-              
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E2E8F0] flex-wrap gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
-                    <h2 className="text-[18px] font-bold text-[#18181B] font-ui tracking-tight">
-                      {spotlightDayData.name} — Task Execution Timeline
-                    </h2>
-                  </div>
-                  <p className="text-[12px] text-[#71717A] font-num mt-0.5">
-                    Scheduled Date: {spotlightDayData.date} • {spotlightDayData.done}/{spotlightDayData.total} Completed ({spotlightDayData.displayPct})
-                  </p>
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E2E8F0] flex-wrap gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
+                  <h2 className="text-[18px] font-bold text-[#18181B] font-ui tracking-tight">
+                    {spotlightDayData.name} — Task Execution Timeline
+                  </h2>
                 </div>
-
-                <button
-                  onClick={() => setActiveDayModal(spotlightDayData.index)}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all shadow-xs cursor-pointer"
-                >
-                  <Plus size={14} />
-                  <span>Add Task for Today</span>
-                </button>
+                <p className="text-[12px] text-[#71717A] font-num mt-0.5">
+                  Scheduled Date: {spotlightDayData.date} • {spotlightDayData.done}/{spotlightDayData.total} Completed ({spotlightDayData.displayPct})
+                </p>
               </div>
 
-              {/* AgentPlanning Timeline Component */}
-              {spotlightSteps.length > 0 ? (
-                <AgentPlanning 
-                  title={`${spotlightDayData.name} Execution Architecture`}
-                  subtitle={`Target: ${spotlightDayData.total} items scheduled • ${spotlightDayData.done} resolved`}
-                  steps={spotlightSteps}
-                  isCollapsible={false}
-                  defaultExpanded={true}
-                  onAddStep={() => setActiveDayModal(spotlightDayData.index)}
-                />
-              ) : (
-                <div className="py-12 text-center text-[#71717A] font-ui text-[13px] border border-dashed border-[#E2E8F0] rounded-[10px] bg-[#F9FAFB]/50">
-                  <Calendar size={20} className="text-[#CBD5E1] mx-auto mb-2" />
-                  <p className="font-medium text-[#18181B]">No tasks scheduled for {spotlightDayData.name}</p>
-                  <p className="text-[11px] text-[#71717A] mt-0.5">Click "Add Task for Today" to construct this day's execution timeline.</p>
-                </div>
-              )}
-
-            </div>
-          </div>
-
-        </section>
-      )}
-
-      {/* ========================================================
-          VIEW MODE 3: AI STRATEGIC SPRINT PROTOCOL
-          ======================================================== */}
-      {activeViewMode === 'ai-plan' && (
-        <section className="space-y-6">
-          <AgentPlanning 
-            title="Sprint Week Strategic Execution Protocol"
-            subtitle={`AI synthesized execution plan for sprint week ${sprintWeek.sprintWeekRangeStr}`}
-            steps={aiSprintPlanSteps}
-            isCollapsible={false}
-            defaultExpanded={true}
-          />
-        </section>
-      )}
-
-      {/* ========================================================
-          VIEW MODE 4: AGENDA LIST VIEW
-          ======================================================== */}
-      {activeViewMode === 'agenda' && (
-        <section className="mplt-card bg-[#FFFFFF] border border-[#E2E8F0] p-6 space-y-4">
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
-            <div>
-              <h3 className="text-[16px] font-bold text-[#18181B] font-ui">
-                Full Weekly Chronological Agenda
-              </h3>
-              <p className="text-[12px] text-[#71717A]">
-                Unified chronological sprint view across all 7 days
-              </p>
+              <button
+                onClick={() => setActiveDayModal(spotlightDayData.index)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[12px] font-bold transition-all shadow-xs cursor-pointer"
+              >
+                <Plus size={14} />
+                <span>Add Task for Today</span>
+              </button>
             </div>
 
-            {/* Filter Priority */}
-            <div className="flex items-center gap-2">
-              {(['all', 'High', 'Med', 'Low'] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setFilterPriority(p)}
-                  className={`px-2.5 py-1 rounded-[5px] text-[11px] font-ui transition-colors capitalize ${
-                    filterPriority === p
-                      ? 'bg-[#18181B] text-white font-bold'
-                      : 'bg-[#F1F5F9] text-[#71717A] hover:text-[#18181B]'
-                  }`}
-                >
-                  {p === 'all' ? 'All Priorities' : `${p} Only`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {weekTasks
-              .filter(t => filterPriority === 'all' || t.priority === filterPriority)
-              .map((task) => (
-                <div
-                  key={task.id}
-                  onClick={() => toggleWeeklyTask(task.id)}
-                  className={`p-3 rounded-[6px] border flex items-center justify-between gap-3 transition-colors cursor-pointer select-none ${
-                    task.isCompleted ? 'bg-[#F9FAFB] border-[#E2E8F0]' : 'bg-white border-[#E2E8F0] hover:border-[#18181B]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-4 h-4 rounded-[3px] border flex items-center justify-center ${
-                        task.isCompleted ? 'bg-[#18181B] border-[#18181B] text-white' : 'border-[#18181B]'
-                      }`}
-                    >
-                      {task.isCompleted && <Check size={11} className="stroke-[3]" />}
-                    </div>
-
-                    <span className="font-num text-[11px] font-bold px-2 py-0.5 rounded bg-[#18181B] text-white uppercase">
-                      {task.dayName.substring(0, 3)}
-                    </span>
-
-                    <span className={`text-[13px] font-ui ${
-                      task.isCompleted ? 'line-through text-[#71717A]' : 'text-[#18181B] font-medium'
-                    }`}>
-                      {task.title}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-num font-bold px-2 py-0.5 rounded uppercase ${
-                      task.priority === 'High' ? 'bg-rose-50 text-[#E11D48]' : 'bg-[#F1F5F9] text-[#71717A]'
-                    }`}>
-                      {task.priority}
-                    </span>
-                    <span className="text-[11px] font-num font-semibold text-[#10B981]">
-                      +{task.expReward} EXP
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-            {weekTasks.filter(t => filterPriority === 'all' || t.priority === filterPriority).length === 0 && (
-              <div className="py-12 text-center text-[#71717A] font-ui text-[13px] border border-dashed border-[#E2E8F0] rounded-[8px]">
-                No tasks scheduled for this sprint week matching filter
+            {/* AgentPlanning Timeline Component */}
+            {spotlightSteps.length > 0 ? (
+              <AgentPlanning 
+                title={`${spotlightDayData.name} Execution Architecture`}
+                subtitle={`Target: ${spotlightDayData.total} items scheduled • ${spotlightDayData.done} resolved`}
+                steps={spotlightSteps}
+                isCollapsible={false}
+                defaultExpanded={true}
+                onAddStep={() => setActiveDayModal(spotlightDayData.index)}
+              />
+            ) : (
+              <div className="py-12 text-center text-[#71717A] font-ui text-[13px] border border-dashed border-[#E2E8F0] rounded-[10px] bg-[#F9FAFB]/50">
+                <Calendar size={20} className="text-[#CBD5E1] mx-auto mb-2" />
+                <p className="font-medium text-[#18181B]">No tasks scheduled for {spotlightDayData.name}</p>
+                <p className="text-[11px] text-[#71717A] mt-0.5">Click "Add Task for Today" to construct this day's execution timeline.</p>
               </div>
             )}
-          </div>
 
-        </section>
-      )}
+          </div>
+        </div>
+
+      </section>
 
       {/* Add Task Modal */}
       {activeDayModal !== null && (
