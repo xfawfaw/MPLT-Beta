@@ -430,10 +430,10 @@ export const YearlyStatsView: React.FC = () => {
   // SVG Chart Geometry for 52-Week Granular Curve
   const chartGeometry = useMemo(() => {
     const width = 1000;
-    const height = 210;
+    const height = 250;
     const paddingLeft = 40;
     const paddingRight = 25;
-    const paddingTop = 20;
+    const paddingTop = 22;
     const paddingBottom = 34;
 
     const plotWidth = width - paddingLeft - paddingRight;
@@ -620,48 +620,42 @@ export const YearlyStatsView: React.FC = () => {
             </p>
           </div>
 
-          {/* Metric Selector Pills */}
-          <div className="flex items-center gap-1 bg-[#F1F5F9] p-1 rounded-[6px] text-[11px] font-ui font-semibold flex-shrink-0">
-            <button
-              onClick={() => setHeatmapMode('habits')}
-              className={`px-2.5 py-1 rounded transition-all ${
-                heatmapMode === 'habits' ? 'bg-[#18181B] text-white shadow-xs' : 'text-[#71717A] hover:text-[#18181B]'
-              }`}
-            >
-              Habit Consistency
-            </button>
-            <button
-              onClick={() => setHeatmapMode('tasks')}
-              className={`px-2.5 py-1 rounded transition-all ${
-                heatmapMode === 'tasks' ? 'bg-[#18181B] text-white shadow-xs' : 'text-[#71717A] hover:text-[#18181B]'
-              }`}
-            >
-              Task Volume
-            </button>
-            <button
-              onClick={() => setHeatmapMode('exp')}
-              className={`px-2.5 py-1 rounded transition-all ${
-                heatmapMode === 'exp' ? 'bg-[#18181B] text-white shadow-xs' : 'text-[#71717A] hover:text-[#18181B]'
-              }`}
-            >
-              EXP Density
-            </button>
-            <button
-              onClick={() => setHeatmapMode('finance')}
-              className={`px-2.5 py-1 rounded transition-all ${
-                heatmapMode === 'finance' ? 'bg-[#18181B] text-white shadow-xs' : 'text-[#71717A] hover:text-[#18181B]'
-              }`}
-            >
-              Capital Outflow
-            </button>
+          {/* Metric Selector Tabs */}
+          <div className="flex items-center gap-1.5 bg-[#F1F5F9] p-1 rounded-[8px] border border-[#E2E8F0] text-[11px] font-ui font-semibold flex-wrap">
+            {[
+              { id: 'habits', label: 'Habit Consistency', icon: Calendar },
+              { id: 'tasks', label: 'Task Volume', icon: CheckCircle2 },
+              { id: 'exp', label: 'EXP Density', icon: Sparkles },
+              { id: 'finance', label: 'Capital Outflow', icon: DollarSign },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = heatmapMode === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setHeatmapMode(tab.id as any);
+                    sound.playPop();
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] transition-all cursor-pointer ${
+                    isActive 
+                      ? 'bg-[#18181B] text-white shadow-xs font-bold' 
+                      : 'text-[#71717A] hover:text-[#18181B] hover:bg-white/60'
+                  }`}
+                >
+                  <Icon size={12} className={isActive ? 'text-[#10B981]' : 'text-[#71717A]'} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* 2-Column: 52-Week Grid (Span 9) & Day-of-Week Rhythm Index (Span 3) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* 2-Column: 52-Week Grid (Span 9) & Day-of-Week Rhythm Index (Span 3) with Equal Height */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
           
           {/* 52-Week Horizontal Grid Container (9 Cols) */}
-          <div className="lg:col-span-9 overflow-x-auto no-scrollbar p-3 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px]">
+          <div className="lg:col-span-9 overflow-x-auto no-scrollbar p-4 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between">
             <div className="min-w-[760px] space-y-1.5 select-none">
               
               {/* Month Labels Bar */}
@@ -728,7 +722,7 @@ export const YearlyStatsView: React.FC = () => {
             </div>
 
             {/* Hover Telemetry Readout Below Grid */}
-            <div className="pt-2.5 mt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[10.5px]">
+            <div className="pt-3 mt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[10.5px]">
               <div className="flex items-center gap-2 text-[#71717A] font-ui">
                 {hoveredCell ? (
                   <div className="inline-flex items-center gap-2 font-num text-[#18181B]">
@@ -757,43 +751,45 @@ export const YearlyStatsView: React.FC = () => {
 
           </div>
 
-          {/* Day-of-Week Operational Rhythm Sidebar (3 Cols) */}
-          <div className="lg:col-span-3 p-3.5 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-              <span className="text-[11.5px] font-ui font-bold text-[#18181B] flex items-center gap-1.5">
-                <Clock size={13} className="text-[#10B981]" />
-                <span>Weekday Output Rhythm</span>
-              </span>
-              <span className="text-[9.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">
-                Peak: {peakDay.label}
-              </span>
+          {/* Day-of-Week Operational Rhythm Sidebar (3 Cols) with Equal Height */}
+          <div className="lg:col-span-3 p-4 bg-[#FAFAFA] border border-[#E2E8F0] rounded-[8px] flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-[#E2E8F0]">
+                <span className="text-[11.5px] font-ui font-bold text-[#18181B] flex items-center gap-1.5">
+                  <Clock size={13} className="text-[#10B981]" />
+                  <span>Weekday Output Rhythm</span>
+                </span>
+                <span className="text-[9.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">
+                  Peak: {peakDay.label}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {dayOfWeekRhythm.map(d => {
+                  const isPeak = d.label === peakDay.label;
+                  return (
+                    <div key={d.label} className="space-y-0.5">
+                      <div className="flex items-center justify-between text-[10.5px] font-ui">
+                        <span className={`font-semibold ${isPeak ? 'text-[#10B981]' : 'text-[#71717A]'}`}>
+                          {d.label} {isPeak && '★'}
+                        </span>
+                        <span className="font-num font-bold text-[#18181B]">{d.avgScore}%</span>
+                      </div>
+                      <div className="w-full bg-[#E2E8F0] h-[5px] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            isPeak ? 'bg-[#10B981]' : d.avgScore >= 50 ? 'bg-[#18181B]' : 'bg-[#94A3B8]'
+                          }`}
+                          style={{ width: `${d.avgScore}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              {dayOfWeekRhythm.map(d => {
-                const isPeak = d.label === peakDay.label;
-                return (
-                  <div key={d.label} className="space-y-0.5">
-                    <div className="flex items-center justify-between text-[10px] font-ui">
-                      <span className={`font-semibold ${isPeak ? 'text-[#10B981]' : 'text-[#71717A]'}`}>
-                        {d.label} {isPeak && '★'}
-                      </span>
-                      <span className="font-num font-bold text-[#18181B]">{d.avgScore}%</span>
-                    </div>
-                    <div className="w-full bg-[#E2E8F0] h-[4px] rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          isPeak ? 'bg-[#10B981]' : d.avgScore >= 50 ? 'bg-[#18181B]' : 'bg-[#94A3B8]'
-                        }`}
-                        style={{ width: `${d.avgScore}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] text-[9.5px] text-[#71717A] font-ui leading-relaxed">
+            <div className="p-2.5 rounded-[6px] bg-white border border-[#E2E8F0] text-[10px] text-[#71717A] font-ui leading-relaxed">
               <strong className="text-[#18181B]">{peakDay.label}</strong> is your highest velocity execution window (+{peakDay.totalExp} EXP generated).
             </div>
           </div>
@@ -805,201 +801,203 @@ export const YearlyStatsView: React.FC = () => {
       {/* ========================================================
           SECTION 2: 52-WEEK MOVING TRAJECTORY & 6-AXIS RADAR
           ======================================================== */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* Left (Span 7): 52-Week Detailed Granular Curve with 4-Week SMA */}
-        <div className="lg:col-span-7 mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
-            <div>
-              <h3 className="text-[13.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
-                <BarChart2 size={15} className="text-[#18181B]" />
-                <span>52-Week Velocity Trajectory & 4-Week Moving Average</span>
-              </h3>
-              <p className="text-[11px] text-[#71717A] font-ui">
-                52-point granular velocity curve mapped with 4-week smoothed trendline
-              </p>
+        <div className="lg:col-span-7 mplt-card p-6 bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col justify-between space-y-4">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
+              <div>
+                <h3 className="text-[13.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-2">
+                  <BarChart2 size={15} className="text-[#18181B]" />
+                  <span>52-Week Velocity Trajectory & 4-Week Moving Average</span>
+                </h3>
+                <p className="text-[11px] text-[#71717A] font-ui">
+                  52-point granular velocity curve mapped with 4-week smoothed trendline
+                </p>
+              </div>
+
+              {/* Hover Tooltip Readout */}
+              <div className="h-6 flex items-center">
+                {activeHoveredWeek ? (
+                  <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-[#18181B] text-white rounded-[5px] text-[11px] font-num animate-in fade-in duration-100">
+                    <span className="font-bold">Week {activeHoveredWeek.weekNumber} ({activeHoveredWeek.quarter}):</span>
+                    <span className="text-[#10B981] font-bold">{activeHoveredWeek.consistency}% Velocity</span>
+                    <span className="text-[#38BDF8]">SMA: {activeHoveredWeek.sma}%</span>
+                    <span className="text-amber-400 font-bold">+{activeHoveredWeek.exp} EXP</span>
+                  </div>
+                ) : (
+                  <span className="text-[10.5px] text-[#71717A] font-ui">Hover any of the 52 nodes for weekly stats</span>
+                )}
+              </div>
             </div>
 
-            {/* Hover Tooltip Readout */}
-            <div className="h-6 flex items-center">
-              {activeHoveredWeek ? (
-                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-[#18181B] text-white rounded-[5px] text-[11px] font-num animate-in fade-in duration-100">
-                  <span className="font-bold">Week {activeHoveredWeek.weekNumber} ({activeHoveredWeek.quarter}):</span>
-                  <span className="text-[#10B981] font-bold">{activeHoveredWeek.consistency}% Velocity</span>
-                  <span className="text-[#38BDF8]">SMA: {activeHoveredWeek.sma}%</span>
-                  <span className="text-amber-400 font-bold">+{activeHoveredWeek.exp} EXP</span>
-                </div>
-              ) : (
-                <span className="text-[10.5px] text-[#71717A] font-ui">Hover any of the 52 nodes for weekly stats</span>
-              )}
-            </div>
-          </div>
+            {/* SVG 52-Week Granular Curve - Expanded Size */}
+            <div className="w-full relative overflow-hidden pt-2">
+              <svg 
+                viewBox={`0 0 ${chartGeometry.width} ${chartGeometry.height}`} 
+                className="w-full h-[240px] sm:h-[260px] overflow-visible select-none"
+              >
+                <defs>
+                  <linearGradient id="granularGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#18181B" stopOpacity="0.20" />
+                    <stop offset="60%" stopColor="#18181B" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#18181B" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
 
-          {/* SVG 52-Week Granular Curve */}
-          <div className="w-full relative overflow-hidden pt-1">
-            <svg 
-              viewBox={`0 0 ${chartGeometry.width} ${chartGeometry.height}`} 
-              className="w-full h-[200px] sm:h-[220px] overflow-visible select-none"
-            >
-              <defs>
-                <linearGradient id="granularGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#18181B" stopOpacity="0.20" />
-                  <stop offset="60%" stopColor="#18181B" stopOpacity="0.05" />
-                  <stop offset="100%" stopColor="#18181B" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
+                {/* Horizontal Reference Gridlines */}
+                {[100, 75, 50, 25, 0].map((level) => {
+                  const y = chartGeometry.paddingTop + (1 - level / 100) * chartGeometry.plotHeight;
+                  return (
+                    <g key={level}>
+                      <line
+                        x1={chartGeometry.paddingLeft}
+                        y1={y}
+                        x2={chartGeometry.width - chartGeometry.paddingRight}
+                        y2={y}
+                        stroke={level === 100 ? '#CBD5E1' : '#F1F5F9'}
+                        strokeWidth={level === 100 ? '1.5' : '1'}
+                        strokeDasharray={level === 100 || level === 0 ? 'none' : '3 3'}
+                      />
+                      <text
+                        x={chartGeometry.paddingLeft - 8}
+                        y={y + 3.5}
+                        textAnchor="end"
+                        className="text-[9.5px] font-num fill-[#71717A] font-medium"
+                      >
+                        {level}%
+                      </text>
+                    </g>
+                  );
+                })}
 
-              {/* Horizontal Reference Gridlines */}
-              {[100, 75, 50, 25, 0].map((level) => {
-                const y = chartGeometry.paddingTop + (1 - level / 100) * chartGeometry.plotHeight;
-                return (
-                  <g key={level}>
-                    <line
-                      x1={chartGeometry.paddingLeft}
-                      y1={y}
-                      x2={chartGeometry.width - chartGeometry.paddingRight}
-                      y2={y}
-                      stroke={level === 100 ? '#CBD5E1' : '#F1F5F9'}
-                      strokeWidth={level === 100 ? '1.5' : '1'}
-                      strokeDasharray={level === 100 || level === 0 ? 'none' : '3 3'}
-                    />
-                    <text
-                      x={chartGeometry.paddingLeft - 8}
-                      y={y + 3.5}
-                      textAnchor="end"
-                      className="text-[9.5px] font-num fill-[#71717A] font-medium"
-                    >
-                      {level}%
-                    </text>
-                  </g>
-                );
-              })}
-
-              {/* Quarter Dividing Guides (W13, W26, W39) */}
-              {[13, 26, 39].map((qWeek, idx) => {
-                const pt = chartGeometry.points[qWeek - 1];
-                if (!pt) return null;
-                return (
-                  <g key={qWeek}>
-                    <line
-                      x1={pt.x}
-                      y1={chartGeometry.paddingTop}
-                      x2={pt.x}
-                      y2={chartGeometry.height - chartGeometry.paddingBottom}
-                      stroke="#CBD5E1"
-                      strokeWidth="1.5"
-                      strokeDasharray="2 2"
-                    />
-                    <text
-                      x={pt.x + 4}
-                      y={chartGeometry.paddingTop + 12}
-                      className="text-[9px] font-ui fill-[#18181B] font-bold tracking-wider"
-                    >
-                      Q{idx + 2} BOUNDARY
-                    </text>
-                  </g>
-                );
-              })}
-
-              {/* Fill Area */}
-              <path d={chartGeometry.areaPath} fill="url(#granularGrad)" />
-
-              {/* 4-Week Simple Moving Average Line (Emerald Dashed) */}
-              <path
-                d={chartGeometry.smaLinePath}
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="1.8"
-                strokeDasharray="4 3"
-                strokeLinecap="round"
-              />
-
-              {/* Primary Curve Stroke */}
-              <path
-                d={chartGeometry.linePath}
-                fill="none"
-                stroke="#18181B"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              {/* 52 Week Nodes */}
-              {chartGeometry.points.map((pt, idx) => {
-                const isHovered = hoveredWeek === idx;
-                const isQuarterMarker = pt.weekNumber % 13 === 0 || pt.weekNumber === 1;
-                const isPeak = pt.consistency >= 94;
-
-                return (
-                  <g
-                    key={pt.weekNumber}
-                    onMouseEnter={() => setHoveredWeek(idx)}
-                    onMouseLeave={() => setHoveredWeek(null)}
-                    className="cursor-pointer transition-all"
-                  >
-                    <rect
-                      x={pt.x - 9}
-                      y={chartGeometry.paddingTop}
-                      width="18"
-                      height={chartGeometry.plotHeight + 20}
-                      fill="transparent"
-                    />
-
-                    {isHovered && (
+                {/* Quarter Dividing Guides (W13, W26, W39) */}
+                {[13, 26, 39].map((qWeek, idx) => {
+                  const pt = chartGeometry.points[qWeek - 1];
+                  if (!pt) return null;
+                  return (
+                    <g key={qWeek}>
                       <line
                         x1={pt.x}
                         y1={chartGeometry.paddingTop}
                         x2={pt.x}
                         y2={chartGeometry.height - chartGeometry.paddingBottom}
-                        stroke="#18181B"
+                        stroke="#CBD5E1"
                         strokeWidth="1.5"
-                        strokeDasharray="3 3"
+                        strokeDasharray="2 2"
                       />
-                    )}
+                      <text
+                        x={pt.x + 4}
+                        y={chartGeometry.paddingTop + 12}
+                        className="text-[9px] font-ui fill-[#18181B] font-bold tracking-wider"
+                      >
+                        Q{idx + 2} BOUNDARY
+                      </text>
+                    </g>
+                  );
+                })}
 
-                    {isHovered && (
+                {/* Fill Area */}
+                <path d={chartGeometry.areaPath} fill="url(#granularGrad)" />
+
+                {/* 4-Week Simple Moving Average Line (Emerald Dashed) */}
+                <path
+                  d={chartGeometry.smaLinePath}
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth="1.8"
+                  strokeDasharray="4 3"
+                  strokeLinecap="round"
+                />
+
+                {/* Primary Curve Stroke */}
+                <path
+                  d={chartGeometry.linePath}
+                  fill="none"
+                  stroke="#18181B"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* 52 Week Nodes */}
+                {chartGeometry.points.map((pt, idx) => {
+                  const isHovered = hoveredWeek === idx;
+                  const isQuarterMarker = pt.weekNumber % 13 === 0 || pt.weekNumber === 1;
+                  const isPeak = pt.consistency >= 94;
+
+                  return (
+                    <g
+                      key={pt.weekNumber}
+                      onMouseEnter={() => setHoveredWeek(idx)}
+                      onMouseLeave={() => setHoveredWeek(null)}
+                      className="cursor-pointer transition-all"
+                    >
+                      <rect
+                        x={pt.x - 9}
+                        y={chartGeometry.paddingTop}
+                        width="18"
+                        height={chartGeometry.plotHeight + 20}
+                        fill="transparent"
+                      />
+
+                      {isHovered && (
+                        <line
+                          x1={pt.x}
+                          y1={chartGeometry.paddingTop}
+                          x2={pt.x}
+                          y2={chartGeometry.height - chartGeometry.paddingBottom}
+                          stroke="#18181B"
+                          strokeWidth="1.5"
+                          strokeDasharray="3 3"
+                        />
+                      )}
+
+                      {isHovered && (
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r="7"
+                          fill="#18181B"
+                          fillOpacity="0.18"
+                        />
+                      )}
+
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r="7"
-                        fill="#18181B"
-                        fillOpacity="0.18"
+                        r={isHovered ? 4.5 : isPeak ? 3.5 : 2}
+                        fill={isHovered ? '#18181B' : isPeak ? '#10B981' : '#FFFFFF'}
+                        stroke={isPeak ? '#10B981' : '#18181B'}
+                        strokeWidth={isHovered ? '2' : '1.5'}
                       />
-                    )}
 
-                    <circle
-                      cx={pt.x}
-                      cy={pt.y}
-                      r={isHovered ? 4.5 : isPeak ? 3.5 : 2}
-                      fill={isHovered ? '#18181B' : isPeak ? '#10B981' : '#FFFFFF'}
-                      stroke={isPeak ? '#10B981' : '#18181B'}
-                      strokeWidth={isHovered ? '2' : '1.5'}
-                    />
-
-                    {/* X-Axis Week Labels every 4 weeks */}
-                    {(pt.weekNumber % 4 === 0 || pt.weekNumber === 1 || pt.weekNumber === 52) && (
-                      <text
-                        x={pt.x}
-                        y={chartGeometry.height - 8}
-                        textAnchor="middle"
-                        className={`text-[9px] font-num ${
-                          isHovered 
-                            ? 'fill-[#18181B] font-bold text-[10px]' 
-                            : isQuarterMarker
-                            ? 'fill-[#18181B] font-semibold'
-                            : 'fill-[#71717A]'
-                        }`}
-                      >
-                        W{pt.weekNumber < 10 ? `0${pt.weekNumber}` : pt.weekNumber}
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
-            </svg>
+                      {/* X-Axis Week Labels every 4 weeks */}
+                      {(pt.weekNumber % 4 === 0 || pt.weekNumber === 1 || pt.weekNumber === 52) && (
+                        <text
+                          x={pt.x}
+                          y={chartGeometry.height - 8}
+                          textAnchor="middle"
+                          className={`text-[9px] font-num ${
+                            isHovered 
+                              ? 'fill-[#18181B] font-bold text-[10px]' 
+                              : isQuarterMarker
+                              ? 'fill-[#18181B] font-semibold'
+                              : 'fill-[#71717A]'
+                          }`}
+                        >
+                          W{pt.weekNumber < 10 ? `0${pt.weekNumber}` : pt.weekNumber}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between text-[10.5px] text-[#71717A] font-ui pt-2 border-t border-[#E2E8F0]">
+          <div className="flex items-center justify-between text-[10.5px] text-[#71717A] font-ui pt-3 border-t border-[#E2E8F0]">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-[2px] bg-[#18181B]" />
@@ -1035,10 +1033,10 @@ export const YearlyStatsView: React.FC = () => {
             </div>
 
             {/* SVG 6-Axis Polygonal Radar Canvas */}
-            <div className="w-full flex items-center justify-center py-2 relative">
+            <div className="w-full flex items-center justify-center py-4 relative">
               <svg 
                 viewBox={`0 0 ${radarGeometry.size} ${radarGeometry.size}`} 
-                className="w-[240px] h-[240px] overflow-visible select-none"
+                className="w-[250px] h-[250px] overflow-visible select-none"
               >
                 {/* Concentric Guide Rings */}
                 {radarGeometry.rings.map((ring, idx) => {
@@ -1106,18 +1104,14 @@ export const YearlyStatsView: React.FC = () => {
             </div>
 
             {/* 6 Domain Score Chips */}
-            <div className="grid grid-cols-3 gap-1.5 pt-1">
+            <div className="grid grid-cols-3 gap-2 pt-2">
               {domainScores.map(d => (
-                <div key={d.area} className="p-1.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[6px] text-center">
-                  <div className="text-[8.5px] text-[#71717A] uppercase font-ui truncate">{d.area}</div>
-                  <div className="text-[11.5px] font-bold font-num text-[#18181B] mt-0.5">{d.score}%</div>
+                <div key={d.area} className="p-2 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[6px] text-center">
+                  <div className="text-[9px] text-[#71717A] uppercase font-ui truncate font-semibold">{d.area}</div>
+                  <div className="text-[12px] font-bold font-num text-[#18181B] mt-0.5">{d.score}%</div>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="p-2.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] text-[10.5px] font-ui text-[#71717A]">
-            <strong className="text-[#18181B]">Equilibrium State:</strong> Life domains show consistent synergy. Reinforce {domainScores.sort((a,b)=>a.score-b.score)[0]?.area || 'habits'} to optimize symmetry.
           </div>
         </div>
 
