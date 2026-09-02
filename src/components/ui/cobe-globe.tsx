@@ -7,6 +7,7 @@ export interface Marker {
   id: string
   location: [number, number]
   label: string
+  size?: number
 }
 
 export interface Arc {
@@ -34,6 +35,7 @@ export interface GlobeProps {
   theta?: number
   diffuse?: number
   mapSamples?: number
+  focusLocation?: [number, number] | null
 }
 
 export function Globe({
@@ -54,6 +56,7 @@ export function Globe({
   theta = 0.2,
   diffuse = 1.5,
   mapSamples = 16000,
+  focusLocation = null,
 }: GlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pointerInteracting = useRef<{ x: number; y: number } | null>(null)
@@ -64,33 +67,68 @@ export function Globe({
   const thetaOffsetRef = useRef(0)
   const isPausedRef = useRef(false)
 
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      pointerInteracting.current = { x: e.clientX, y: e.clientY }
-      if (canvasRef.current) canvasRef.current.style.cursor = "grabbing"
-      isPausedRef.current = true
-    },
-    []
-  )
+  // Keep references updated without triggering full WebGL teardown/rebuild
+  const markersRef = useRef(markers)
+  const arcsRef = useRef(arcs)
+  const focusLocationRef = useRef<[number, number] | null>(focusLocation)
+  const propsRef = useRef({
+    markerColor,
+    baseColor,
+    arcColor,
+    glowColor,
+    dark,
+    mapBrightness,
+    markerSize,
+    markerElevation,
+    speed,
+    theta,
+  })
+
+  useEffect(() => {
+    markersRef.current = markers
+  }, [markers])
+
+  useEffect(() => {
+    arcsRef.current = arcs
+  }, [arcs])
+
+  useEffect(() => {
+    focusLocationRef.current = focusLocation
+  }, [focusLocation])
+
+  useEffect(() => {
+    propsRef.current = {
+      markerColor,
+      baseColor,
+      arcColor,
+      glowColor,
+      dark,
+      mapBrightness,
+      markerSize,
+      markerElevation,
+      speed,
+      theta,
+    }
+  }, [markerColor, baseColor, arcColor, glowColor, dark, mapBrightness, markerSize, markerElevation, speed, theta])
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    pointerInteracting.current = { x: e.clientX, y: e.clientY }
+    if (canvasRef.current) canvasRef.current.style.cursor = "grabbing"
+    isPausedRef.current = true
+  }, [])
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (pointerInteracting.current !== null) {
       const deltaX = e.clientX - pointerInteracting.current.x
       const deltaY = e.clientY - pointerInteracting.current.y
-      dragOffset.current = { phi: deltaX / 300, theta: deltaY / 1000 }
+      dragOffset.current = { phi: deltaX / 280, theta: deltaY / 900 }
       const now = Date.now()
       if (lastPointer.current) {
         const dt = Math.max(now - lastPointer.current.t, 1)
-        const maxVelocity = 0.15
+        const maxVelocity = 0.12
         velocity.current = {
-          phi: Math.max(
-            -maxVelocity,
-            Math.min(maxVelocity, ((e.clientX - lastPointer.current.x) / dt) * 0.3)
-          ),
-          theta: Math.max(
-            -maxVelocity,
-            Math.min(maxVelocity, ((e.clientY - lastPointer.current.y) / dt) * 0.08)
-          ),
+          phi: Math.max(-maxVelocity, Math.min(maxVelocity, ((e.clientX - lastPointer.current.x) / dt) * 0.25)),
+          theta: Math.max(-maxVelocity, Math.min(maxVelocity, ((e.clientY - lastPointer.current.y) / dt) * 0.08)),
         }
       }
       lastPointer.current = { x: e.clientX, y: e.clientY, t: now }
@@ -144,12 +182,12 @@ export function Globe({
         markerColor,
         glowColor,
         markerElevation,
-        markers: markers.map((m) => ({
+        markers: markersRef.current.map((m) => ({
           location: m.location,
-          size: markerSize,
+          size: m.size ?? markerSize,
           id: m.id,
         })),
-        arcs: arcs.map((a) => ({
+        arcs: arcsRef.current.map((a) => ({
           from: a.from,
           to: a.to,
           id: a.id,
@@ -157,20 +195,36 @@ export function Globe({
         arcColor,
         arcWidth,
         arcHeight,
-        opacity: 0.7,
+        opacity: 0.85,
       })
 
       function animate() {
         if (!isPausedRef.current) {
-          phi += speed
+          if (focusLocationRef.current) {
+            const targetLat = focusLocationRef.current[0]
+            const targetLng = focusLocationRef.current[1]
+            const targetPhi = -((targetLng * Math.PI) / 180) + Math.PI / 2
+            const targetTheta = Math.max(-0.35, Math.min(0.35, ((targetLat * Math.PI) / 180) * 0.35))
+
+            let diffPhi = (targetPhi - (phi + phiOffsetRef.current)) % (2 * Math.PI)
+            if (diffPhi > Math.PI) diffPhi -= 2 * Math.PI
+            if (diffPhi < -Math.PI) diffPhi += 2 * Math.PI
+            phiOffsetRef.current += diffPhi * 0.06
+
+            let diffTheta = targetTheta - (propsRef.current.theta + thetaOffsetRef.current)
+            thetaOffsetRef.current += diffTheta * 0.06
+          } else {
+            phi += propsRef.current.speed
+          }
+
           if (
             Math.abs(velocity.current.phi) > 0.0001 ||
             Math.abs(velocity.current.theta) > 0.0001
           ) {
             phiOffsetRef.current += velocity.current.phi
             thetaOffsetRef.current += velocity.current.theta
-            velocity.current.phi *= 0.95
-            velocity.current.theta *= 0.95
+            velocity.current.phi *= 0.94
+            velocity.current.theta *= 0.94
           }
           const thetaMin = -0.4,
             thetaMax = 0.4
@@ -180,22 +234,24 @@ export function Globe({
             thetaOffsetRef.current += (thetaMax - thetaOffsetRef.current) * 0.1
           }
         }
+
         if (globe) {
+          const currentProps = propsRef.current
           globe.update({
             phi: phi + phiOffsetRef.current + dragOffset.current.phi,
-            theta: theta + thetaOffsetRef.current + dragOffset.current.theta,
-            dark,
-            mapBrightness,
-            markerColor,
-            baseColor,
-            arcColor,
-            markerElevation,
-            markers: markers.map((m) => ({
+            theta: currentProps.theta + thetaOffsetRef.current + dragOffset.current.theta,
+            dark: currentProps.dark,
+            mapBrightness: currentProps.mapBrightness,
+            markerColor: currentProps.markerColor,
+            baseColor: currentProps.baseColor,
+            arcColor: currentProps.arcColor,
+            markerElevation: currentProps.markerElevation,
+            markers: markersRef.current.map((m) => ({
               location: m.location,
-              size: markerSize,
+              size: m.size ?? currentProps.markerSize,
               id: m.id,
             })),
-            arcs: arcs.map((a) => ({
+            arcs: arcsRef.current.map((a) => ({
               from: a.from,
               to: a.to,
               id: a.id,
@@ -205,7 +261,7 @@ export function Globe({
         animationId = requestAnimationFrame(animate)
       }
       animate()
-      setTimeout(() => canvas && (canvas.style.opacity = "1"))
+      setTimeout(() => canvas && (canvas.style.opacity = "1"), 50)
     }
 
     if (canvas.offsetWidth > 0) {
@@ -224,7 +280,7 @@ export function Globe({
       if (animationId) cancelAnimationFrame(animationId)
       if (globe) globe.destroy()
     }
-  }, [markers, arcs, markerColor, baseColor, arcColor, glowColor, dark, mapBrightness, markerSize, markerElevation, arcWidth, arcHeight, speed, theta, diffuse, mapSamples])
+  }, [diffuse, mapSamples, arcWidth, arcHeight]) // Only re-init if structural WebGL parameters change
 
   return (
     <div className={`relative aspect-square select-none ${className}`}>
@@ -252,11 +308,14 @@ export function Globe({
             translate: "-50% 0",
             marginBottom: 8,
             padding: "2px 6px",
-            background: "#1a1a2e",
+            background: "#18181B",
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: "4px",
             color: "#fff",
-            fontFamily: "monospace",
+            fontFamily: "var(--font-mono, monospace)",
             fontSize: "0.6rem",
-            letterSpacing: "0.08em",
+            fontWeight: 600,
+            letterSpacing: "0.06em",
             textTransform: "uppercase",
             whiteSpace: "nowrap",
             pointerEvents: "none",
@@ -272,8 +331,8 @@ export function Globe({
               top: "100%",
               left: "50%",
               transform: "translate3d(-50%, -1px, 0)",
-              border: "5px solid transparent",
-              borderTopColor: "#1a1a2e",
+              border: "4px solid transparent",
+              borderTopColor: "#18181B",
             }}
           />
         </div>
@@ -292,14 +351,17 @@ export function Globe({
               marginBottom: 8,
               padding: "2px 6px",
               background: "#fff",
-              color: "#1a1a2e",
-              fontFamily: "monospace",
+              border: "1px solid #E2E8F0",
+              borderRadius: "4px",
+              color: "#18181B",
+              fontFamily: "var(--font-mono, monospace)",
               fontSize: "0.6rem",
-              letterSpacing: "0.08em",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
               textTransform: "uppercase",
               whiteSpace: "nowrap",
               pointerEvents: "none",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
               opacity: `var(--cobe-visible-arc-${a.id}, 0)`,
               filter: `blur(calc((1 - var(--cobe-visible-arc-${a.id}, 0)) * 8px))`,
               transition: "opacity 0.8s, filter 0.8s",
@@ -312,7 +374,7 @@ export function Globe({
                 top: "100%",
                 left: "50%",
                 transform: "translate3d(-50%, -1px, 0)",
-                border: "5px solid transparent",
+                border: "4px solid transparent",
                 borderTopColor: "#fff",
               }}
             />

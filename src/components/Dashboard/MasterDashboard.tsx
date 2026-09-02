@@ -19,7 +19,6 @@ import {
   BookOpen,
   Moon,
   Globe as GlobeIcon,
-  Compass,
   Activity
 } from 'lucide-react';
 import { Globe, Marker, Arc } from '@/components/ui/cobe-globe';
@@ -97,15 +96,22 @@ export const MasterDashboard: React.FC = () => {
     return null;
   }, [pendingWeeklyTasks, tasks]);
 
-  // 6. 6-Domain Life Balance & Global Operational Node Telemetry
+  // 6. 6-Domain Life Balance & Kinetic Harmony Matrix
   const domainLifeBalance = useMemo(() => {
-    const domains: { area: AreaOfLife; icon: any; nodeCity: string; coordinates: string; markerId: string }[] = [
-      { area: 'Work', icon: Briefcase, nodeCity: 'San Francisco', coordinates: '37.75°N, 122.43°W', markerId: 'work' },
-      { area: 'Health', icon: ShieldCheck, nodeCity: 'Tokyo', coordinates: '35.67°N, 139.65°E', markerId: 'health' },
-      { area: 'Money', icon: DollarSign, nodeCity: 'London', coordinates: '51.50°N, 0.12°W', markerId: 'money' },
-      { area: 'Personal Growth', icon: BookOpen, nodeCity: 'Paris', coordinates: '48.85°N, 2.35°E', markerId: 'growth' },
-      { area: 'Spirituality', icon: Moon, nodeCity: 'Mecca', coordinates: '21.42°N, 39.82°E', markerId: 'spirit' },
-      { area: 'Family', icon: HeartHandshake, nodeCity: 'Jakarta', coordinates: '6.20°S, 106.84°E', markerId: 'family' },
+    const domains: { 
+      area: AreaOfLife; 
+      icon: any; 
+      location: [number, number]; 
+      markerId: string; 
+      description: string; 
+      targetTab: 'Tasks' | 'Habits' | 'Goals' | 'Finance' | 'Weekly';
+    }[] = [
+      { area: 'Work', icon: Briefcase, location: [37.7595, -122.4367], markerId: 'work', description: 'Career, Projects & Daily Execution', targetTab: 'Tasks' },
+      { area: 'Health', icon: ShieldCheck, location: [35.6762, 139.6503], markerId: 'health', description: 'Vitality, Fitness & Recovery', targetTab: 'Habits' },
+      { area: 'Money', icon: DollarSign, location: [51.5074, -0.1278], markerId: 'money', description: 'Budget, Net Worth & Savings Rate', targetTab: 'Finance' },
+      { area: 'Personal Growth', icon: BookOpen, location: [48.8566, 2.3522], markerId: 'growth', description: 'Knowledge, Skills & Deep Learning', targetTab: 'Goals' },
+      { area: 'Spirituality', icon: Moon, location: [21.4225, 39.8262], markerId: 'spirit', description: 'Mindfulness, Purpose & Inner Calm', targetTab: 'Habits' },
+      { area: 'Family', icon: HeartHandshake, location: [-6.2088, 106.8456], markerId: 'family', description: 'Relationships, Kin & Social Bonds', targetTab: 'Weekly' },
     ];
 
     return domains.map(d => {
@@ -120,12 +126,14 @@ export const MasterDashboard: React.FC = () => {
       // Weekly tasks score in domain
       const domainWeeklyTasks = weeklyTasks.filter(t => t.category === domain);
       const weeklyTasksCompleted = domainWeeklyTasks.filter(t => t.isCompleted).length;
+      const pendingWeekly = domainWeeklyTasks.filter(t => !t.isCompleted);
       const hasWeekly = domainWeeklyTasks.length > 0;
       const weeklyScore = hasWeekly ? (weeklyTasksCompleted / domainWeeklyTasks.length) * 100 : 0;
 
       // General tasks score in domain
       const domainTasks = tasks.filter(t => t.category === domain);
       const tasksCompleted = domainTasks.filter(t => t.status === 'Completed').length;
+      const pendingGeneral = domainTasks.filter(t => t.status !== 'Completed');
       const hasTasks = domainTasks.length > 0;
       const taskScore = hasTasks ? (tasksCompleted / domainTasks.length) * 100 : 0;
 
@@ -135,6 +143,26 @@ export const MasterDashboard: React.FC = () => {
       const goalsAvgProgress = hasGoals 
         ? Math.round(domainGoals.reduce((acc, g) => acc + g.progressPercent, 0) / domainGoals.length)
         : 0;
+
+      const milestones = domainGoals.flatMap(g => g.milestones || []);
+      const milestonesCompleted = milestones.filter(m => m.isCompleted).length;
+
+      // Next Action Directive in this domain
+      const nextDirective = pendingWeekly.find(t => t.priority === 'High') 
+        || pendingWeekly[0] 
+        || pendingGeneral.find(t => t.priority === 'High') 
+        || pendingGeneral[0] 
+        || null;
+
+      // Domain EXP
+      const habitsExp = domainHabits.reduce((acc, h) => {
+        const doneDays = Object.values(h.logs).filter(Boolean).length;
+        return acc + (doneDays * h.expReward);
+      }, 0);
+      const weeklyExp = weeklyTasksCompleted * 25;
+      const tasksExp = tasksCompleted * 35;
+      const goalsExp = milestonesCompleted * 50;
+      const totalDomainExp = habitsExp + weeklyExp + tasksExp + goalsExp;
 
       // Only weight dimensions that actually contain items created by the user
       const activeWeights: { score: number; weight: number }[] = [];
@@ -167,19 +195,40 @@ export const MasterDashboard: React.FC = () => {
 
       const totalItemsCount = domainHabits.length + domainWeeklyTasks.length + domainTasks.length + domainGoals.length;
       const completedItemsCount = habitsCompleted + weeklyTasksCompleted + tasksCompleted;
+      const pendingTasksCount = pendingWeekly.length + pendingGeneral.length;
+
+      // Dynamic marker size scaled from 0.022 to 0.055 based on domain balance health
+      const markerSize = activeWeights.length === 0 
+        ? 0.022 
+        : Math.max(0.025, Math.min(0.055, 0.025 + (overallHealth / 100) * 0.03));
 
       return {
         domain,
         icon: d.icon,
-        nodeCity: d.nodeCity,
-        coordinates: d.coordinates,
+        location: d.location,
         markerId: d.markerId,
+        description: d.description,
+        targetTab: d.targetTab,
         score: overallHealth,
         statusText,
         statusColor,
         totalItemsCount,
         completedItemsCount,
+        pendingTasksCount,
+        nextDirective,
         hasActivity: totalItemsCount > 0,
+        domainExp: totalDomainExp,
+        habitsCompleted,
+        domainHabitsCount: domainHabits.length,
+        weeklyTasksCompleted,
+        domainWeeklyCount: domainWeeklyTasks.length,
+        tasksCompleted,
+        domainTasksCount: domainTasks.length,
+        goalsAvgProgress,
+        domainGoalsCount: domainGoals.length,
+        milestonesCompleted,
+        milestonesTotal: milestones.length,
+        markerSize,
       };
     });
   }, [habits, weeklyTasks, tasks, goals, currentDayNum]);
@@ -245,26 +294,34 @@ export const MasterDashboard: React.FC = () => {
     return [...categoryExpData].sort((a, b) => b.value - a.value)[0];
   }, [categoryExpData]);
 
-  // Cobe Globe Markers & Arcs for the 6 Life Domains
-  const globeMarkers: Marker[] = useMemo(() => [
-    { id: 'work', location: [37.7595, -122.4367], label: 'Work • SF' },
-    { id: 'health', location: [35.6762, 139.6503], label: 'Health • Tokyo' },
-    { id: 'money', location: [51.5074, -0.1278], label: 'Money • London' },
-    { id: 'growth', location: [48.8566, 2.3522], label: 'Growth • Paris' },
-    { id: 'spirit', location: [21.4225, 39.8262], label: 'Spirit • Mecca' },
-    { id: 'family', location: [-6.2088, 106.8456], label: 'Family • Jakarta' },
-  ], []);
+  // Dynamic markers on Cobe Globe showing 6 domain statistics
+  const globeMarkers: Marker[] = useMemo(() => {
+    return domainLifeBalance.map(d => ({
+      id: d.markerId,
+      location: d.location,
+      label: `${d.domain} • ${d.score}%`,
+      size: d.markerSize,
+    }));
+  }, [domainLifeBalance]);
 
+  // Inter-domain synergy balance arcs
   const globeArcs: Arc[] = useMemo(() => [
-    { id: 'work-money', from: [37.7595, -122.4367], to: [51.5074, -0.1278], label: 'Capital' },
-    { id: 'money-health', from: [51.5074, -0.1278], to: [35.6762, 139.6503], label: 'Vitality' },
-    { id: 'health-family', from: [35.6762, 139.6503], to: [-6.2088, 106.8456], label: 'Hearth' },
-    { id: 'family-spirit', from: [-6.2088, 106.8456], to: [21.4225, 39.8262], label: 'Faith' },
-    { id: 'spirit-growth', from: [21.4225, 39.8262], to: [48.8566, 2.3522], label: 'Wisdom' },
-    { id: 'growth-work', from: [48.8566, 2.3522], to: [37.7595, -122.4367], label: 'Output' },
+    { id: 'work-money', from: [37.7595, -122.4367], to: [51.5074, -0.1278], label: 'Work ↔ Capital' },
+    { id: 'money-health', from: [51.5074, -0.1278], to: [35.6762, 139.6503], label: 'Capital ↔ Vitality' },
+    { id: 'health-family', from: [35.6762, 139.6503], to: [-6.2088, 106.8456], label: 'Vitality ↔ Kinship' },
+    { id: 'family-spirit', from: [-6.2088, 106.8456], to: [21.4225, 39.8262], label: 'Kinship ↔ Soul' },
+    { id: 'spirit-growth', from: [21.4225, 39.8262], to: [48.8566, 2.3522], label: 'Soul ↔ Mastery' },
+    { id: 'growth-work', from: [48.8566, 2.3522], to: [37.7595, -122.4367], label: 'Mastery ↔ Work' },
   ], []);
 
   const [selectedGlobeDomain, setSelectedGlobeDomain] = useState<string | null>(null);
+
+  const activeSelectedDomain = useMemo(() => {
+    if (!selectedGlobeDomain) return null;
+    return domainLifeBalance.find(d => d.domain === selectedGlobeDomain || d.markerId === selectedGlobeDomain) || null;
+  }, [selectedGlobeDomain, domainLifeBalance]);
+
+  const globeFocusLocation = activeSelectedDomain ? activeSelectedDomain.location : null;
 
   // Dynamic Weekly 7-day groups from sprint days & weekly tasks
   const days = useMemo(() => {
@@ -420,7 +477,7 @@ export const MasterDashboard: React.FC = () => {
       </section>
 
       {/* ========================================================
-          GLOBAL SOVEREIGN OPERATIONS: 3D GEODESIC GLOBE, 6-DOMAIN HARMONY & EXP BREAKDOWN
+          GLOBAL 6-DOMAIN LIFE BALANCE: 3D TOPOGRAPHY & TELEMETRY
           ======================================================== */}
       <section className="mplt-card p-5 sm:p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-6 overflow-hidden">
         
@@ -432,11 +489,11 @@ export const MasterDashboard: React.FC = () => {
                 <GlobeIcon size={14} className="text-[#10B981]" />
               </div>
               <h3 className="text-[14px] sm:text-[15px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
-                GLOBAL SOVEREIGN OPERATIONS — 6-DOMAIN HARMONY & EXP TELEMETRY
+                6-DOMAIN LIFE BALANCE — 3D TOPOGRAPHY & TELEMETRY
               </h3>
             </div>
             <p className="text-[11.5px] text-[#71717A] font-ui">
-              Real-time multi-dimensional discipline matrix synchronized with active geodesic operational nodes
+              Real-time multi-dimensional discipline matrix synchronized with active spherical balance nodes
             </p>
           </div>
 
@@ -453,10 +510,10 @@ export const MasterDashboard: React.FC = () => {
         </div>
 
         {/* 2-Column Responsive Command Center */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* Left Column (5 Cols): 3D Geodesic Interactive Globe */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] relative overflow-hidden group">
+          {/* Left Column (5 Cols): 3D Geodesic Interactive Globe & Domain Inspector */}
+          <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] relative overflow-hidden group space-y-3">
             
             {/* Subtle high-tech background texture from Unsplash */}
             <div 
@@ -466,17 +523,19 @@ export const MasterDashboard: React.FC = () => {
               }}
             />
 
-            {/* Top Telemetry Overlay */}
-            <div className="w-full flex items-center justify-between text-[10px] font-num text-[#71717A] z-10 mb-1 px-1">
-              <span className="flex items-center gap-1">
-                <Compass size={11} className="text-[#10B981]" />
-                GEODESIC ORBIT: ACTIVE
+            {/* Top Minimal Telemetry HUD */}
+            <div className="w-full flex items-center justify-between text-[10px] font-num text-[#71717A] z-10 px-1">
+              <span className="flex items-center gap-1.5 font-semibold text-[#18181B]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                3D SPHERICAL HARMONY TOPOGRAPHY
               </span>
-              <span>6 NODES ONLINE</span>
+              <span className="font-ui text-[9.5px] text-[#71717A]">
+                {selectedGlobeDomain ? `LOCKED • ${selectedGlobeDomain.toUpperCase()}` : '6 DOMAINS LINKED'}
+              </span>
             </div>
 
             {/* Globe Canvas Container */}
-            <div className="w-full max-w-[280px] sm:max-w-[320px] aspect-square relative z-10 flex items-center justify-center">
+            <div className="w-full max-w-[270px] sm:max-w-[290px] aspect-square relative z-10 flex items-center justify-center">
               <Globe
                 markers={globeMarkers}
                 arcs={globeArcs}
@@ -491,17 +550,133 @@ export const MasterDashboard: React.FC = () => {
                 arcWidth={0.6}
                 arcHeight={0.28}
                 speed={0.003}
+                focusLocation={globeFocusLocation}
               />
             </div>
 
-            {/* Bottom Interaction Hint & Selected Node */}
-            <div className="w-full pt-3 mt-1 border-t border-[#E2E8F0] flex items-center justify-between text-[10.5px] font-ui text-[#71717A] z-10">
-              <span className="truncate">
-                {selectedGlobeDomain ? `Inspecting: ${selectedGlobeDomain}` : 'Drag globe to rotate telemetry nodes'}
-              </span>
-              <span className="font-num font-semibold text-[#18181B] flex-shrink-0">
-                WGS-84 GRID
-              </span>
+            {/* Live Domain Telemetry & Operations HUD */}
+            <div className="w-full pt-3 border-t border-[#E2E8F0] z-10">
+              {activeSelectedDomain ? (
+                <div className="space-y-3">
+                  {/* Domain Header Banner */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-[6px] bg-[#18181B] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                        {React.createElement(activeSelectedDomain.icon, { size: 14 })}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[12.5px] font-bold text-[#18181B] font-ui leading-none truncate">
+                          {activeSelectedDomain.domain} Domain
+                        </div>
+                        <div className="text-[10px] text-[#71717A] font-ui mt-0.5 truncate">
+                          {activeSelectedDomain.description}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`text-[10.5px] font-num font-bold px-2 py-0.5 rounded ${activeSelectedDomain.statusColor}`}>
+                        {activeSelectedDomain.score}% • {activeSelectedDomain.statusText}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 3-Pillar Operational Matrix */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {/* Pillar 1: Kinetic EXP */}
+                    <div className="bg-white p-2 rounded-[6px] border border-[#E2E8F0] text-center flex flex-col justify-between">
+                      <div className="text-[9px] text-[#71717A] font-ui uppercase font-semibold">EXP Share</div>
+                      <div className="text-[12px] font-bold font-num text-[#18181B] my-0.5">
+                        +{activeSelectedDomain.domainExp}
+                      </div>
+                      <div className="text-[8.5px] text-[#71717A] font-num">
+                        {totalCategoryExp > 0 ? Math.round((activeSelectedDomain.domainExp / totalCategoryExp) * 100) : 0}% of Total
+                      </div>
+                    </div>
+
+                    {/* Pillar 2: Habits Tracking */}
+                    <div className="bg-white p-2 rounded-[6px] border border-[#E2E8F0] text-center flex flex-col justify-between">
+                      <div className="text-[9px] text-[#71717A] font-ui uppercase font-semibold">Today Habits</div>
+                      <div className="text-[12px] font-bold font-num text-[#18181B] my-0.5">
+                        {activeSelectedDomain.habitsCompleted}/{activeSelectedDomain.domainHabitsCount}
+                      </div>
+                      <div className="text-[8.5px] font-ui font-medium text-[#10B981]">
+                        {activeSelectedDomain.domainHabitsCount > 0 && activeSelectedDomain.habitsCompleted === activeSelectedDomain.domainHabitsCount ? 'Complete' : `${activeSelectedDomain.domainHabitsCount - activeSelectedDomain.habitsCompleted} Pending`}
+                      </div>
+                    </div>
+
+                    {/* Pillar 3: Tasks & Milestones */}
+                    <div className="bg-white p-2 rounded-[6px] border border-[#E2E8F0] text-center flex flex-col justify-between">
+                      <div className="text-[9px] text-[#71717A] font-ui uppercase font-semibold">Sprint Tasks</div>
+                      <div className="text-[12px] font-bold font-num text-[#18181B] my-0.5">
+                        {activeSelectedDomain.weeklyTasksCompleted}/{activeSelectedDomain.domainWeeklyCount}
+                      </div>
+                      <div className="text-[8.5px] text-[#71717A] font-num">
+                        {activeSelectedDomain.pendingTasksCount} uncompleted
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Operational Next Directive in this Domain */}
+                  {activeSelectedDomain.nextDirective ? (
+                    <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] flex items-center justify-between text-[10.5px]">
+                      <div className="flex items-center gap-1.5 truncate mr-2">
+                        <Target size={11} className="text-[#10B981] flex-shrink-0" />
+                        <span className="font-ui font-semibold text-[#18181B] truncate">
+                          {activeSelectedDomain.nextDirective.title}
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded flex-shrink-0">
+                        +{activeSelectedDomain.nextDirective.expReward} EXP
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] flex items-center justify-between text-[10.5px] text-[#71717A]">
+                      <span className="flex items-center gap-1.5 font-ui">
+                        <CheckCircle2 size={11} className="text-[#10B981]" />
+                        <span>All sprint directives completed in this domain</span>
+                      </span>
+                      <span className="text-[9.5px] font-num font-bold text-[#10B981]">Clear</span>
+                    </div>
+                  )}
+
+                  {/* Action Link & Deselect Controls */}
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      onClick={() => setSelectedGlobeDomain(null)}
+                      className="text-[10px] text-[#71717A] hover:text-[#18181B] font-ui transition-colors underline"
+                    >
+                      Reset 3D Overview
+                    </button>
+                    <button
+                      onClick={() => setCurrentTab(activeSelectedDomain.targetTab)}
+                      className="px-2.5 py-1 rounded-[5px] bg-[#18181B] hover:bg-[#27272A] text-white text-[10.5px] font-ui font-bold flex items-center gap-1 transition-all shadow-xs"
+                    >
+                      <span>Manage in {activeSelectedDomain.targetTab}</span>
+                      <ChevronRight size={12} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 text-[11px] font-ui text-[#71717A]">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[#18181B]">Global Balance Harmony:</span>
+                    <span className="font-num font-bold text-[#10B981]">{systemHarmonyScore}% Equilibrium</span>
+                  </div>
+                  <div className="p-2.5 rounded-[6px] bg-white border border-[#E2E8F0] text-[10.5px] text-[#71717A] flex items-center justify-between">
+                    <span>
+                      {topDomainExp && topDomainExp.value > 0 ? (
+                        <span>Leading: <strong className="text-[#18181B]">{topDomainExp.name} ({Math.round((topDomainExp.value / totalCategoryExp) * 100)}%)</strong></span>
+                      ) : (
+                        <span>Ready for operational logging</span>
+                      )}
+                    </span>
+                    <span className="font-num text-[10px] text-[#10B981] font-semibold bg-[#10B981]/10 px-1.5 py-0.2 rounded">Online</span>
+                  </div>
+                  <p className="text-[9.5px] text-[#71717A] leading-relaxed">
+                    Click any domain card on the right to lock 3D spherical node coordinates and inspect operational tracking.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -523,17 +698,17 @@ export const MasterDashboard: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {domainLifeBalance.map((item) => {
                   const DomainIcon = item.icon;
-                  const isHovered = selectedGlobeDomain === item.domain;
+                  const isSelected = selectedGlobeDomain === item.domain;
+                  const expShare = totalCategoryExp > 0 ? Math.round((item.domainExp / totalCategoryExp) * 100) : 0;
 
                   return (
                     <div
                       key={item.domain}
-                      onMouseEnter={() => setSelectedGlobeDomain(item.domain)}
-                      onMouseLeave={() => setSelectedGlobeDomain(null)}
+                      onClick={() => setSelectedGlobeDomain(isSelected ? null : item.domain)}
                       className={`p-2.5 rounded-[8px] border transition-all cursor-pointer ${
-                        isHovered 
-                          ? 'border-[#18181B] bg-white shadow-xs' 
-                          : 'border-[#E2E8F0] bg-[#F9FAFB] hover:border-[#CBD5E1]'
+                        isSelected 
+                          ? 'border-[#18181B] bg-white ring-2 ring-[#18181B]/15 shadow-sm' 
+                          : 'border-[#E2E8F0] bg-[#F9FAFB] hover:border-[#CBD5E1] hover:bg-white'
                       }`}
                     >
                       <div className="flex items-center justify-between text-[11px] mb-1.5">
@@ -556,8 +731,8 @@ export const MasterDashboard: React.FC = () => {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between text-[9.5px] text-[#71717A] font-ui">
-                        <span className="truncate">{item.nodeCity}</span>
+                      <div className="flex items-center justify-between text-[9px] text-[#71717A] font-ui">
+                        <span className="font-num font-medium text-[#18181B]">+{item.domainExp} EXP ({expShare}%)</span>
                         <span className="font-semibold text-[#18181B]">{item.statusText}</span>
                       </div>
                     </div>
