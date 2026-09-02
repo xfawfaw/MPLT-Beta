@@ -382,7 +382,6 @@ export const MasterDashboard: React.FC = () => {
   };
 
   const expToNextLevel = Math.max(0, profile.nextLevelExp - profile.currentExp);
-  const expProgressPct = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
 
   // Quick Action Handlers
   const handleQuickExpense = (e: React.FormEvent) => {
@@ -427,74 +426,6 @@ export const MasterDashboard: React.FC = () => {
   return (
     <div className="max-w-[1440px] mx-auto p-6 space-y-6">
       
-      {/* ========================================================
-          SOVEREIGN EXECUTIVE HUD BAR (OPTION B)
-          ======================================================== */}
-      <section className="mplt-card p-4 bg-[#18181B] text-white border border-[#27272A] rounded-[10px] shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          
-          {/* Left: Level, Rank & EXP Progress */}
-          <div className="flex items-center gap-3.5 min-w-[280px]">
-            <div className="w-10 h-10 rounded-[8px] bg-white/10 border border-white/15 flex items-center justify-center text-white flex-shrink-0">
-              <Sparkles size={18} className="text-amber-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2 text-[11px] font-ui">
-                <span className="font-bold text-white tracking-wide">
-                  LVL {profile.level} • {getUserRankTitle(profile.level).toUpperCase()}
-                </span>
-                <span className="font-num text-[10.5px] text-zinc-400">
-                  {profile.currentExp} / {profile.nextLevelExp} EXP ({expProgressPct}%)
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden mt-1.5">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-                  style={{ width: `${expProgressPct}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Center: Live Operational Telemetry Chips */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/5 border border-white/10 text-[11px] font-ui">
-              <Flame size={13} className="text-orange-400 fill-orange-400" />
-              <span className="text-zinc-300">Streak:</span>
-              <strong className="text-white font-num">{profile.streakDays} Days</strong>
-            </div>
-
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/5 border border-white/10 text-[11px] font-ui">
-              <CalendarCheck2 size={13} className="text-emerald-400" />
-              <span className="text-zinc-300">Habits Today:</span>
-              <strong className="text-emerald-400 font-num">{habitsDoneCount}/{habits.length}</strong>
-            </div>
-
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/5 border border-white/10 text-[11px] font-ui">
-              <CheckSquare size={13} className="text-sky-400" />
-              <span className="text-zinc-300">Sprint Backlog:</span>
-              <strong className="text-white font-num">{pendingTasksCount} Tasks</strong>
-            </div>
-          </div>
-
-          {/* Right: Quick Kinetic Capture Trigger */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => {
-                setShowQuickCapture(true);
-                sound.playClick();
-              }}
-              className="px-4 py-2 rounded-[6px] bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-[12px] font-bold font-ui flex items-center gap-2 transition-all shadow-sm cursor-pointer"
-            >
-              <Zap size={14} className="fill-white" />
-              <span>Quick Capture</span>
-              <kbd className="hidden sm:inline-block px-1.5 py-0.2 text-[9.5px] bg-black/30 rounded text-white font-mono">C</kbd>
-            </button>
-          </div>
-
-        </div>
-      </section>
-
       {/* ========================================================
           TOP SECTION 1: MISSION CONTROL PRIMARY DIRECTIVE
           ======================================================== */}

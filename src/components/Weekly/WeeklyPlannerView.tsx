@@ -8,11 +8,7 @@ import {
   ChevronRight, 
   TrendingUp, 
   Flame,
-  Play,
-  Pause,
-  RotateCcw,
   Inbox,
-  Timer,
   X
 } from 'lucide-react';
 import { AgentPlanning, PlanStep, PlanStepStatus } from '@/components/ui/ai-planning';
@@ -49,36 +45,6 @@ export const WeeklyPlannerView: React.FC = () => {
   const [selectedSpotlightDay, setSelectedSpotlightDay] = useState<number>(today.dayOfWeekIndex); // Default to today
   const [activeDayModal, setActiveDayModal] = useState<number | null>(null);
   const [showBacklogModal, setShowBacklogModal] = useState(false);
-
-  // Focus Flow Timer State
-  const [focusSecondsLeft, setFocusSecondsLeft] = useState<number>(25 * 60);
-  const [isFocusRunning, setIsFocusRunning] = useState<boolean>(false);
-  const [focusPreset, setFocusPreset] = useState<'25m' | '50m' | '15m'>('25m');
-
-  // Focus timer countdown effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isFocusRunning && focusSecondsLeft > 0) {
-      interval = setInterval(() => {
-        setFocusSecondsLeft(prev => prev - 1);
-      }, 1000);
-    } else if (isFocusRunning && focusSecondsLeft === 0) {
-      setIsFocusRunning(false);
-      sound.playLevelUp();
-      addExp(35, `Completed ${focusPreset} Focus Flow Session`);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isFocusRunning, focusSecondsLeft, focusPreset, addExp]);
-
-  const handleSetFocusPreset = (preset: '25m' | '50m' | '15m') => {
-    setFocusPreset(preset);
-    const secs = preset === '25m' ? 25 * 60 : preset === '50m' ? 50 * 60 : 15 * 60;
-    setFocusSecondsLeft(secs);
-    setIsFocusRunning(false);
-    sound.playClick();
-  };
 
   // Task form state
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -237,98 +203,6 @@ export const WeeklyPlannerView: React.FC = () => {
   return (
     <div className="max-w-[1440px] mx-auto p-6 space-y-6">
       
-      {/* ========================================================
-          TOP SECTION 0: DEEP WORK FOCUS FLOW BAR (OPTION A)
-          ======================================================== */}
-      <section className="mplt-card p-4 bg-[#18181B] text-white border border-[#27272A] rounded-[10px] shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-[8px] flex items-center justify-center ${
-              isFocusRunning ? 'bg-emerald-500 text-white animate-pulse' : 'bg-white/10 text-white'
-            }`}>
-              <Timer size={18} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 text-[11px] font-ui">
-                <span className="font-bold text-white uppercase tracking-wider">
-                  Deep Work Flow State Timer
-                </span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 font-num text-emerald-400 font-semibold">
-                  +35 EXP Bonus
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 font-ui">
-                {isFocusRunning ? 'Focus block in active progress — stay in flow' : 'Select a focus block duration and enter flow state'}
-              </p>
-            </div>
-          </div>
-
-          {/* Timer Controls & Presets */}
-          <div className="flex items-center gap-3 flex-wrap">
-            
-            {/* Presets */}
-            <div className="flex items-center bg-white/5 p-0.5 rounded-[6px] border border-white/10">
-              {(['25m', '50m', '15m'] as const).map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  disabled={isFocusRunning}
-                  onClick={() => handleSetFocusPreset(preset)}
-                  className={`px-2.5 py-1 text-[11px] font-ui rounded-[4px] transition-all cursor-pointer ${
-                    focusPreset === preset
-                      ? 'bg-white text-[#18181B] font-bold shadow-xs'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-
-            {/* Countdown Display */}
-            <div className="font-num text-[18px] sm:text-[20px] font-bold text-white px-3 py-1 bg-white/5 border border-white/10 rounded-[6px] tracking-wider min-w-[80px] text-center">
-              {Math.floor(focusSecondsLeft / 60)}:{focusSecondsLeft % 60 < 10 ? `0${focusSecondsLeft % 60}` : focusSecondsLeft % 60}
-            </div>
-
-            {/* Start / Pause / Reset */}
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFocusRunning(prev => !prev);
-                  sound.playClick();
-                }}
-                className={`px-3.5 py-1.5 rounded-[6px] text-[12px] font-bold font-ui flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isFocusRunning
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                    : 'bg-[#10B981] hover:bg-[#059669] text-white'
-                }`}
-              >
-                {isFocusRunning ? <Pause size={13} /> : <Play size={13} />}
-                <span>{isFocusRunning ? 'Pause' : 'Start Flow'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFocusRunning(false);
-                  const secs = focusPreset === '25m' ? 25 * 60 : focusPreset === '50m' ? 50 * 60 : 15 * 60;
-                  setFocusSecondsLeft(secs);
-                  sound.playClick();
-                }}
-                className="p-1.5 rounded-[6px] bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                title="Reset timer"
-              >
-                <RotateCcw size={13} />
-              </button>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
       {/* ========================================================
           TOP SECTION: WEEKLY VELOCITY & OVERALL PROGRESS TELEMETRY
           ======================================================== */}
@@ -549,14 +423,14 @@ export const WeeklyPlannerView: React.FC = () => {
 
             <div className="p-3 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px]">
               <span className="text-[#71717A] font-ui uppercase tracking-wider block text-[10px]">
-                Focus Flow Block
+                Consistency Score
               </span>
               <span className="text-[20px] font-num font-bold text-[#18181B] mt-0.5 block">
-                {focusPreset}
+                87% Optimal
               </span>
               <span className="text-[10px] text-[#10B981] font-ui font-semibold mt-0.5 flex items-center gap-1">
                 <Flame size={11} className="text-orange-500 fill-orange-500" />
-                <span>Timer Ready</span>
+                <span>Streak Active</span>
               </span>
             </div>
 
