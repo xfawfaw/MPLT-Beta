@@ -6,10 +6,31 @@ export type AreaOfLife =
   | 'Personal Growth' 
   | 'Spirituality';
 
+export type OperatorId = 'dev' | 'user-1' | 'user-2' | 'user-3' | 'user-4';
+
+export interface OperatorMeta {
+  id: OperatorId;
+  label: string;
+  role: string;
+  defaultCallsign: string;
+  badge: string;
+  isDev?: boolean;
+}
+
+export const OPERATOR_LIST: OperatorMeta[] = [
+  { id: 'dev', label: 'Developer Mode', role: 'System Architect & God Access', defaultCallsign: 'Dev Architect', badge: 'DEV', isDev: true },
+  { id: 'user-1', label: 'User 1', role: 'Primary Sovereign Operator', defaultCallsign: 'Operator 01', badge: 'U1' },
+  { id: 'user-2', label: 'User 2', role: 'Tactical Operator', defaultCallsign: 'Operator 02', badge: 'U2' },
+  { id: 'user-3', label: 'User 3', role: 'Tactical Operator', defaultCallsign: 'Operator 03', badge: 'U3' },
+  { id: 'user-4', label: 'User 4', role: 'Tactical Operator', defaultCallsign: 'Operator 04', badge: 'U4' },
+];
+
 export interface UserProfile {
+  operatorId?: OperatorId;
   callsign?: string;
   bio?: string;
   avatarSeed?: string;
+  avatarUrl?: string; // Custom uploaded image as base64 data URL
   level: number;
   currentExp: number;
   nextLevelExp: number;

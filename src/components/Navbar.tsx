@@ -197,8 +197,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
                   : 'bg-[#F9FAFB] text-[#18181B] hover:bg-white hover:border-[#18181B] border-[#E2E8F0]'
               }`}
             >
-              <div className="w-5 h-5 rounded-full bg-[#18181B] text-[#10B981] flex items-center justify-center text-[10px] font-bold shadow-inner border border-[#10B981]/30">
-                {profile.avatarSeed === 'operator-apex' ? '🛡️' : profile.avatarSeed === 'operator-zen' ? '🌿' : profile.avatarSeed === 'operator-cyborg' ? '⚙️' : profile.avatarSeed === 'operator-sovereign' ? '👑' : profile.avatarSeed === 'operator-matrix' ? '📊' : '⚡'}
+              <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt="Avatar"
+                    className="w-full h-full object-cover rounded-full border border-[#10B981]"
+                  />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-[#18181B] text-[#10B981] flex items-center justify-center text-[10px] font-bold shadow-inner border border-[#10B981]/30">
+                    {profile.avatarSeed === 'operator-apex' ? '🛡️' : profile.avatarSeed === 'operator-zen' ? '🌿' : profile.avatarSeed === 'operator-cyborg' ? '⚙️' : profile.avatarSeed === 'operator-sovereign' ? '👑' : profile.avatarSeed === 'operator-matrix' ? '📊' : '⚡'}
+                  </div>
+                )}
               </div>
               <span className="hidden lg:inline text-[11.5px] font-bold font-ui max-w-[100px] truncate">
                 {profile.callsign || 'Operator'}

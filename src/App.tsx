@@ -8,6 +8,7 @@ import { CommandPalette } from './components/Common/CommandPalette';
 import { BackupModal } from './components/Common/BackupModal';
 import { OnboardingModal } from './components/Common/OnboardingModal';
 import { OperatorProfileModal } from './components/Common/OperatorProfileModal';
+import { DevToolbar } from './components/Common/DevToolbar';
 import { PasscodeGate } from './components/Common/PasscodeGate';
 import { ViewSkeleton } from './components/Common/ViewSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,7 +24,7 @@ const YearlyStatsView = lazy(() => import('./components/Analytics/YearlyStatsVie
 const LifeAutomationView = lazy(() => import('./components/Automations/LifeAutomationView').then(m => ({ default: m.LifeAutomationView })));
 
 export const AppContent: React.FC = () => {
-  const { currentTab } = useApp();
+  const { currentTab, activeOperatorId } = useApp();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
@@ -44,7 +45,7 @@ export const AppContent: React.FC = () => {
   // Global Ctrl+K / Cmd+K listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen(prev => !prev);
       }
@@ -63,16 +64,16 @@ export const AppContent: React.FC = () => {
         onOpenProfile={() => setIsProfileModalOpen(true)}
       />
 
-      {/* Main Workspace Container with Suspense and Smooth Spring Transitions */}
+      {/* Main Workspace Container with Suspense, Hyperspace Motion Blur & Smooth Spring Transitions */}
       <main className="flex-1 pb-24 md:pb-16 overflow-hidden">
         <Suspense fallback={<ViewSkeleton />}>
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentTab}
-              initial={{ opacity: 0, y: 8, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -8, filter: 'blur(8px)' }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              key={`${activeOperatorId}-${currentTab}`}
+              initial={{ opacity: 0, y: 8, scale: 0.99, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(10px)' }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             >
               {currentTab === 'dashboard' && <MasterDashboard />}
               {currentTab === 'habits' && <HabitMatrixView />}
@@ -93,6 +94,7 @@ export const AppContent: React.FC = () => {
       {/* Floating System Modals & Telemetry Toasts */}
       <LevelUpModal />
       <ExpToast />
+      <DevToolbar />
       
       <CommandPalette 
         isOpen={isCommandPaletteOpen}

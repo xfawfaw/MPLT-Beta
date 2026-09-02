@@ -11,7 +11,9 @@ import {
   X, 
   Shield, 
   Activity, 
-  Layers 
+  Layers,
+  Terminal,
+  Users
 } from 'lucide-react';
 import { 
   TreeView, 
@@ -19,6 +21,7 @@ import {
   TreeFolder, 
   TreeItem 
 } from '@/components/ui/animated-file-tree';
+import { OPERATOR_LIST } from '../../types';
 import { sound } from '../../utils/sound';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -42,7 +45,16 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
   onClose, 
   onOpenEditModal 
 }) => {
-  const { profile, habits, tasks, goals, budget, updateProfile } = useApp();
+  const { 
+    activeOperatorId, 
+    switchOperator, 
+    profile, 
+    habits, 
+    tasks, 
+    goals, 
+    budget, 
+    updateProfile 
+  } = useApp();
 
   const rankTitle = getUserRankTitle(profile.level);
   const expPercentage = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
@@ -55,7 +67,7 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
   const activeAvatar = AVATARS.find(a => a.id === profile.avatarSeed) || AVATARS[0];
 
   const handleSelectGlyph = (avatarId: string) => {
-    updateProfile({ avatarSeed: avatarId });
+    updateProfile({ avatarSeed: avatarId, avatarUrl: undefined });
     sound.playPop();
   };
 
@@ -84,9 +96,17 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
             {/* Header: Operator Avatar, Call-sign & Rank */}
             <div className="flex items-center justify-between pb-2.5 border-b border-[#E2E8F0]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-[#18181B] text-[#10B981] flex items-center justify-center text-[13px] font-bold shadow-inner border border-[#10B981]/30 flex-shrink-0">
-                  {activeAvatar.glyph}
-                </div>
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt="Custom Avatar"
+                    className="w-8 h-8 rounded-full object-cover border border-[#10B981] flex-shrink-0 shadow-xs"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-[#18181B] text-[#10B981] flex items-center justify-center text-[13px] font-bold shadow-inner border border-[#10B981]/30 flex-shrink-0">
+                    {activeAvatar.glyph}
+                  </div>
+                )}
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[12px] font-bold text-[#18181B] font-ui tracking-tight max-w-[130px] truncate">
@@ -109,14 +129,14 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                     onClose();
                     sound.playClick();
                   }}
-                  title="Edit Profile Dossier"
-                  className="p-1 rounded-md hover:bg-[#F4F4F5] text-[#71717A] hover:text-[#18181B] transition-colors"
+                  title="Edit Profile Dossier & Photo"
+                  className="p-1 rounded-md hover:bg-[#F4F4F5] text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
                 >
                   <Edit3 size={13} />
                 </button>
                 <button 
                   onClick={onClose}
-                  className="p-1 rounded-md hover:bg-[#F4F4F5] text-[#71717A] hover:text-[#18181B] transition-colors"
+                  className="p-1 rounded-md hover:bg-[#F4F4F5] text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
                 >
                   <X size={14} />
                 </button>
@@ -156,7 +176,7 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                 className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[10.5px] font-ui font-bold transition-colors shadow-2xs cursor-pointer"
               >
                 <User size={12} />
-                <span>Configure Profile Dossier</span>
+                <span>Configure Profile & Avatar</span>
               </motion.button>
             </div>
 
@@ -168,8 +188,28 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                 selectedId={undefined}
                 onSelect={() => {}}
               >
-                {/* 1. OPERATOR IDENTITY & DOSSIER */}
-                <TreeSection title="Operator Dossier" defaultExpanded={true}>
+                {/* 1. OPERATOR SWITCHER (MULTI-USER ENGINE) */}
+                <TreeSection title="Operator Accounts (Multi-User)" defaultExpanded={true}>
+                  {OPERATOR_LIST.map((op) => {
+                    const isActive = op.id === activeOperatorId;
+                    return (
+                      <TreeItem 
+                        key={op.id}
+                        id={`op-switch-${op.id}`}
+                        label={op.label}
+                        icon={op.isDev ? Terminal : Users}
+                        badge={isActive ? '● ACTIVE' : op.badge}
+                        onClick={() => {
+                          switchOperator(op.id);
+                          onClose();
+                        }}
+                      />
+                    );
+                  })}
+                </TreeSection>
+
+                {/* 2. OPERATOR IDENTITY & DOSSIER */}
+                <TreeSection title="Operator Dossier" defaultExpanded={false}>
                   <TreeItem 
                     id="profile-callsign" 
                     label="Call-Sign" 

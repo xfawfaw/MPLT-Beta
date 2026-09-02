@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp, getUserRankTitle } from '../../context/AppContext';
 import { 
   User, 
@@ -6,9 +6,13 @@ import {
   Save, 
   Flame, 
   Sparkles,
-  Award
+  Award,
+  Upload,
+  Trash2,
+  Camera
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
+import { processAvatarImage } from '../../utils/image';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface OperatorProfileModalProps {
@@ -31,6 +35,11 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
   const [callsign, setCallsign] = useState(profile.callsign || 'Sovereign Operator');
   const [bio, setBio] = useState(profile.bio || 'Building discipline through quantified daily execution.');
   const [selectedAvatar, setSelectedAvatar] = useState(profile.avatarSeed || 'operator-1');
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(profile.avatarUrl);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Lifetime telemetry calculations
   const totalHabitsLogged = Object.values(habits).reduce((acc, h) => {
@@ -40,11 +49,41 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
   const totalTasksCompleted = tasks.filter(t => t.status === 'Completed').length;
   const rankTitle = getUserRankTitle(profile.level);
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      const optimizedDataUrl = await processAvatarImage(file, {
+        maxDimension: 256,
+        quality: 0.85,
+      });
+      setAvatarUrl(optimizedDataUrl);
+      sound.playPop();
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to process image');
+      sound.playClick();
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setAvatarUrl(undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    sound.playClick();
+  };
+
   const handleSave = () => {
     updateProfile({
       callsign,
       bio,
       avatarSeed: selectedAvatar,
+      avatarUrl: avatarUrl || undefined,
     });
     sound.playLevelUp();
     onClose();
@@ -60,7 +99,7 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 8 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-[620px] max-h-[90vh] overflow-y-auto bg-[#FFFFFF] border border-[#E2E8F0] rounded-[12px] shadow-2xl p-6 sm:p-7 space-y-6 select-none"
+          className="w-full max-w-[640px] max-h-[90vh] overflow-y-auto bg-[#FFFFFF] border border-[#E2E8F0] rounded-[14px] shadow-2xl p-6 sm:p-7 space-y-5 select-none"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-[#E2E8F0]">
@@ -71,7 +110,7 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
                   <span>OPERATOR PROFILE & IDENTITY</span>
                 </h3>
                 <p className="text-[11.5px] text-[#71717A] font-ui">
-                  Personal configuration, avatar identity, and lifetime operational telemetry
+                  Personal configuration, custom avatar photo, and lifetime telemetry
                 </p>
               </div>
             </div>
@@ -84,12 +123,32 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
             </button>
           </div>
 
-          {/* Identity & Rank Hero Card */}
-          <div className="p-4 rounded-[10px] bg-[#F9FAFB] border border-[#E2E8F0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              {/* Active Avatar Badge */}
-              <div className="w-14 h-14 rounded-full bg-[#18181B] border-2 border-[#10B981] flex items-center justify-center text-[22px] shadow-inner flex-shrink-0">
-                {AVATAR_OPTIONS.find(a => a.id === selectedAvatar)?.glyph || '⚡'}
+          {/* Identity & Rank Hero Card with Avatar Upload */}
+          <div className="p-4 rounded-[12px] bg-[#F9FAFB] border border-[#E2E8F0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {/* Active Avatar Preview with Hover Upload Trigger */}
+              <div className="relative group">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Custom Avatar"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-[#10B981] shadow-md"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-[#18181B] border-2 border-[#10B981] flex items-center justify-center text-[26px] shadow-inner flex-shrink-0">
+                    {AVATAR_OPTIONS.find(a => a.id === selectedAvatar)?.glyph || '⚡'}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload Custom Image"
+                  className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity cursor-pointer text-[9px] font-bold"
+                >
+                  <Camera size={16} className="mb-0.5" />
+                  <span>Change</span>
+                </button>
               </div>
 
               <div>
@@ -118,12 +177,41 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
               </div>
             </div>
 
-            {/* Avatar Selector Presets */}
-            <div>
-              <p className="text-[10.5px] font-bold text-[#71717A] uppercase tracking-wider mb-1.5">
-                Avatar Glyph
-              </p>
+            {/* Avatar Photo Controls & Presets */}
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+
               <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-white border border-[#CBD5E1] hover:border-[#18181B] text-[#18181B] text-[10.5px] font-ui font-semibold shadow-2xs transition-all cursor-pointer"
+                >
+                  <Upload size={11} className="text-[#10B981]" />
+                  <span>{isUploading ? 'Cropping...' : avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
+                </button>
+
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    title="Remove custom photo and use preset glyph"
+                    className="p-1.5 rounded-[6px] bg-white border border-[#E2E8F0] hover:border-rose-300 text-rose-500 text-[10.5px] shadow-2xs transition-all cursor-pointer"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Glyph selector (shown if no custom avatar or to change fallback glyph) */}
+              <div className="flex items-center gap-1">
                 {AVATAR_OPTIONS.map(a => (
                   <button
                     key={a.id}
@@ -132,8 +220,9 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
                       setSelectedAvatar(a.id);
                       sound.playClick();
                     }}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] border transition-all ${
-                      selectedAvatar === a.id
+                    title={a.label}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] border transition-all ${
+                      selectedAvatar === a.id && !avatarUrl
                         ? 'border-[#10B981] bg-[#18181B] scale-110 shadow-sm'
                         : 'border-[#E2E8F0] hover:border-[#CBD5E1] bg-white'
                     }`}
@@ -142,6 +231,10 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
                   </button>
                 ))}
               </div>
+
+              {uploadError && (
+                <p className="text-[10px] text-rose-600 font-medium">{uploadError}</p>
+              )}
             </div>
           </div>
 
