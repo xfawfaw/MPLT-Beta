@@ -4,7 +4,6 @@ import {
   User, 
   Sparkles, 
   Flame, 
-  Award, 
   Clock, 
   Calendar, 
   Bell, 
@@ -13,7 +12,6 @@ import {
   Wallet, 
   Edit3, 
   X, 
-  ChevronRight, 
   CalendarPlus,
   Zap,
   Shield,
@@ -204,7 +202,7 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
               <TreeView
                 variant="line"
                 activeColor="text-[#18181B]"
-                selectedId={null}
+                selectedId={undefined}
                 onSelect={() => {}}
               >
                 {/* 1. OPERATOR IDENTITY & DOSSIER */}

@@ -29,6 +29,7 @@ import {
   TreeFolder, 
   TreeItem 
 } from '@/components/ui/animated-file-tree';
+import { OperatorProfileTree } from './Navbar/OperatorProfileTree';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface NavbarProps {
@@ -42,7 +43,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
   const [isWorkstationOpen, setIsWorkstationOpen] = useState(false);
+  const [isProfileTreeOpen, setIsProfileTreeOpen] = useState(false);
   const workstationRef = useRef<HTMLDivElement>(null);
+  const profileTreeRef = useRef<HTMLDivElement>(null);
 
   const expPercentage = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
   const activeGoalsCount = goals.filter(g => g.status !== 'Achieved').length;
@@ -67,21 +70,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
   const currentNav = navItems.find(item => item.id === currentTab) || navItems[0];
   const pendingTasksCount = tasks.filter(t => t.status !== 'Completed').length;
 
-  // Close floating workstation on outside click
+  // Close floating popovers on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (workstationRef.current && !workstationRef.current.contains(event.target as Node)) {
         setIsWorkstationOpen(false);
       }
+      if (profileTreeRef.current && !profileTreeRef.current.contains(event.target as Node)) {
+        setIsProfileTreeOpen(false);
+      }
     };
 
-    if (isWorkstationOpen) {
+    if (isWorkstationOpen || isProfileTreeOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isWorkstationOpen]);
+  }, [isWorkstationOpen, isProfileTreeOpen]);
 
   const handleTreeSelect = (id: string) => {
     sound.playClick();
@@ -95,39 +101,25 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
       setIsWorkstationOpen(false);
       return;
     }
-    if (id === 'sound-toggle') {
-      toggleSound();
+    if (id === 'automations') {
+      sound.playClick();
+      setCurrentTab('automations');
+      setIsWorkstationOpen(false);
       return;
     }
-    
-    // Map tree selection to valid tabs
-    const tabMap: Record<string, string> = {
-      'dashboard': 'dashboard',
-      'habits': 'habits',
-      'weekly': 'weekly',
-      'tasks': 'tasks',
-      'tasks-all': 'tasks',
-      'goals': 'goals',
-      'finance': 'finance',
-      'yearly': 'yearly',
-      'automations': 'automations',
-    };
-
-    if (tabMap[id]) {
-      setCurrentTab(tabMap[id]);
-      setIsWorkstationOpen(false);
-    }
+    setCurrentTab(id as any);
+    setIsWorkstationOpen(false);
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FFFFFF] border-b border-[#E2E8F0] h-[64px] transition-colors">
-      <div className="max-w-[1440px] mx-auto h-full px-3 sm:px-6 flex items-center justify-between gap-2 lg:gap-4">
+    <header className="sticky top-0 z-40 bg-[#FFFFFF]/90 backdrop-blur-md border-b border-[#E2E8F0] shadow-2xs">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         
-        {/* Left: Brand & Gamification Profile */}
-        <div className="flex items-center gap-2.5 sm:gap-3.5 flex-shrink-0">
-          {/* Brand Logo */}
+        {/* Left: Branding & Core Navigation Chips */}
+        <div className="flex items-center gap-3 sm:gap-6">
+          {/* Brand Logo & Tag */}
           <div 
-            className="flex items-center gap-2 cursor-pointer select-none group" 
+            className="flex items-center gap-2.5 cursor-pointer group select-none"
             onClick={() => {
               setCurrentTab('dashboard');
               sound.playClick();
@@ -187,39 +179,61 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
 
         {/* Right: Operator Profile & Workstation Container */}
         <div className="flex items-center gap-2">
-          {/* Operator Profile Trigger Button */}
-          <button
-            type="button"
-            onClick={() => {
-              onOpenProfile();
-              sound.playClick();
-            }}
-            title="Operator Profile & Identity"
-            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-[8px] bg-[#F9FAFB] hover:bg-white border border-[#E2E8F0] hover:border-[#18181B] text-[#18181B] h-[38px] transition-all cursor-pointer shadow-2xs group"
-          >
-            <div className="w-5 h-5 rounded-full bg-[#18181B] text-[#10B981] flex items-center justify-center text-[10px] font-bold shadow-inner">
-              {profile.avatarSeed === 'operator-apex' ? '🛡️' : profile.avatarSeed === 'operator-zen' ? '🌿' : profile.avatarSeed === 'operator-cyborg' ? '⚙️' : profile.avatarSeed === 'operator-sovereign' ? '👑' : profile.avatarSeed === 'operator-matrix' ? '📊' : '⚡'}
-            </div>
-            <span className="hidden lg:inline text-[11.5px] font-bold font-ui max-w-[100px] truncate">
-              {profile.callsign || 'Operator'}
-            </span>
-          </button>
+          {/* Operator Profile Trigger Button & Floating Tree Container */}
+          <div className="relative" ref={profileTreeRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsProfileTreeOpen(prev => !prev);
+                setIsWorkstationOpen(false);
+                sound.playPop();
+              }}
+              title="Operator Profile & Identity"
+              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-[8px] h-[38px] transition-all cursor-pointer shadow-2xs select-none border ${
+                isProfileTreeOpen
+                  ? 'bg-[#18181B] text-white border-[#18181B] shadow-sm'
+                  : 'bg-[#F9FAFB] text-[#18181B] hover:bg-white hover:border-[#18181B] border-[#E2E8F0]'
+              }`}
+            >
+              <div className="w-5 h-5 rounded-full bg-[#18181B] text-[#10B981] flex items-center justify-center text-[10px] font-bold shadow-inner border border-[#10B981]/30">
+                {profile.avatarSeed === 'operator-apex' ? '🛡️' : profile.avatarSeed === 'operator-zen' ? '🌿' : profile.avatarSeed === 'operator-cyborg' ? '⚙️' : profile.avatarSeed === 'operator-sovereign' ? '👑' : profile.avatarSeed === 'operator-matrix' ? '📊' : '⚡'}
+              </div>
+              <span className="hidden lg:inline text-[11.5px] font-bold font-ui max-w-[100px] truncate">
+                {profile.callsign || 'Operator'}
+              </span>
+              <span className={`text-[9.5px] font-num px-1.5 py-0.5 rounded font-bold border transition-colors ${
+                isProfileTreeOpen 
+                  ? 'bg-zinc-800 text-white border-zinc-700' 
+                  : 'bg-white text-[#18181B] border-[#E2E8F0]'
+              }`}>
+                LVL {profile.level}
+              </span>
+            </button>
+
+            {/* Operator Profile Tree Popover */}
+            <OperatorProfileTree 
+              isOpen={isProfileTreeOpen}
+              onClose={() => setIsProfileTreeOpen(false)}
+              onOpenEditModal={onOpenProfile}
+            />
+          </div>
 
           {/* Workstation Trigger Button & Floating Modal Container */}
           <div className="relative" ref={workstationRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setIsWorkstationOpen(prev => !prev);
-              sound.playPop();
-            }}
-            className={`flex items-center gap-2 border px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-[8px] h-[38px] text-[11.5px] font-medium transition-all select-none cursor-pointer ${
-              isWorkstationOpen
-                ? 'bg-[#18181B] text-white border-[#18181B] shadow-sm'
-                : 'bg-[#F9FAFB] text-[#18181B] hover:bg-[#F4F4F5] border-[#E2E8F0]'
-            }`}
-            title="Toggle Workstation"
-          >
+            <button
+              type="button"
+              onClick={() => {
+                setIsWorkstationOpen(prev => !prev);
+                setIsProfileTreeOpen(false);
+                sound.playPop();
+              }}
+              className={`flex items-center gap-2 border px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-[8px] h-[38px] text-[11.5px] font-medium transition-all select-none cursor-pointer ${
+                isWorkstationOpen
+                  ? 'bg-[#18181B] text-white border-[#18181B] shadow-sm'
+                  : 'bg-[#F9FAFB] text-[#18181B] hover:bg-[#F4F4F5] border-[#E2E8F0]'
+              }`}
+              title="Toggle Workstation"
+            >
             <FolderTree size={14} className={isWorkstationOpen ? 'text-white' : 'text-[#10B981]'} />
             <span className="font-ui font-semibold text-[11.5px] sm:text-[12px] tracking-tight">Workstation</span>
             <span className={`text-[10px] font-num px-1.5 py-0.5 rounded font-bold border transition-colors ${
