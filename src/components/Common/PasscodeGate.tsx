@@ -19,11 +19,8 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ children }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
 
-  const handleVerify = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-
-    const matchedOp = findOperatorByPin(pin);
-
+  const checkPin = (code: string) => {
+    const matchedOp = findOperatorByPin(code);
     if (matchedOp) {
       sound.playLevelUp();
       switchOperator(matchedOp.id);
@@ -31,11 +28,32 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ children }) => {
       sessionStorage.setItem('mplt_authenticated_operator', matchedOp.id);
       setIsAuthenticated(true);
       setError(false);
-    } else {
+      return true;
+    }
+    return false;
+  };
+
+  const handlePinChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 6);
+    setPin(clean);
+    setError(false);
+    if (clean.length === 6) {
+      const ok = checkPin(clean);
+      if (!ok) {
+        sound.playClick();
+        setError(true);
+        setTimeout(() => setError(false), 2200);
+      }
+    }
+  };
+
+  const handleVerify = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!checkPin(pin)) {
       sound.playClick();
       setError(true);
       setPin('');
-      setTimeout(() => setError(false), 2500);
+      setTimeout(() => setError(false), 2200);
     }
   };
 
@@ -76,7 +94,7 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ children }) => {
               maxLength={6}
               autoFocus
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => handlePinChange(e.target.value)}
               placeholder="••••••"
               className={`w-full text-center tracking-[8px] text-[22px] font-num font-bold py-3.5 px-4 rounded-[8px] border bg-[#F9FAFB] focus:bg-white focus:outline-none transition-all ${
                 error

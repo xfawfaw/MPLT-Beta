@@ -15,7 +15,9 @@ import { sound } from '../../utils/sound';
 
 export const DevToolbar: React.FC = () => {
   const { 
-    activeOperatorId, 
+    activeOperatorId,
+    isDevMode,
+    toggleDevMode,
     profile, 
     devAddExp, 
     devLevelUp, 
@@ -26,8 +28,8 @@ export const DevToolbar: React.FC = () => {
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Strictly only show in Developer Mode
-  if (activeOperatorId !== 'dev') return null;
+  // Strictly only show when Developer Mode is actively unlocked
+  if (!isDevMode && activeOperatorId !== 'dev') return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-40 select-none font-ui">
@@ -115,6 +117,18 @@ export const DevToolbar: React.FC = () => {
             >
               <RotateCcw size={11} />
               <span>Reset Dev Sandbox to Clean</span>
+            </motion.button>
+
+            {/* Exit Dev Mode */}
+            <motion.button
+              whileTap={{ scale: 0.96, filter: 'blur(1px)' }}
+              onClick={() => {
+                toggleDevMode(false);
+                setIsExpanded(false);
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium transition-colors cursor-pointer"
+            >
+              <span>Exit Developer Mode</span>
             </motion.button>
           </motion.div>
         )}

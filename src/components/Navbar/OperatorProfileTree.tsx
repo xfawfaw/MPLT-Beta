@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp, getUserRankTitle } from '../../context/AppContext';
 import { 
   User, 
@@ -12,12 +12,7 @@ import {
   Shield, 
   Activity, 
   Layers, 
-  Terminal, 
-  Users, 
-  Lock, 
-  LogOut, 
-  KeyRound, 
-  ArrowRight 
+  Terminal
 } from 'lucide-react';
 import { 
   TreeView, 
@@ -25,7 +20,6 @@ import {
   TreeFolder, 
   TreeItem 
 } from '@/components/ui/animated-file-tree';
-import { OPERATOR_LIST, OperatorMeta, verifyOperatorPin } from '../../types';
 import { sound } from '../../utils/sound';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -50,8 +44,8 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
   onOpenEditModal 
 }) => {
   const { 
-    activeOperatorId, 
-    switchOperator, 
+    isDevMode, 
+    toggleDevMode,
     profile, 
     habits, 
     tasks, 
@@ -59,10 +53,6 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
     budget, 
     updateProfile 
   } = useApp();
-
-  const [targetSwitchOp, setTargetSwitchOp] = useState<OperatorMeta | null>(null);
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState('');
 
   const rankTitle = getUserRankTitle(profile.level);
   const expPercentage = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
@@ -77,39 +67,6 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
   const handleSelectGlyph = (avatarId: string) => {
     updateProfile({ avatarSeed: avatarId, avatarUrl: undefined });
     sound.playPop();
-  };
-
-  const handleOperatorClick = (op: OperatorMeta) => {
-    if (op.id === activeOperatorId) return;
-    setTargetSwitchOp(op);
-    setPinInput('');
-    setPinError('');
-    sound.playClick();
-  };
-
-  const handleVerifySwitch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!targetSwitchOp) return;
-
-    if (verifyOperatorPin(targetSwitchOp.id, pinInput)) {
-      sound.playLevelUp();
-      switchOperator(targetSwitchOp.id);
-      localStorage.setItem('mplt_authenticated_operator', targetSwitchOp.id);
-      setTargetSwitchOp(null);
-      setPinInput('');
-      setPinError('');
-      onClose();
-    } else {
-      sound.playClick();
-      setPinError(`Incorrect PIN for ${targetSwitchOp.label}`);
-    }
-  };
-
-  const handleLockWorkstation = () => {
-    sound.playClick();
-    sessionStorage.removeItem('mplt_passcode_auth');
-    sessionStorage.removeItem('mplt_authenticated_operator');
-    window.location.reload();
   };
 
   return (
@@ -203,7 +160,7 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
               </div>
             </div>
 
-            {/* Quick Action Toolbar */}
+            {/* Quick Action: Profile & Photo Configuration */}
             <div className="flex items-center justify-between gap-1.5 p-1.5 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px]">
               <motion.button
                 onClick={() => {
@@ -213,11 +170,11 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                 }}
                 whileTap={{ scale: 0.95, filter: 'blur(1px)' }}
                 transition={{ duration: 0.1 }}
-                title="Open Full Profile Settings"
+                title="Open Full Profile Settings & Avatar Photo"
                 className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-[6px] bg-[#18181B] text-white hover:bg-[#27272A] text-[10.5px] font-ui font-bold transition-colors shadow-2xs cursor-pointer"
               >
                 <User size={12} />
-                <span>Configure Profile & Avatar</span>
+                <span>Configure Profile & Avatar Photo</span>
               </motion.button>
             </div>
 
@@ -229,25 +186,8 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                 selectedId={undefined}
                 onSelect={() => {}}
               >
-                {/* 1. OPERATOR SWITCHER (MULTI-USER ENGINE) */}
-                <TreeSection title="Operator Accounts (Multi-User)" defaultExpanded={true}>
-                  {OPERATOR_LIST.map((op) => {
-                    const isActive = op.id === activeOperatorId;
-                    return (
-                      <TreeItem 
-                        key={op.id}
-                        id={`op-switch-${op.id}`}
-                        label={op.label}
-                        icon={op.isDev ? Terminal : Users}
-                        badge={isActive ? '● ACTIVE' : `${op.badge} • 🔒`}
-                        onClick={() => handleOperatorClick(op)}
-                      />
-                    );
-                  })}
-                </TreeSection>
-
-                {/* 2. OPERATOR IDENTITY & DOSSIER */}
-                <TreeSection title="Operator Dossier" defaultExpanded={false}>
+                {/* 1. OPERATOR IDENTITY & DOSSIER */}
+                <TreeSection title="Personal Dossier" defaultExpanded={true}>
                   <TreeItem 
                     id="profile-callsign" 
                     label="Call-Sign" 
@@ -317,78 +257,40 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                     badge={budget.mode} 
                   />
                 </TreeSection>
+
+                {/* 4. DEV STATUS (Only visible if developer mode active) */}
+                {isDevMode && (
+                  <TreeSection title="Developer Controls" defaultExpanded={true}>
+                    <TreeItem 
+                      id="dev-status" 
+                      label="Creator God Mode" 
+                      icon={Terminal} 
+                      badge="ACTIVE" 
+                    />
+                    <TreeItem 
+                      id="dev-disable" 
+                      label="Deactivate Dev Mode" 
+                      icon={Terminal} 
+                      badge="Click to Exit"
+                      onClick={() => toggleDevMode(false)}
+                    />
+                  </TreeSection>
+                )}
               </TreeView>
             </div>
 
-            {/* Target Operator PIN Verification Modal (Inline) */}
-            <AnimatePresence>
-              {targetSwitchOp && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="p-3 bg-[#F9FAFB] border border-[#CBD5E1] rounded-[10px] space-y-2.5 shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Lock size={13} className="text-[#10B981]" />
-                      <span className="text-[11px] font-bold text-[#18181B] font-ui">
-                        Unlock {targetSwitchOp.label}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setTargetSwitchOp(null)}
-                      className="text-[#71717A] hover:text-[#18181B] p-0.5"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleVerifySwitch} className="space-y-2">
-                    <input
-                      type="password"
-                      autoFocus
-                      maxLength={6}
-                      placeholder="Enter 6-digit PIN"
-                      value={pinInput}
-                      onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                      className="w-full px-2.5 py-1.5 text-[12px] font-num font-bold rounded-[6px] border border-[#CBD5E1] bg-white text-center tracking-[3px] focus:outline-none focus:border-[#18181B]"
-                    />
-                    {pinError && (
-                      <p className="text-[10px] text-[#E11D48] font-ui text-center font-medium">
-                        {pinError}
-                      </p>
-                    )}
-                    <button
-                      type="submit"
-                      className="w-full py-1.5 px-3 rounded-[6px] bg-[#18181B] text-white text-[11px] font-bold font-ui flex items-center justify-center gap-1.5 hover:bg-[#27272A] cursor-pointer"
-                    >
-                      <KeyRound size={12} />
-                      <span>Unlock & Switch</span>
-                      <ArrowRight size={12} />
-                    </button>
-                  </form>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Footer & Lock Button */}
+            {/* Footer */}
             <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[10px] text-[#71717A] font-ui">
               <span className="flex items-center gap-1.5">
                 <Shield size={11} className="text-[#10B981]" />
-                <span>{profile.callsign || 'Sovereign Operator'}</span>
+                <span>Device Storage: Private & Local</span>
               </span>
 
-              <button
-                type="button"
-                onClick={handleLockWorkstation}
-                className="flex items-center gap-1 px-2 py-1 rounded-[4px] text-rose-600 hover:bg-rose-50 font-bold transition-colors cursor-pointer"
-                title="Lock Workstation & Sign Out"
-              >
-                <LogOut size={11} />
-                <span>Lock</span>
-              </button>
+              {isDevMode && (
+                <span className="text-[9px] font-mono font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                  DEV ACTIVE
+                </span>
+              )}
             </div>
           </motion.div>
         </>

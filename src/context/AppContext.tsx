@@ -8,8 +8,7 @@ import {
   GoalMilestone,
   BudgetConfig, 
   TransactionItem,
-  OperatorId,
-  OPERATOR_LIST
+  OperatorId
 } from '../types';
 import { sound } from '../utils/sound';
 import { dateUtils } from '../utils/date';
@@ -17,6 +16,10 @@ import { dateUtils } from '../utils/date';
 interface AppContextType {
   activeOperatorId: OperatorId;
   switchOperator: (id: OperatorId) => void;
+  isDevMode: boolean;
+  toggleDevMode: (force?: boolean) => void;
+  enableDevMode: () => void;
+  disableDevMode: () => void;
   profile: UserProfile;
   habits: Habit[];
   weeklyTasks: WeeklyTask[];
@@ -64,6 +67,7 @@ interface AppContextType {
   
   // Toast notification for EXP / Points
   expToast: { visible: boolean; message: string; exp: number } | null;
+  triggerToast: (message: string, exp?: number) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
   loadDemoData: () => void;
   resetAllData: () => void;
@@ -433,9 +437,11 @@ export const CLEAN_BUDGET: BudgetConfig = {
   startBalance: 0,
 };
 
-// Operator specific state helper loaders (Clean Slate guarantee for non-dev users)
-export const getInitialOperatorProfile = (opId: OperatorId): UserProfile => {
-  const saved = localStorage.getItem(`${STORAGE_KEY}_${opId}_profile`);
+// Single Device Personal State Loaders (guarantees clean slate for new visitors)
+export const getInitialProfile = (): UserProfile => {
+  const saved = localStorage.getItem(`${STORAGE_KEY}_profile`) || 
+                localStorage.getItem(`${STORAGE_KEY}_user-1_profile`) ||
+                localStorage.getItem(`${STORAGE_KEY}_dev_profile`);
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -443,19 +449,12 @@ export const getInitialOperatorProfile = (opId: OperatorId): UserProfile => {
       // fallback
     }
   }
-  if (opId === 'dev') {
-    return { ...DEMO_PROFILE, operatorId: 'dev' };
-  }
-  const meta = OPERATOR_LIST.find(o => o.id === opId);
-  return {
-    ...CLEAN_PROFILE,
-    operatorId: opId,
-    callsign: meta ? meta.defaultCallsign : 'Sovereign Operator',
-  };
+  return { ...CLEAN_PROFILE };
 };
 
-export const getInitialOperatorHabits = (opId: OperatorId): Habit[] => {
-  const saved = localStorage.getItem(`${STORAGE_KEY}_${opId}_habits`);
+export const getInitialHabits = (): Habit[] => {
+  const saved = localStorage.getItem(`${STORAGE_KEY}_habits`) || 
+                localStorage.getItem(`${STORAGE_KEY}_user-1_habits`);
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -463,14 +462,12 @@ export const getInitialOperatorHabits = (opId: OperatorId): Habit[] => {
       // fallback
     }
   }
-  if (opId === 'dev') {
-    return [...DEMO_HABITS];
-  }
-  return []; // Clean slate for user-1, user-2, user-3, user-4
+  return [...CLEAN_HABITS];
 };
 
-export const getInitialOperatorWeeklyTasks = (opId: OperatorId): WeeklyTask[] => {
-  const saved = localStorage.getItem(`${STORAGE_KEY}_${opId}_weeklyTasks`);
+export const getInitialWeeklyTasks = (): WeeklyTask[] => {
+  const saved = localStorage.getItem(`${STORAGE_KEY}_weeklyTasks`) || 
+                localStorage.getItem(`${STORAGE_KEY}_user-1_weeklyTasks`);
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -478,14 +475,12 @@ export const getInitialOperatorWeeklyTasks = (opId: OperatorId): WeeklyTask[] =>
       // fallback
     }
   }
-  if (opId === 'dev') {
-    return getDemoSprintWeekTasks();
-  }
-  return []; // Clean slate for user-1, user-2, user-3, user-4
+  return []; // Clean slate for new users
 };
 
-export const getInitialOperatorTasks = (opId: OperatorId): TaskItem[] => {
-  const saved = localStorage.getItem(`${STORAGE_KEY}_${opId}_tasks`);
+export const getInitialTasks = (): TaskItem[] => {
+  const saved = localStorage.getItem(`${STORAGE_KEY}_tasks`) || 
+                localStorage.getItem(`${STORAGE_KEY}_user-1_tasks`);
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -493,14 +488,12 @@ export const getInitialOperatorTasks = (opId: OperatorId): TaskItem[] => {
       // fallback
     }
   }
-  if (opId === 'dev') {
-    return getDemoTasks();
-  }
-  return []; // Clean slate for user-1, user-2, user-3, user-4
+  return []; // Clean slate for new users
 };
 
-export const getInitialOperatorGoals = (opId: OperatorId): GoalItem[] => {
-  const saved = localStorage.getItem(`${STORAGE_KEY}_${opId}_goals`);
+export const getInitialGoals = (): GoalItem[] => {
+  const saved = localStorage.getItem(`${STORAGE_KEY}_goals`) || 
+                localStorage.getItem(`${STORAGE_KEY}_user-1_goals`);
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -508,29 +501,25 @@ export const getInitialOperatorGoals = (opId: OperatorId): GoalItem[] => {
       // fallback
     }
   }
-  if (opId === 'dev') {
-    return [...DEMO_GOALS];
-  }
-  return []; // Clean slate for user-1, user-2, user-3, user-4
+  return []; // Clean slate for new users
 };
 
-export const getInitialOperatorBudget = (opId: OperatorId): BudgetConfig => {
-  const saved = localStorage.getItem(`${STORAGE_KEY}_${opId}_budget`);
+export const getInitialBudget = (): BudgetConfig => {
+  const saved = localStorage.getItem(`${STORAGE_KEY}_budget`) || 
+                localStorage.getItem(`${STORAGE_KEY}_user-1_budget`);
   if (saved) {
     try {
       return JSON.parse(saved);
     } catch {
       // fallback
     }
-  }
-  if (opId === 'dev') {
-    return { ...DEMO_BUDGET };
   }
   return { ...CLEAN_BUDGET };
 };
 
-export const getInitialOperatorTransactions = (opId: OperatorId): TransactionItem[] => {
-  const saved = localStorage.getItem(`${STORAGE_KEY}_${opId}_transactions`);
+export const getInitialTransactions = (): TransactionItem[] => {
+  const saved = localStorage.getItem(`${STORAGE_KEY}_transactions`) || 
+                localStorage.getItem(`${STORAGE_KEY}_user-1_transactions`);
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -538,28 +527,74 @@ export const getInitialOperatorTransactions = (opId: OperatorId): TransactionIte
       // fallback
     }
   }
-  if (opId === 'dev') {
-    return getDemoTransactions();
-  }
-  return []; // Clean slate for user-1, user-2, user-3, user-4
+  return []; // Clean slate for new users
+};
+
+// Backwards compatibility helper for existing references
+export const getInitialOperatorProfile = (opId: OperatorId): UserProfile => {
+  if (opId === 'dev') return { ...DEMO_PROFILE, operatorId: 'dev' };
+  return getInitialProfile();
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Active Operator State
-  const [activeOperatorId, setActiveOperatorId] = useState<OperatorId>(() => {
-    const saved = localStorage.getItem('mplt_active_operator_id') as OperatorId | null;
-    return saved && OPERATOR_LIST.some(o => o.id === saved) ? saved : 'user-1';
+  // Discreet Developer Mode State: Activated via URL ?dev=true or clicking BETA badge 5 times
+  const [isDevMode, setIsDevMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('dev') === 'true' || urlParams.get('dev') === '1') {
+        localStorage.setItem('mplt_dev_mode', 'true');
+        return true;
+      }
+    }
+    return localStorage.getItem('mplt_dev_mode') === 'true';
   });
 
-  const [profile, setProfile] = useState<UserProfile>(() => getInitialOperatorProfile(activeOperatorId));
-  const [habits, setHabits] = useState<Habit[]>(() => getInitialOperatorHabits(activeOperatorId));
-  const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>(() => getInitialOperatorWeeklyTasks(activeOperatorId));
-  const [tasks, setTasks] = useState<TaskItem[]>(() => getInitialOperatorTasks(activeOperatorId));
-  const [goals, setGoals] = useState<GoalItem[]>(() => getInitialOperatorGoals(activeOperatorId));
-  const [budget, setBudget] = useState<BudgetConfig>(() => getInitialOperatorBudget(activeOperatorId));
-  const [transactions, setTransactions] = useState<TransactionItem[]>(() => getInitialOperatorTransactions(activeOperatorId));
+  const activeOperatorId: OperatorId = isDevMode ? 'dev' : 'user-1';
+
+  const toggleDevMode = (force?: boolean) => {
+    setIsDevMode(prev => {
+      const next = typeof force === 'boolean' ? force : !prev;
+      localStorage.setItem('mplt_dev_mode', next ? 'true' : 'false');
+      if (next) {
+        sound.playLevelUp();
+        setExpToast({
+          visible: true,
+          message: 'DEVELOPER GOD CONTROLS: UNLOCKED',
+          exp: 777,
+        });
+      } else {
+        sound.playClick();
+        setExpToast({
+          visible: true,
+          message: 'Developer Mode Deactivated',
+          exp: 0,
+        });
+      }
+      return next;
+    });
+  };
+
+  const enableDevMode = () => toggleDevMode(true);
+  const disableDevMode = () => toggleDevMode(false);
+
+  const switchOperator = (newOpId: OperatorId) => {
+    if (newOpId === 'dev') {
+      enableDevMode();
+    } else {
+      disableDevMode();
+    }
+  };
+
+  // Sovereign Single-Device Personal State
+  const [profile, setProfile] = useState<UserProfile>(() => getInitialProfile());
+  const [habits, setHabits] = useState<Habit[]>(() => getInitialHabits());
+  const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>(() => getInitialWeeklyTasks());
+  const [tasks, setTasks] = useState<TaskItem[]>(() => getInitialTasks());
+  const [goals, setGoals] = useState<GoalItem[]>(() => getInitialGoals());
+  const [budget, setBudget] = useState<BudgetConfig>(() => getInitialBudget());
+  const [transactions, setTransactions] = useState<TransactionItem[]>(() => getInitialTransactions());
 
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -580,77 +615,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('mplt_theme');
   }, []);
 
-  // Namespaced LocalStorage Persistence for current active operator
+  // LocalStorage Persistence for current personal device
   useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_profile`, JSON.stringify(profile));
-  }, [profile, activeOperatorId]);
-
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_habits`, JSON.stringify(habits));
-  }, [habits, activeOperatorId]);
+    localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(profile));
+    localStorage.setItem(`${STORAGE_KEY}_user-1_profile`, JSON.stringify(profile));
+  }, [profile]);
 
   useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_weeklyTasks`, JSON.stringify(weeklyTasks));
-  }, [weeklyTasks, activeOperatorId]);
+    localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(habits));
+    localStorage.setItem(`${STORAGE_KEY}_user-1_habits`, JSON.stringify(habits));
+  }, [habits]);
 
   useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_tasks`, JSON.stringify(tasks));
-  }, [tasks, activeOperatorId]);
+    localStorage.setItem(`${STORAGE_KEY}_weeklyTasks`, JSON.stringify(weeklyTasks));
+    localStorage.setItem(`${STORAGE_KEY}_user-1_weeklyTasks`, JSON.stringify(weeklyTasks));
+  }, [weeklyTasks]);
 
   useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_goals`, JSON.stringify(goals));
-  }, [goals, activeOperatorId]);
+    localStorage.setItem(`${STORAGE_KEY}_tasks`, JSON.stringify(tasks));
+    localStorage.setItem(`${STORAGE_KEY}_user-1_tasks`, JSON.stringify(tasks));
+  }, [tasks]);
 
   useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_budget`, JSON.stringify(budget));
-  }, [budget, activeOperatorId]);
+    localStorage.setItem(`${STORAGE_KEY}_goals`, JSON.stringify(goals));
+    localStorage.setItem(`${STORAGE_KEY}_user-1_goals`, JSON.stringify(goals));
+  }, [goals]);
 
   useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_transactions`, JSON.stringify(transactions));
-  }, [transactions, activeOperatorId]);
+    localStorage.setItem(`${STORAGE_KEY}_budget`, JSON.stringify(budget));
+    localStorage.setItem(`${STORAGE_KEY}_user-1_budget`, JSON.stringify(budget));
+  }, [budget]);
 
-  // Seamless Multi-Operator Switcher with instant partition loading
-  const switchOperator = (newOpId: OperatorId) => {
-    if (newOpId === activeOperatorId) return;
+  useEffect(() => {
+    localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(transactions));
+    localStorage.setItem(`${STORAGE_KEY}_user-1_transactions`, JSON.stringify(transactions));
+  }, [transactions]);
 
-    // 1. Persist current operator partition before switching
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_profile`, JSON.stringify(profile));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_habits`, JSON.stringify(habits));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_weeklyTasks`, JSON.stringify(weeklyTasks));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_tasks`, JSON.stringify(tasks));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_goals`, JSON.stringify(goals));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_budget`, JSON.stringify(budget));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_transactions`, JSON.stringify(transactions));
-
-    // 2. Switch active ID
-    setActiveOperatorId(newOpId);
-    localStorage.setItem('mplt_active_operator_id', newOpId);
-
-    // 3. Load target operator partition
-    const nextProfile = getInitialOperatorProfile(newOpId);
-    const nextHabits = getInitialOperatorHabits(newOpId);
-    const nextWeekly = getInitialOperatorWeeklyTasks(newOpId);
-    const nextTasks = getInitialOperatorTasks(newOpId);
-    const nextGoals = getInitialOperatorGoals(newOpId);
-    const nextBudget = getInitialOperatorBudget(newOpId);
-    const nextTx = getInitialOperatorTransactions(newOpId);
-
-    setProfile(nextProfile);
-    setHabits(nextHabits);
-    setWeeklyTasks(nextWeekly);
-    setTasks(nextTasks);
-    setGoals(nextGoals);
-    setBudget(nextBudget);
-    setTransactions(nextTx);
-
-    sound.playPop();
-    const meta = OPERATOR_LIST.find(o => o.id === newOpId);
-    setExpToast({
-      visible: true,
-      message: `Active Operator: ${meta?.label || newOpId}`,
-      exp: nextProfile.currentExp,
-    });
-    setTimeout(() => setExpToast(null), 2500);
+  const triggerToast = (message: string, exp: number = 0) => {
+    setExpToast({ visible: true, message, exp });
+    setTimeout(() => {
+      setExpToast(null);
+    }, 2800);
   };
 
   // Gamification Engine
@@ -987,13 +992,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const demoBudget = { ...DEMO_BUDGET };
     const demoTx = getDemoTransactions();
 
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_profile`, JSON.stringify(demoProfile));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_habits`, JSON.stringify(demoHabits));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_weeklyTasks`, JSON.stringify(demoWeekly));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_tasks`, JSON.stringify(demoTasks));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_goals`, JSON.stringify(demoGoals));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_budget`, JSON.stringify(demoBudget));
-    localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_transactions`, JSON.stringify(demoTx));
+    localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(demoProfile));
+    localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(demoHabits));
+    localStorage.setItem(`${STORAGE_KEY}_weeklyTasks`, JSON.stringify(demoWeekly));
+    localStorage.setItem(`${STORAGE_KEY}_tasks`, JSON.stringify(demoTasks));
+    localStorage.setItem(`${STORAGE_KEY}_goals`, JSON.stringify(demoGoals));
+    localStorage.setItem(`${STORAGE_KEY}_budget`, JSON.stringify(demoBudget));
+    localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(demoTx));
 
     setProfile(demoProfile);
     setHabits(demoHabits);
@@ -1012,7 +1017,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProfile = (updates: Partial<UserProfile>) => {
     setProfile(prev => {
       const updated = { ...prev, ...updates };
-      localStorage.setItem(`${STORAGE_KEY}_${activeOperatorId}_profile`, JSON.stringify(updated));
+      localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(updated));
+      localStorage.setItem(`${STORAGE_KEY}_user-1_profile`, JSON.stringify(updated));
       return updated;
     });
     sound.playClick();
@@ -1020,23 +1026,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Reset to clean slate Level 1 Novice Initiate
   const resetAllData = () => {
-    localStorage.removeItem(`${STORAGE_KEY}_${activeOperatorId}_profile`);
-    localStorage.removeItem(`${STORAGE_KEY}_${activeOperatorId}_habits`);
-    localStorage.removeItem(`${STORAGE_KEY}_${activeOperatorId}_weeklyTasks`);
-    localStorage.removeItem(`${STORAGE_KEY}_${activeOperatorId}_tasks`);
-    localStorage.removeItem(`${STORAGE_KEY}_${activeOperatorId}_goals`);
-    localStorage.removeItem(`${STORAGE_KEY}_${activeOperatorId}_budget`);
-    localStorage.removeItem(`${STORAGE_KEY}_${activeOperatorId}_transactions`);
+    localStorage.removeItem(`${STORAGE_KEY}_profile`);
+    localStorage.removeItem(`${STORAGE_KEY}_habits`);
+    localStorage.removeItem(`${STORAGE_KEY}_weeklyTasks`);
+    localStorage.removeItem(`${STORAGE_KEY}_tasks`);
+    localStorage.removeItem(`${STORAGE_KEY}_goals`);
+    localStorage.removeItem(`${STORAGE_KEY}_budget`);
+    localStorage.removeItem(`${STORAGE_KEY}_transactions`);
+    localStorage.removeItem(`${STORAGE_KEY}_user-1_profile`);
+    localStorage.removeItem(`${STORAGE_KEY}_user-1_habits`);
+    localStorage.removeItem(`${STORAGE_KEY}_user-1_weeklyTasks`);
+    localStorage.removeItem(`${STORAGE_KEY}_user-1_tasks`);
+    localStorage.removeItem(`${STORAGE_KEY}_user-1_goals`);
+    localStorage.removeItem(`${STORAGE_KEY}_user-1_budget`);
+    localStorage.removeItem(`${STORAGE_KEY}_user-1_transactions`);
 
-    const meta = OPERATOR_LIST.find(o => o.id === activeOperatorId);
     const cleanProfile = {
       ...CLEAN_PROFILE,
       operatorId: activeOperatorId,
-      callsign: meta ? meta.defaultCallsign : 'Sovereign Operator',
+      callsign: 'Sovereign Operator',
     };
 
     setProfile(cleanProfile);
-    setHabits([]);
+    setHabits([...CLEAN_HABITS]);
     setWeeklyTasks([]);
     setTasks([]);
     setGoals([]);
@@ -1044,7 +1056,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTransactions([]);
 
     sound.playPop();
-    setExpToast({ visible: true, message: `Reset to 100% Clean Slate (${meta?.label || activeOperatorId})`, exp: 0 });
+    setExpToast({ visible: true, message: 'Reset to 100% Clean Slate (Level 1)', exp: 0 });
     setTimeout(() => setExpToast(null), 3000);
   };
 
@@ -1088,6 +1100,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         activeOperatorId,
         switchOperator,
+        isDevMode,
+        toggleDevMode,
+        enableDevMode,
+        disableDevMode,
         profile,
         habits,
         weeklyTasks,
@@ -1124,6 +1140,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         levelUpModal,
         closeLevelUpModal,
         expToast,
+        triggerToast,
         loadDemoData,
         resetAllData,
         devAddExp,

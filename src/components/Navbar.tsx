@@ -39,13 +39,32 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBackup, onOpenProfile }) => {
-  const { profile, currentTab, setCurrentTab, resetAllData, tasks, goals } = useApp();
+  const { profile, currentTab, setCurrentTab, resetAllData, tasks, goals, activeOperatorId, triggerToast, isDevMode, toggleDevMode } = useApp();
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
   const [isWorkstationOpen, setIsWorkstationOpen] = useState(false);
   const [isProfileTreeOpen, setIsProfileTreeOpen] = useState(false);
+  const [devClicks, setDevClicks] = useState(0);
+  const devClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const workstationRef = useRef<HTMLDivElement>(null);
   const profileTreeRef = useRef<HTMLDivElement>(null);
+
+  const handleDevBadgeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (devClickTimeoutRef.current) clearTimeout(devClickTimeoutRef.current);
+
+    const nextCount = devClicks + 1;
+    if (nextCount >= 5) {
+      setDevClicks(0);
+      toggleDevMode();
+    } else {
+      setDevClicks(nextCount);
+      sound.playPop();
+      devClickTimeoutRef.current = setTimeout(() => {
+        setDevClicks(0);
+      }, 2500);
+    }
+  };
 
   const expPercentage = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
   const activeGoalsCount = goals.filter(g => g.status !== 'Achieved').length;
@@ -102,6 +121,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
       return;
     }
     if (id === 'automations') {
+      if (activeOperatorId !== 'dev') {
+        sound.playClick();
+        triggerToast('🔒 Dev Mode access required for Life Pipelines', 0);
+        return;
+      }
       sound.playClick();
       setCurrentTab('automations');
       setIsWorkstationOpen(false);
@@ -132,8 +156,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
               <span className="font-bold tracking-tight text-[13.5px] font-ui text-[#18181B] leading-tight">
                 MPLT ZERO
               </span>
-              <span className="text-[8.5px] uppercase tracking-widest text-[#10B981] font-bold">
-                BETA v0.1
+              <span 
+                onClick={handleDevBadgeClick}
+                className={`text-[8.5px] uppercase tracking-widest font-bold select-none cursor-pointer transition-colors ${
+                  isDevMode ? 'text-amber-500 hover:text-amber-600' : 'text-[#10B981] hover:text-emerald-700'
+                }`}
+                title={isDevMode ? 'Dev Mode Active (Click 5x to turn off)' : 'v0.1 Beta (Click 5x to unlock Dev Mode)'}
+              >
+                {isDevMode ? 'DEV MODE ●' : 'BETA v0.1'}
               </span>
             </div>
           </div>
@@ -432,7 +462,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
                           id="automations" 
                           label="Life Pipelines" 
                           icon={Workflow} 
-                          badge="LOCKED" 
+                          badge={activeOperatorId === 'dev' ? 'DEV' : '🔒 DEV ONLY'}
                         />
                       </TreeSection>
                     </TreeView>
