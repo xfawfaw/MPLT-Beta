@@ -776,10 +776,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 3200);
   };
 
+  // Deduct EXP when user unchecks/reverts a completed action (prevents infinite EXP exploit).
+  // Clamps at 0 EXP without level-down to keep it simple and non-punishing.
+  const removeExp = (amount: number, reason: string = 'Action Reverted') => {
+    setProfile(prev => {
+      const newExp = Math.max(0, prev.currentExp - amount);
+      const newTotalPoints = Math.max(0, prev.totalPoints - Math.round(amount * 0.5));
+      return {
+        ...prev,
+        currentExp: newExp,
+        totalPoints: newTotalPoints,
+      };
+    });
+
+    setExpToast({ visible: true, message: reason, exp: -amount });
+    setTimeout(() => {
+      setExpToast(null);
+    }, 2400);
+  };
+
   const addPoints = (amount: number) => {
     setProfile(prev => ({
       ...prev,
       totalPoints: prev.totalPoints + amount,
+    }));
+  };
+
+  const removePoints = (amount: number) => {
+    setProfile(prev => ({
+      ...prev,
+      totalPoints: Math.max(0, prev.totalPoints - amount),
     }));
   };
 
@@ -804,6 +830,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addPoints(targetHabit.ptsReward || 10);
         sound.playPop();
       } else {
+        removeExp(targetHabit.expReward || 25, `Reverted: ${targetHabit.title}`);
+        removePoints(targetHabit.ptsReward || 10);
         sound.playClick();
       }
 
@@ -853,6 +881,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addExp(target.expReward || 25, `Weekly Task: ${target.title}`);
         sound.playPop();
       } else {
+        removeExp(target.expReward || 25, `Reverted: ${target.title}`);
         sound.playClick();
       }
 
@@ -909,6 +938,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sound.playPop();
       } else {
         nextStatus = 'Not Started';
+        removeExp(target.expReward || 20, `Reverted: ${target.title}`);
         sound.playClick();
       }
 
@@ -944,6 +974,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addExp(150, `Goal Milestone Achieved: ${target.title}`);
         sound.playLevelUp();
       } else {
+        removeExp(150, `Reverted Goal: ${target.title}`);
         sound.playClick();
       }
 
@@ -984,6 +1015,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 addExp(m.expReward, `Milestone: ${m.title}`);
                 sound.playPop();
               } else {
+                removeExp(m.expReward, `Reverted Milestone: ${m.title}`);
                 sound.playClick();
               }
               return { ...m, isCompleted: nextDone };
@@ -998,6 +1030,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (isAchieved && g.status !== 'Achieved') {
             addExp(100, `Major Goal Completed: ${g.title}`);
             sound.playLevelUp();
+          } else if (!isAchieved && g.status === 'Achieved') {
+            removeExp(100, `Reverted Goal Completion: ${g.title}`);
           }
 
           return {
