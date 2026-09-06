@@ -12,7 +12,8 @@ import {
   Shield, 
   Activity, 
   Layers, 
-  Terminal
+  Terminal,
+  RotateCcw
 } from 'lucide-react';
 import { 
   TreeView, 
@@ -51,7 +52,8 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
     tasks, 
     goals, 
     budget, 
-    updateProfile 
+    updateProfile,
+    resetAllData
   } = useApp();
 
   const rankTitle = getUserRankTitle(profile.level);
@@ -280,17 +282,35 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[10px] text-[#71717A] font-ui">
-              <span className="flex items-center gap-1.5">
-                <Shield size={11} className="text-[#10B981]" />
-                <span>Device Storage: Private & Local</span>
-              </span>
-
-              {isDevMode && (
-                <span className="text-[9px] font-mono font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                  DEV ACTIVE
+            <div className="pt-2 border-t border-[#E2E8F0] space-y-2">
+              <div className="flex items-center justify-between text-[10px] text-[#71717A] font-ui">
+                <span className="flex items-center gap-1.5">
+                  <Shield size={11} className="text-[#10B981]" />
+                  <span>Device Storage: Private & Local</span>
                 </span>
-              )}
+
+                {isDevMode && (
+                  <span className="text-[9px] font-mono font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                    DEV ACTIVE
+                  </span>
+                )}
+              </div>
+
+              {/* Reset Data — accessible on all screen sizes including mobile */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Reset all data to clean slate? This cannot be undone.')) {
+                    resetAllData();
+                    onClose();
+                    sound.playClick();
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-[6px] bg-white hover:bg-rose-50 border border-[#E2E8F0] hover:border-rose-200 text-[10.5px] font-ui font-medium text-[#A1A1AA] hover:text-[#E11D48] transition-all"
+              >
+                <RotateCcw size={11} />
+                <span>Reset All Data (Clean Slate)</span>
+              </button>
             </div>
           </motion.div>
         </>
