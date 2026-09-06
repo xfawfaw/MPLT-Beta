@@ -89,7 +89,7 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: 10, scale: 0.96, filter: 'blur(12px)' }}
             transition={{ type: 'spring', stiffness: 480, damping: 32 }}
-            className="absolute right-0 top-[calc(100%+8px)] w-[330px] sm:w-[360px] bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E2E8F0] shadow-2xl z-50 p-3.5 flex flex-col gap-3 overflow-hidden select-none"
+            className="absolute right-0 top-[calc(100%+8px)] w-[calc(100vw-28px)] max-w-[360px] bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E2E8F0] shadow-2xl z-50 p-3.5 flex flex-col gap-3 overflow-hidden select-none"
           >
             {/* Header: Operator Avatar, Call-sign & Rank */}
             <div className="flex items-center justify-between pb-2.5 border-b border-[#E2E8F0]">

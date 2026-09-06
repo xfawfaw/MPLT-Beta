@@ -45,6 +45,8 @@
     color: #18181B !important;
     font-family: 'Geist Mono', monospace;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   /* Custom high-density scrollbar */

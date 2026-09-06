@@ -137,13 +137,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
 
   return (
     <header className="sticky top-0 z-40 bg-[#FFFFFF]/90 backdrop-blur-md border-b border-[#E2E8F0] shadow-2xs">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Left: Branding & Core Navigation Chips */}
-        <div className="flex items-center gap-3 sm:gap-6">
+        <div className="flex items-center gap-2 sm:gap-6 min-w-0">
           {/* Brand Logo & Tag */}
           <div 
-            className="flex items-center gap-2.5 cursor-pointer group select-none"
+            className="flex items-center gap-2 cursor-pointer group select-none flex-shrink-0"
             onClick={() => {
               setCurrentTab('dashboard');
               sound.playClick();
@@ -153,12 +153,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
               Z0
             </div>
             <div className="flex flex-col">
-              <span className="font-bold tracking-tight text-[13.5px] font-ui text-[#18181B] leading-tight">
+              <span className="font-bold tracking-tight text-[13px] sm:text-[13.5px] font-ui text-[#18181B] leading-tight">
                 MPLT ZERO
               </span>
               <span 
                 onClick={handleDevBadgeClick}
-                className={`text-[8.5px] uppercase tracking-widest font-bold select-none cursor-pointer transition-colors ${
+                className={`text-[8px] sm:text-[8.5px] uppercase tracking-widest font-bold select-none cursor-pointer transition-colors ${
                   isDevMode ? 'text-amber-500 hover:text-amber-600' : 'text-[#10B981] hover:text-emerald-700'
                 }`}
                 title={isDevMode ? 'Dev Mode Active (Click 5x to turn off)' : 'v0.1 Beta (Click 5x to unlock Dev Mode)'}
@@ -171,21 +171,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
           <div className="h-6 w-[1px] bg-[#E2E8F0] hidden sm:block" />
 
           {/* Gamification Bar */}
-          <div className="flex items-center gap-2 bg-[#F9FAFB] border border-[#E2E8F0] px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-[8px] h-[38px]">
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-[#F9FAFB] border border-[#E2E8F0] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-[8px] h-[36px] sm:h-[38px] flex-shrink-0">
             {/* Level Badge */}
-            <div className="bg-[#10B981] text-white font-bold text-[10px] sm:text-[10.5px] font-num px-1.5 py-0.5 rounded-[4px] tracking-tight">
+            <div className="bg-[#10B981] text-white font-bold text-[9.5px] sm:text-[10.5px] font-num px-1.5 py-0.5 rounded-[4px] tracking-tight">
               LVL {profile.level}
             </div>
 
             {/* EXP Bar & Metrics */}
-            <div className="flex flex-col gap-0.5 w-20 sm:w-28">
-              <div className="flex justify-between items-center text-[9px] sm:text-[9.5px] text-[#71717A]">
+            <div className="flex flex-col gap-0.5 w-14 xs:w-20 sm:w-28">
+              <div className="flex justify-between items-center text-[8.5px] sm:text-[9.5px] text-[#71717A]">
                 <span className="font-ui font-medium">EXP</span>
-                <span className="font-num font-semibold text-[#18181B]">
+                <span className="font-num font-semibold text-[#18181B] truncate">
                   {profile.currentExp.toLocaleString()}/{profile.nextLevelExp.toLocaleString()}
                 </span>
               </div>
-              <div className="w-full bg-[#E2E8F0] h-[4.5px] sm:h-[5px] rounded-full overflow-hidden">
+              <div className="w-full bg-[#E2E8F0] h-[4px] sm:h-[5px] rounded-full overflow-hidden">
                 <div 
                   className="bg-[#18181B] h-full transition-all duration-300 rounded-full"
                   style={{ width: `${expPercentage}%` }}
@@ -208,7 +208,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
         </div>
 
         {/* Right: Operator Profile & Workstation Container */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {/* Operator Profile Trigger Button & Floating Tree Container */}
           <div className="relative" ref={profileTreeRef}>
             <motion.button
@@ -221,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
               whileTap={{ scale: 0.94, filter: 'blur(1.2px)' }}
               transition={{ duration: 0.12 }}
               title="Operator Profile & Identity"
-              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-[8px] h-[38px] transition-all cursor-pointer shadow-2xs select-none border ${
+              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-[8px] h-[36px] sm:h-[38px] transition-all cursor-pointer shadow-2xs select-none border ${
                 isProfileTreeOpen
                   ? 'bg-[#18181B] text-white border-[#18181B] shadow-sm'
                   : 'bg-[#F9FAFB] text-[#18181B] hover:bg-white hover:border-[#18181B] border-[#E2E8F0]'
@@ -260,8 +260,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
             />
           </div>
 
-          {/* Workstation Trigger Button & Floating Modal Container */}
-          <div className="relative" ref={workstationRef}>
+          {/* Workstation Trigger Button & Floating Modal Container - Hidden on mobile (< md) */}
+          <div className="relative hidden md:block" ref={workstationRef}>
             <motion.button
               type="button"
               onClick={() => {

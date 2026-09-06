@@ -64,7 +64,7 @@ export const AppContent: React.FC = () => {
       />
 
       {/* Main Workspace Container with Suspense, Hyperspace Motion Blur & Smooth Spring Transitions */}
-      <main className="flex-1 pb-24 md:pb-16 overflow-hidden">
+      <main className="flex-1 pb-28 md:pb-16 overflow-hidden">
         <Suspense fallback={<ViewSkeleton />}>
           <AnimatePresence mode="wait">
             <motion.div

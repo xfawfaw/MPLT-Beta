@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useApp, getUserRankTitle } from '../../context/AppContext';
+import { useApp, getUserRankTitle, CLEAN_HABITS } from '../../context/AppContext';
 import { 
   Check, 
   CheckCircle2, 
@@ -39,6 +39,7 @@ export const MasterDashboard: React.FC = () => {
     profile,
     habits, 
     toggleHabitLog, 
+    addHabit,
     weeklyTasks, 
     toggleWeeklyTask, 
     addWeeklyTask,
@@ -49,11 +50,17 @@ export const MasterDashboard: React.FC = () => {
     transactions,
     addTransaction,
     addExp,
-    setCurrentTab
+    setCurrentTab,
+    triggerToast
   } = useApp();
 
   const [today, setToday] = useState(() => dateUtils.getTodayInfo());
   
+  // Mobile Ergonomic State
+  const [mobileDomainMode, setMobileDomainMode] = useState<'cards' | 'globe'>('cards');
+  const [mobileSprintDay, setMobileSprintDay] = useState<number>(() => today.dayOfWeekIndex);
+  const [mobileSprintTaskTitle, setMobileSprintTaskTitle] = useState('');
+
   // Quick Kinetic Capture Modal State (Option B)
   const [showQuickCapture, setShowQuickCapture] = useState(false);
   const [quickCaptureTab, setQuickCaptureTab] = useState<'expense' | 'habit' | 'task'>('expense');
@@ -464,7 +471,7 @@ export const MasterDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-[1440px] mx-auto p-6 space-y-6">
+    <div className="max-w-[1440px] mx-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
       
       {/* ========================================================
           TOP SECTION 1: MISSION CONTROL PRIMARY DIRECTIVE
@@ -483,7 +490,7 @@ export const MasterDashboard: React.FC = () => {
                 <span>•</span>
                 <span className="text-[#10B981] font-semibold">{nextPrimaryQuest.task.category}</span>
               </div>
-              <h2 className="text-[15px] font-bold font-ui text-[#18181B] mt-0.5">
+              <h2 className="text-[14px] sm:text-[15px] font-bold font-ui text-[#18181B] mt-0.5">
                 {nextPrimaryQuest.task.title}
               </h2>
             </div>
@@ -502,7 +509,7 @@ export const MasterDashboard: React.FC = () => {
                   toggleTaskStatus(nextPrimaryQuest.task.id);
                 }
               }}
-              className="px-4 py-2 rounded-[6px] bg-[#10B981] hover:bg-[#059669] text-white text-[12px] font-bold font-ui flex items-center gap-1.5 transition-all shadow-sm"
+              className="px-4 py-2 rounded-[6px] bg-[#10B981] hover:bg-[#059669] text-white text-[12px] font-bold font-ui flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             >
               <Check size={14} className="stroke-[3]" />
               <span>Complete Quest</span>
@@ -514,76 +521,76 @@ export const MasterDashboard: React.FC = () => {
       {/* ========================================================
           TOP SECTION 2: DAILY VELOCITY TELEMETRY
           ======================================================== */}
-      <section className="mplt-card p-4 bg-[#FFFFFF] border border-[#E2E8F0]">
+      <section className="mplt-card p-3.5 sm:p-4 bg-[#FFFFFF] border border-[#E2E8F0]">
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#E2E8F0]">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-            <h2 className="text-[12px] font-bold tracking-wider uppercase text-[#18181B] font-ui">
+            <h2 className="text-[11.5px] sm:text-[12px] font-bold tracking-wider uppercase text-[#18181B] font-ui">
               SYSTEM VELOCITY & TELEMETRY
             </h2>
           </div>
-          <span className="text-[11px] text-[#71717A] font-num font-semibold">
-            OPERATIONAL LOG • {today.formattedDisplay.toUpperCase()}
+          <span className="text-[10px] sm:text-[11px] text-[#71717A] font-num font-semibold">
+            {today.formattedDisplay.toUpperCase()}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E2E8F0]">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 divide-y-0 sm:divide-x divide-[#E2E8F0]">
           
           {/* Metric 1: Today Habit */}
-          <div className="pt-2 sm:pt-0 sm:px-3 first:pl-0">
-            <div className="text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
-              <span>Today Habit Completion</span>
-              <span className="text-[10px] font-num text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">
-                {habitsDoneCount}/{habits.length} Logs
+          <div className="p-2.5 sm:p-0 sm:px-3 bg-[#F9FAFB] sm:bg-transparent rounded-lg sm:rounded-none border sm:border-0 border-[#E2E8F0] sm:first:pl-0 flex flex-col justify-between">
+            <div className="text-[10.5px] sm:text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
+              <span className="truncate">Today Habits</span>
+              <span className="text-[9px] sm:text-[10px] font-num text-[#10B981] bg-[#10B981]/10 px-1 sm:px-1.5 py-0.2 rounded font-semibold">
+                {habitsDoneCount}/{habits.length}
               </span>
             </div>
-            <div className="text-[20px] font-bold text-[#18181B] font-num tracking-tight">
+            <div className="text-[17px] sm:text-[20px] font-bold text-[#18181B] font-num tracking-tight">
               {habitCompletionRate}%
             </div>
           </div>
 
           {/* Metric 2: Pending Tasks */}
-          <div className="pt-2 sm:pt-0 sm:px-3">
-            <div className="text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
-              <span>Pending Tasks</span>
-              <span className="text-[10px] font-num text-[#71717A] bg-[#F1F5F9] px-1.5 py-0.2 rounded">
-                Active Sprint
+          <div className="p-2.5 sm:p-0 sm:px-3 bg-[#F9FAFB] sm:bg-transparent rounded-lg sm:rounded-none border sm:border-0 border-[#E2E8F0] flex flex-col justify-between">
+            <div className="text-[10.5px] sm:text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
+              <span className="truncate">Sprint Tasks</span>
+              <span className="text-[9px] sm:text-[10px] font-num text-[#71717A] bg-[#F1F5F9] px-1 sm:px-1.5 py-0.2 rounded">
+                Active
               </span>
             </div>
-            <div className="text-[20px] font-bold text-[#18181B] font-num tracking-tight flex items-baseline gap-2">
+            <div className="text-[17px] sm:text-[20px] font-bold text-[#18181B] font-num tracking-tight flex items-baseline gap-1.5">
               <span>{pendingTasksCount}</span>
-              <span className="text-[12px] font-normal text-[#71717A]">items remaining</span>
+              <span className="text-[11px] sm:text-[12px] font-normal text-[#71717A]">left</span>
             </div>
           </div>
 
           {/* Metric 3: Weekly Consistency */}
-          <div className="pt-2 sm:pt-0 sm:px-3">
-            <div className="text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
-              <span>Weekly Consistency</span>
-              <span className="text-[10px] font-num text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">
+          <div className="p-2.5 sm:p-0 sm:px-3 bg-[#F9FAFB] sm:bg-transparent rounded-lg sm:rounded-none border sm:border-0 border-[#E2E8F0] flex flex-col justify-between">
+            <div className="text-[10.5px] sm:text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
+              <span className="truncate">Consistency</span>
+              <span className="text-[9px] sm:text-[10px] font-num text-[#10B981] bg-[#10B981]/10 px-1 sm:px-1.5 py-0.2 rounded font-semibold">
                 Optimal
               </span>
             </div>
-            <div className="text-[20px] font-bold text-[#18181B] font-num tracking-tight flex items-center gap-2">
+            <div className="text-[17px] sm:text-[20px] font-bold text-[#18181B] font-num tracking-tight flex items-center gap-1.5">
               <span>{weeklyConsistency}%</span>
-              <TrendingUp size={16} className="text-[#10B981]" />
+              <TrendingUp size={15} className="text-[#10B981]" />
             </div>
           </div>
 
           {/* Metric 4: Budget Status */}
-          <div className="pt-2 sm:pt-0 sm:px-3 last:pr-0">
-            <div className="text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
-              <span>Budget Status</span>
-              <span className={`text-[10px] font-num px-1.5 py-0.2 rounded font-semibold ${
+          <div className="p-2.5 sm:p-0 sm:px-3 bg-[#F9FAFB] sm:bg-transparent rounded-lg sm:rounded-none border sm:border-0 border-[#E2E8F0] sm:last:pr-0 flex flex-col justify-between">
+            <div className="text-[10.5px] sm:text-[11px] text-[#71717A] font-medium font-ui mb-1 flex items-center justify-between">
+              <span className="truncate">Budget</span>
+              <span className={`text-[8.5px] sm:text-[10px] font-num px-1 sm:px-1.5 py-0.2 rounded font-semibold ${
                 isUnderBudget ? 'text-[#10B981] bg-[#10B981]/10' : 'text-[#E11D48] bg-rose-50'
               }`}>
-                {isUnderBudget ? 'UNDER BUDGET' : 'OVER BUDGET'}
+                {isUnderBudget ? 'OK' : 'EXCEEDED'}
               </span>
             </div>
-            <div className="text-[20px] font-bold text-[#18181B] font-num tracking-tight">
-              {isUnderBudget ? 'Under Budget' : 'Over Budget'}
-              <span className="text-[12px] font-normal text-[#71717A] ml-1.5">
-                ({spentPercent}% Spent)
+            <div className="text-[17px] sm:text-[20px] font-bold text-[#18181B] font-num tracking-tight">
+              {spentPercent}%
+              <span className="text-[11px] sm:text-[12px] font-normal text-[#71717A] ml-1">
+                Spent
               </span>
             </div>
           </div>
@@ -594,7 +601,7 @@ export const MasterDashboard: React.FC = () => {
       {/* ========================================================
           GLOBAL 6-DOMAIN LIFE BALANCE: 3D TOPOGRAPHY & TELEMETRY
           ======================================================== */}
-      <section className="mplt-card p-5 sm:p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-6 overflow-hidden">
+      <section className="mplt-card p-4 sm:p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-5 sm:space-y-6 overflow-hidden">
         
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
@@ -603,11 +610,11 @@ export const MasterDashboard: React.FC = () => {
               <div className="w-6 h-6 rounded-[5px] bg-[#18181B] text-white flex items-center justify-center shadow-xs">
                 <GlobeIcon size={14} className="text-[#10B981]" />
               </div>
-              <h3 className="text-[14px] sm:text-[15px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
+              <h3 className="text-[13px] sm:text-[15px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
                 6-DOMAIN LIFE BALANCE — 3D TOPOGRAPHY & TELEMETRY
               </h3>
             </div>
-            <p className="text-[11.5px] text-[#71717A] font-ui">
+            <p className="text-[11px] sm:text-[11.5px] text-[#71717A] font-ui">
               Real-time multi-dimensional discipline matrix synchronized with active spherical balance nodes
             </p>
           </div>
@@ -622,6 +629,40 @@ export const MasterDashboard: React.FC = () => {
               <span>{totalCategoryExp.toLocaleString('id-ID')} TOTAL EXP</span>
             </div>
           </div>
+        </div>
+
+        {/* Mobile View Mode Segmented Switcher (< lg) */}
+        <div className="flex lg:hidden items-center p-1 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] w-full">
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setMobileDomainMode('cards');
+            }}
+            className={`flex-1 py-1.5 text-[11px] font-bold font-ui rounded-[6px] transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              mobileDomainMode === 'cards'
+                ? 'bg-[#18181B] text-white shadow-xs'
+                : 'text-[#71717A] hover:text-[#18181B]'
+            }`}
+          >
+            <Activity size={12} className={mobileDomainMode === 'cards' ? 'text-[#10B981]' : ''} />
+            <span>Balance Overview</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setMobileDomainMode('globe');
+            }}
+            className={`flex-1 py-1.5 text-[11px] font-bold font-ui rounded-[6px] transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              mobileDomainMode === 'globe'
+                ? 'bg-[#18181B] text-white shadow-xs'
+                : 'text-[#71717A] hover:text-[#18181B]'
+            }`}
+          >
+            <GlobeIcon size={12} className={mobileDomainMode === 'globe' ? 'text-[#10B981]' : ''} />
+            <span>3D Globe Sphere</span>
+          </button>
         </div>
 
         {/* 6-Domain Orbital Quick Selector Dock */}
@@ -676,7 +717,9 @@ export const MasterDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           
           {/* Left Column (5 Cols): 3D Geodesic Interactive Globe */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] relative overflow-hidden group">
+          <div className={`lg:col-span-5 flex-col items-center justify-center p-4 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] relative overflow-hidden group ${
+            mobileDomainMode === 'globe' ? 'flex' : 'hidden lg:flex'
+          }`}>
             
             {/* Subtle high-tech background texture */}
             <div 
@@ -756,7 +799,9 @@ export const MasterDashboard: React.FC = () => {
           </div>
 
           {/* Right Column (7 Cols): 6-Domain Life Balance & Kinetic EXP Breakdown */}
-          <div className="lg:col-span-7 space-y-5">
+          <div className={`lg:col-span-7 space-y-5 ${
+            mobileDomainMode === 'cards' ? 'block' : 'hidden lg:block'
+          }`}>
             
             {/* Top Sub-section: 6 Domains Grid */}
             <div>
@@ -1223,60 +1268,95 @@ export const MasterDashboard: React.FC = () => {
             </div>
 
             {/* Habit checklist with 18px square checkboxes & +25 EXP hover chip */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-              {habits.map((habit) => {
-                const isChecked = !!habit.logs[currentDayNum];
-                return (
-                  <div
-                    key={habit.id}
-                    onClick={() => toggleHabitLog(habit.id, currentDayNum)}
-                    className={`group flex items-center justify-between p-3 rounded-[8px] border transition-all cursor-pointer select-none ${
-                      isChecked
-                        ? 'bg-[#F9FAFB] border-[#CBD5E1]'
-                        : 'bg-white border-[#E2E8F0] hover:border-[#A1A1AA] hover:bg-[#FAFAFA]'
-                    }`}
+            {habits.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-6 sm:p-8 rounded-[8px] border border-dashed border-[#CBD5E1] bg-[#F9FAFB] text-center">
+                <div className="w-10 h-10 rounded-full bg-white border border-[#E2E8F0] text-[#10B981] flex items-center justify-center mb-2.5 shadow-2xs">
+                  <CalendarCheck2 size={20} />
+                </div>
+                <h4 className="text-[13px] font-bold text-[#18181B] font-ui mb-1">
+                  No Daily Habits Configured Yet
+                </h4>
+                <p className="text-[11.5px] text-[#71717A] max-w-sm mb-4">
+                  Consistency compounds into greatness. Start tracking foundational habits or load our recommended starter protocols.
+                </p>
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <button
+                    onClick={() => setCurrentTab('habits')}
+                    className="px-3.5 py-1.5 rounded-[6px] bg-[#18181B] text-white text-[11.5px] font-semibold font-ui flex items-center gap-1.5 hover:bg-zinc-800 transition-colors cursor-pointer shadow-xs"
                   >
-                    <div className="flex items-center gap-3">
-                      {/* Square checkbox 18px with 2px solid #18181B */}
-                      <button
-                        type="button"
-                        className={`w-[18px] h-[18px] rounded-[3px] border-[2px] flex items-center justify-center transition-all ${
-                          isChecked
-                            ? 'bg-[#18181B] border-[#18181B] text-white'
-                            : 'bg-white border-[#18181B] group-hover:border-[#000000]'
-                        }`}
-                      >
-                        {isChecked && <Check size={12} className="stroke-[3]" />}
-                      </button>
+                    <Plus size={13} />
+                    <span>Configure Habits</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      CLEAN_HABITS.forEach(h => {
+                        addHabit(h.title, h.category, h.timeOfDay);
+                      });
+                      triggerToast('Loaded 6 foundational starter habits', 50);
+                    }}
+                    className="px-3.5 py-1.5 rounded-[6px] bg-white border border-[#E2E8F0] text-[#18181B] text-[11.5px] font-semibold font-ui hover:bg-[#F4F4F5] transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Load 6 Starter Habits
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {habits.map((habit) => {
+                  const isChecked = !!habit.logs[currentDayNum];
+                  return (
+                    <div
+                      key={habit.id}
+                      onClick={() => toggleHabitLog(habit.id, currentDayNum)}
+                      className={`group flex items-center justify-between p-3 rounded-[8px] border transition-all cursor-pointer select-none ${
+                        isChecked
+                          ? 'bg-[#F9FAFB] border-[#CBD5E1]'
+                          : 'bg-white border-[#E2E8F0] hover:border-[#A1A1AA] hover:bg-[#FAFAFA]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Square checkbox 18px with 2px solid #18181B */}
+                        <button
+                          type="button"
+                          className={`w-[18px] h-[18px] rounded-[3px] border-[2px] flex items-center justify-center transition-all ${
+                            isChecked
+                              ? 'bg-[#18181B] border-[#18181B] text-white'
+                              : 'bg-white border-[#18181B] group-hover:border-[#000000]'
+                          }`}
+                        >
+                          {isChecked && <Check size={12} className="stroke-[3]" />}
+                        </button>
 
-                      <div className="flex flex-col">
-                        <span className={`text-[13px] font-medium font-ui leading-tight ${
-                          isChecked ? 'line-through text-[#71717A]' : 'text-[#18181B]'
-                        }`}>
-                          {habit.title}
-                        </span>
-                        <span className="text-[10px] text-[#71717A] uppercase tracking-wider mt-0.5">
-                          {habit.category}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className={`text-[13px] font-medium font-ui leading-tight ${
+                            isChecked ? 'line-through text-[#71717A]' : 'text-[#18181B]'
+                          }`}>
+                            {habit.title}
+                          </span>
+                          <span className="text-[10px] text-[#71717A] uppercase tracking-wider mt-0.5">
+                            {habit.category}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* +25 EXP badge */}
+                      <div className={`px-2 py-0.5 rounded-[4px] text-[10px] font-num font-bold transition-all ${
+                        isChecked 
+                          ? 'bg-[#10B981]/15 text-[#10B981]' 
+                          : 'bg-[#F1F5F9] text-[#71717A] group-hover:bg-[#10B981]/15 group-hover:text-[#10B981]'
+                      }`}>
+                        +{habit.expReward} EXP
                       </div>
                     </div>
-
-                    {/* +25 EXP badge */}
-                    <div className={`px-2 py-0.5 rounded-[4px] text-[10px] font-num font-bold transition-all ${
-                      isChecked 
-                        ? 'bg-[#10B981]/15 text-[#10B981]' 
-                        : 'bg-[#F1F5F9] text-[#71717A] group-hover:bg-[#10B981]/15 group-hover:text-[#10B981]'
-                    }`}>
-                      +{habit.expReward} EXP
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* SECONDARY PANEL: WEEKLY DISTRIBUTION & DAILY PROGRESS */}
-          <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
+          <div className="mplt-card p-4 sm:p-5 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
             {/* Section Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-[#E2E8F0]">
               <div className="flex items-center gap-2.5">
@@ -1307,8 +1387,151 @@ export const MasterDashboard: React.FC = () => {
               </button>
             </div>
 
-            {/* 7-Day Clean Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+            {/* Mobile View: Horizontal Sprint Day Selector + Active Day Spotlight Card (< md) */}
+            <div className="block md:hidden space-y-3">
+              {/* Horizontal scrollable Day Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar p-1 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[10px]">
+                {days.map((d) => {
+                  const isSelected = mobileSprintDay === d.index;
+                  return (
+                    <button
+                      key={d.index}
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setMobileSprintDay(d.index);
+                      }}
+                      className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-[7px] text-center min-w-[58px] flex-1 transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-[#18181B] text-white border-[#18181B] shadow-xs'
+                          : 'bg-white text-[#71717A] border-[#E2E8F0] hover:border-[#CBD5E1]'
+                      }`}
+                    >
+                      <span className="text-[9px] font-bold font-ui uppercase tracking-wider">
+                        {d.name.substring(0, 3)}
+                      </span>
+                      <span className="text-[11px] font-num font-semibold mt-0.5">
+                        {d.date}
+                      </span>
+                      {d.isToday ? (
+                        <span className={`text-[7px] font-bold font-num px-1 rounded mt-0.5 ${
+                          isSelected ? 'bg-[#10B981] text-white' : 'bg-[#10B981]/15 text-[#059669]'
+                        }`}>
+                          TODAY
+                        </span>
+                      ) : (
+                        <span className={`text-[8.5px] font-num mt-0.5 ${
+                          isSelected ? 'text-zinc-400' : 'text-[#A1A1AA]'
+                        }`}>
+                          {d.pct}%
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active Day Spotlight Card */}
+              {(() => {
+                const activeDay = days.find(d => d.index === mobileSprintDay) || days[0];
+                const activeDayTasks = weeklyTasks.filter(t => t.dayIndex === activeDay.index || t.dateStr === activeDay.dateStr);
+
+                return (
+                  <div className="border border-[#E2E8F0] rounded-[10px] p-3.5 bg-white space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#F1F5F9]">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[13px] text-[#18181B] font-ui">
+                          {activeDay.name} ({activeDay.date})
+                        </span>
+                        {activeDay.isToday && (
+                          <span className="text-[8px] font-bold font-num px-1.5 py-0.2 rounded bg-[#10B981] text-white">
+                            TODAY
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10.5px] font-num font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded">
+                        {activeDay.done}/{activeDay.total} Done ({activeDay.pct}%)
+                      </span>
+                    </div>
+
+                    {/* Hairline progress */}
+                    <div className="w-full bg-[#F1F5F9] h-[3px] rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#10B981] h-full transition-all duration-300"
+                        style={{ width: `${activeDay.pct}%` }}
+                      />
+                    </div>
+
+                    {/* Task checklist */}
+                    <div className="space-y-1.5">
+                      {activeDayTasks.map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={() => {
+                            sound.playPop();
+                            toggleWeeklyTask(t.id);
+                          }}
+                          className="flex items-start gap-2 text-[11.5px] p-2 rounded-[6px] bg-[#F9FAFB] hover:bg-[#F4F4F5] border border-[#E2E8F0] transition-colors cursor-pointer select-none"
+                        >
+                          <div className={`w-3.5 h-3.5 mt-0.5 rounded-[3px] border flex items-center justify-center flex-shrink-0 transition-colors ${
+                            t.isCompleted 
+                              ? 'bg-[#18181B] border-[#18181B] text-white' 
+                              : 'border-[#A1A1AA] bg-white'
+                          }`}>
+                            {t.isCompleted && <Check size={10} strokeWidth={3} />}
+                          </div>
+                          <span className={`leading-snug flex-1 ${
+                            t.isCompleted ? 'line-through text-[#A1A1AA]' : 'text-[#18181B]'
+                          }`}>
+                            {t.title}
+                          </span>
+                          <span className="text-[9px] font-num text-[#71717A] bg-white border border-[#E2E8F0] px-1.5 py-0.5 rounded flex-shrink-0">
+                            +{t.expReward} EXP
+                          </span>
+                        </div>
+                      ))}
+
+                      {activeDayTasks.length === 0 && (
+                        <div className="text-[11px] text-[#A1A1AA] font-ui py-3 text-center border border-dashed border-[#E2E8F0] rounded-[6px]">
+                          No tasks scheduled for {activeDay.name}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Inline Quick Add Task for Selected Day */}
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!mobileSprintTaskTitle.trim()) return;
+                        addWeeklyTask(mobileSprintDay, mobileSprintTaskTitle.trim(), 'Med', 'Work', activeDay.dateStr);
+                        setMobileSprintTaskTitle('');
+                        sound.playPop();
+                        triggerToast(`Added task to ${activeDay.name}`, 20);
+                      }}
+                      className="flex items-center gap-2 pt-1"
+                    >
+                      <input
+                        type="text"
+                        value={mobileSprintTaskTitle}
+                        onChange={(e) => setMobileSprintTaskTitle(e.target.value)}
+                        placeholder={`+ Add task for ${activeDay.name}...`}
+                        className="flex-1 px-3 py-2 text-[12px] font-ui border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#18181B] bg-[#FAFAFA]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!mobileSprintTaskTitle.trim()}
+                        className="px-3.5 py-2 bg-[#18181B] text-white text-[11px] font-bold font-ui rounded-[6px] disabled:opacity-40 hover:bg-zinc-800 transition-colors cursor-pointer flex-shrink-0"
+                      >
+                        Add
+                      </button>
+                    </form>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Desktop View: 7-Day Clean Grid (Hidden on Mobile) */}
+            <div className="hidden md:grid md:grid-cols-4 lg:grid-cols-7 gap-2.5">
               {days.map((d) => {
                 const dayTasks = weeklyTasks.filter(t => t.dayIndex === d.index || t.dateStr === d.dateStr);
                 const isExpanded = expandedDayIndex === d.index;
