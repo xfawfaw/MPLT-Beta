@@ -609,36 +609,23 @@ export const HabitMatrixView: React.FC = () => {
             {/* Scope toggles & week buttons */}
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* Toggle Week vs Month */}
-              <div className="flex items-center p-0.5 bg-[#E2E8F0] rounded-[6px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileScope('week');
-                    sound.playClick();
-                  }}
-                  className={`px-2.5 py-1 rounded-[4px] text-[10.5px] font-bold font-ui transition-all ${
-                    effectiveScope === 'week'
-                      ? 'bg-white text-[#18181B] shadow-2xs'
-                      : 'text-[#71717A] hover:text-[#18181B]'
-                  }`}
-                >
-                  Week Matrix
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileScope('month');
-                    sound.playClick();
-                  }}
-                  className={`px-2.5 py-1 rounded-[4px] text-[10.5px] font-bold font-ui transition-all ${
-                    effectiveScope === 'month'
-                      ? 'bg-white text-[#18181B] shadow-2xs'
-                      : 'text-[#71717A] hover:text-[#18181B]'
-                  }`}
-                >
-                  31-Day Ledger
-                </button>
-              </div>
+              <ExpandableTabs
+                size="sm"
+                tabs={[
+                  { id: 'week', title: 'Week Matrix', icon: Calendar },
+                  { id: 'month', title: '31-Day Ledger', icon: List },
+                ]}
+                selectedIndex={mobileScope === 'week' ? 0 : 1}
+                activeBgColor="bg-[#18181B]"
+                activeColor="text-white"
+                className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+                onChange={(idx) => {
+                  if (idx === null) return;
+                  sound.playClick();
+                  if (idx === 0) setMobileScope('week');
+                  else if (idx === 1) setMobileScope('month');
+                }}
+              />
 
               {/* Week Pills (active when effectiveScope === 'week') */}
               {effectiveScope === 'week' && (
@@ -766,7 +753,7 @@ export const HabitMatrixView: React.FC = () => {
                   const mastery = getHabitMastery(completedDaysCount);
 
                   return (
-                    <tr key={habit.id} className="hover:bg-[#FBFBFC] transition-colors group">
+                    <tr key={habit.id || `habit-${habitIndex}`} className="hover:bg-[#FBFBFC] transition-colors group">
                       
                       {/* Responsive Habit Identity Column: 125px on mobile, 260px on desktop */}
                       <td className="sticky left-0 z-10 bg-[#FFFFFF] group-hover:bg-[#FBFBFC] p-2 md:p-3 border-r border-[#E2E8F0]">
@@ -818,7 +805,7 @@ export const HabitMatrixView: React.FC = () => {
                                   toggleHabitLog(habit.id, day);
                                 }}
                                 title={`Day ${day}: ${habit.title} (${isChecked ? 'Completed' : 'Pending'})`}
-                                className={`w-[22px] sm:w-[24px] h-[22px] sm:h-[24px] rounded-[4px] flex items-center justify-center transition-all cursor-pointer ${
+                                className={`w-[22px] sm:w-[24px] h-[22px] sm:h-[24px] rounded-[4px] flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none ${
                                   isChecked
                                     ? 'bg-[#18181B] border border-[#18181B] text-white shadow-2xs'
                                     : isToday
@@ -1012,14 +999,18 @@ export const HabitMatrixView: React.FC = () => {
 
                       return (
                         <div
-                          key={habit.id}
+                          key={habit.id || `routine-habit-${habit.title}`}
                           className="p-3 bg-[#F9FAFB] border border-[#E2E8F0] rounded-[8px] flex items-center justify-between gap-3 hover:border-[#18181B] transition-all"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <button
-                              onClick={() => toggleHabitLog(habit.id, currentDay)}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleHabitLog(habit.id, currentDay);
+                              }}
                               title={`Check off today (Day ${currentDay})`}
-                              className={`w-6 h-6 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all ${
+                              className={`w-6 h-6 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all cursor-pointer touch-manipulation select-none ${
                                 isTodayChecked 
                                   ? 'bg-[#18181B] text-white border border-[#18181B]' 
                                   : 'bg-white border border-[#CBD5E1] hover:border-[#18181B]'

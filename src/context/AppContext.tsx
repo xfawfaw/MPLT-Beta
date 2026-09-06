@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   UserProfile, 
   Habit, 
@@ -195,6 +195,69 @@ export const CLEAN_HABITS: Habit[] = DEMO_HABITS.map(h => ({
   ...h,
   logs: {},
 }));
+
+/**
+ * Defensive sanitizer to guarantee every habit has a strictly unique ID,
+ * an independent logs dictionary (preventing shared reference mutations),
+ * and valid numeric reward defaults.
+ */
+export const sanitizeHabits = (rawList: any[]): Habit[] => {
+  if (!Array.isArray(rawList)) {
+    return DEMO_HABITS.map(h => ({
+      ...h,
+      logs: { ...h.logs },
+    }));
+  }
+
+  const seenIds = new Set<string>();
+  const defaultHabits = DEMO_HABITS;
+
+  return rawList.map((item, index) => {
+    if (!item || typeof item !== 'object') {
+      const fallback = defaultHabits[index % defaultHabits.length] || defaultHabits[0];
+      return {
+        ...fallback,
+        id: `h-repaired-${index + 1}`,
+        logs: {},
+      };
+    }
+
+    // Determine unique ID
+    let rawId = item.id != null ? String(item.id).trim() : '';
+    // If id is empty, generic 'undefined', or already seen in this array
+    if (!rawId || rawId === 'undefined' || rawId === 'null' || seenIds.has(rawId)) {
+      const fallbackId = defaultHabits[index]?.id;
+      if (fallbackId && !seenIds.has(fallbackId)) {
+        rawId = fallbackId;
+      } else {
+        rawId = `h-${index + 1}-${Math.random().toString(36).substring(2, 6)}`;
+      }
+    }
+    seenIds.add(rawId);
+
+    // Deep clone logs dictionary to prevent shared object references
+    const logsCopy: Record<number, boolean> = {};
+    if (item.logs && typeof item.logs === 'object') {
+      Object.keys(item.logs).forEach(key => {
+        const dayNum = Number(key);
+        if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+          logsCopy[dayNum] = Boolean(item.logs[key]);
+        }
+      });
+    }
+
+    return {
+      id: rawId,
+      title: item.title ? String(item.title) : `Habit ${index + 1}`,
+      category: item.category || 'Health',
+      ptsReward: typeof item.ptsReward === 'number' ? item.ptsReward : 10,
+      expReward: typeof item.expReward === 'number' ? item.expReward : 25,
+      timeOfDay: item.timeOfDay || 'Morning',
+      targetFrequency: item.targetFrequency || 'Daily',
+      logs: logsCopy,
+    };
+  });
+};
 
 // Real-time synchronized demo sprint week tasks
 export const getDemoSprintWeekTasks = (): WeeklyTask[] => {
@@ -457,12 +520,15 @@ export const getInitialHabits = (): Habit[] => {
                 localStorage.getItem(`${STORAGE_KEY}_user-1_habits`);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return sanitizeHabits(parsed);
+      }
     } catch {
       // fallback
     }
   }
-  return [...CLEAN_HABITS];
+  return sanitizeHabits(CLEAN_HABITS);
 };
 
 export const getInitialWeeklyTasks = (): WeeklyTask[] => {
@@ -609,6 +675,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [expToast, setExpToast] = useState<{ visible: boolean; message: string; exp: number } | null>(null);
 
+  // Automatically open Level Up modal when profile.level increases
+  const prevLevelRef = useRef(profile.level);
+  useEffect(() => {
+    if (profile.level > prevLevelRef.current) {
+      setLevelUpModal({ isOpen: true, newLevel: profile.level });
+      sound.playLevelUp();
+    }
+    prevLevelRef.current = profile.level;
+  }, [profile.level]);
+
+  // Auto-heal corrupt or duplicate habit IDs on existing devices
+  useEffect(() => {
+    setHabits(prev => {
+      const sanitized = sanitizeHabits(prev);
+      const isCorrupted = sanitized.some((h, i) => !prev[i] || h.id !== prev[i].id);
+      if (isCorrupted) {
+        localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(sanitized));
+        localStorage.setItem(`${STORAGE_KEY}_user-1_habits`, JSON.stringify(sanitized));
+        return sanitized;
+      }
+      return prev;
+    });
+  }, []);
+
   // Guarantee clean Light Mode
   useEffect(() => {
     document.documentElement.classList.remove('dark');
@@ -664,24 +754,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       let newExp = prev.currentExp + amount;
       let newLevel = prev.level;
       let newNextExp = prev.nextLevelExp;
-      let didLevelUp = false;
 
       while (newExp >= newNextExp) {
         newExp -= newNextExp;
         newLevel += 1;
         newNextExp = Math.round(newNextExp * 1.25);
-        didLevelUp = true;
       }
-
-      if (didLevelUp) {
-        setLevelUpModal({ isOpen: true, newLevel });
-        sound.playLevelUp();
-      }
-
-      setExpToast({ visible: true, message: reason, exp: amount });
-      setTimeout(() => {
-        setExpToast(null);
-      }, 3200);
 
       return {
         ...prev,
@@ -691,6 +769,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         totalPoints: prev.totalPoints + Math.round(amount * 0.5),
       };
     });
+
+    setExpToast({ visible: true, message: reason, exp: amount });
+    setTimeout(() => {
+      setExpToast(null);
+    }, 3200);
   };
 
   const addPoints = (amount: number) => {
@@ -704,31 +787,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLevelUpModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Habit Actions
+  // Habit Actions: Atomic single-index toggle to guarantee isolation
   const toggleHabitLog = (habitId: string, day: number) => {
-    setHabits(prev =>
-      prev.map(h => {
-        if (h.id === habitId) {
-          const currentVal = !!h.logs[day];
-          const nextVal = !currentVal;
-          if (nextVal) {
-            addExp(h.expReward, `Habit Check: ${h.title}`);
-            addPoints(h.ptsReward);
-            sound.playPop();
-          } else {
-            sound.playClick();
-          }
-          return {
-            ...h,
-            logs: {
-              ...h.logs,
-              [day]: nextVal,
-            },
-          };
-        }
-        return h;
-      })
-    );
+    if (!habitId) return;
+
+    setHabits(prev => {
+      const targetIndex = prev.findIndex(h => String(h.id) === String(habitId));
+      if (targetIndex === -1) return prev;
+
+      const targetHabit = prev[targetIndex];
+      const currentVal = !!targetHabit.logs?.[day];
+      const nextVal = !currentVal;
+
+      if (nextVal) {
+        addExp(targetHabit.expReward || 25, `Habit Check: ${targetHabit.title}`);
+        addPoints(targetHabit.ptsReward || 10);
+        sound.playPop();
+      } else {
+        sound.playClick();
+      }
+
+      const updatedHabit: Habit = {
+        ...targetHabit,
+        logs: {
+          ...(targetHabit.logs || {}),
+          [day]: nextVal,
+        },
+      };
+
+      const nextList = [...prev];
+      nextList[targetIndex] = updatedHabit;
+      return nextList;
+    });
   };
 
   const addHabit = (title: string, category: Habit['category'], timeOfDay: Habit['timeOfDay'] = 'Morning') => {
@@ -752,21 +842,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Weekly Task Actions
   const toggleWeeklyTask = (taskId: string) => {
-    setWeeklyTasks(prev =>
-      prev.map(t => {
-        if (t.id === taskId) {
-          const nextCompleted = !t.isCompleted;
-          if (nextCompleted) {
-            addExp(t.expReward, `Weekly Task: ${t.title}`);
-            sound.playPop();
-          } else {
-            sound.playClick();
-          }
-          return { ...t, isCompleted: nextCompleted };
-        }
-        return t;
-      })
-    );
+    if (!taskId) return;
+    setWeeklyTasks(prev => {
+      const targetIndex = prev.findIndex(t => String(t.id) === String(taskId));
+      if (targetIndex === -1) return prev;
+
+      const target = prev[targetIndex];
+      const nextCompleted = !target.isCompleted;
+      if (nextCompleted) {
+        addExp(target.expReward || 25, `Weekly Task: ${target.title}`);
+        sound.playPop();
+      } else {
+        sound.playClick();
+      }
+
+      const nextList = [...prev];
+      nextList[targetIndex] = { ...target, isCompleted: nextCompleted };
+      return nextList;
+    });
   };
 
   const addWeeklyTask = (
@@ -802,24 +895,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // General Task Manager Actions
   const toggleTaskStatus = (taskId: string) => {
-    setTasks(prev =>
-      prev.map(t => {
-        if (t.id === taskId) {
-          let nextStatus: TaskItem['status'] = 'Not Started';
-          if (t.status === 'Not Started') nextStatus = 'In Progress';
-          else if (t.status === 'In Progress') {
-            nextStatus = 'Completed';
-            addExp(t.expReward, `Task Completed: ${t.title}`);
-            sound.playPop();
-          } else {
-            nextStatus = 'Not Started';
-            sound.playClick();
-          }
-          return { ...t, status: nextStatus };
-        }
-        return t;
-      })
-    );
+    if (!taskId) return;
+    setTasks(prev => {
+      const targetIndex = prev.findIndex(t => String(t.id) === String(taskId));
+      if (targetIndex === -1) return prev;
+
+      const target = prev[targetIndex];
+      let nextStatus: TaskItem['status'] = 'Not Started';
+      if (target.status === 'Not Started') nextStatus = 'In Progress';
+      else if (target.status === 'In Progress') {
+        nextStatus = 'Completed';
+        addExp(target.expReward || 20, `Task Completed: ${target.title}`);
+        sound.playPop();
+      } else {
+        nextStatus = 'Not Started';
+        sound.playClick();
+      }
+
+      const nextList = [...prev];
+      nextList[targetIndex] = { ...target, status: nextStatus };
+      return nextList;
+    });
   };
 
   const addTask = (taskData: Omit<TaskItem, 'id'>) => {
@@ -837,21 +933,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Goal Actions & Milestones
   const toggleGoalStatus = (goalId: string) => {
-    setGoals(prev =>
-      prev.map(g => {
-        if (g.id === goalId) {
-          const nextStatus = g.status === 'Achieved' ? 'In Progress' : 'Achieved';
-          if (nextStatus === 'Achieved') {
-            addExp(150, `Goal Milestone Achieved: ${g.title}`);
-            sound.playLevelUp();
-          } else {
-            sound.playClick();
-          }
-          return { ...g, status: nextStatus, progressPercent: nextStatus === 'Achieved' ? 100 : g.progressPercent };
-        }
-        return g;
-      })
-    );
+    if (!goalId) return;
+    setGoals(prev => {
+      const targetIndex = prev.findIndex(g => String(g.id) === String(goalId));
+      if (targetIndex === -1) return prev;
+
+      const target = prev[targetIndex];
+      const nextStatus = target.status === 'Achieved' ? 'In Progress' : 'Achieved';
+      if (nextStatus === 'Achieved') {
+        addExp(150, `Goal Milestone Achieved: ${target.title}`);
+        sound.playLevelUp();
+      } else {
+        sound.playClick();
+      }
+
+      const nextList = [...prev];
+      nextList[targetIndex] = {
+        ...target,
+        status: nextStatus,
+        progressPercent: nextStatus === 'Achieved' ? 100 : target.progressPercent,
+      };
+      return nextList;
+    });
   };
 
   const updateGoalProgress = (goalId: string, progress: number) => {
@@ -985,7 +1088,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Load full Level 14 demo environment for test drivers
   const loadDemoData = () => {
     const demoProfile = { ...DEMO_PROFILE, operatorId: activeOperatorId };
-    const demoHabits = [...DEMO_HABITS];
+    const demoHabits = sanitizeHabits(DEMO_HABITS);
     const demoWeekly = getDemoSprintWeekTasks();
     const demoTasks = getDemoTasks();
     const demoGoals = [...DEMO_GOALS];
@@ -1048,7 +1151,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setProfile(cleanProfile);
-    setHabits([...CLEAN_HABITS]);
+    setHabits(sanitizeHabits(CLEAN_HABITS));
     setWeeklyTasks([]);
     setTasks([]);
     setGoals([]);

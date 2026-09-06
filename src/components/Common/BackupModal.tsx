@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { useApp, STORAGE_KEY } from '../../context/AppContext';
+import { useApp, STORAGE_KEY, sanitizeHabits } from '../../context/AppContext';
 import { 
   Download, 
   Upload, 
@@ -169,7 +169,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
             const opData = parsed.operators[op.id];
             if (opData) {
               if (opData.profile) localStorage.setItem(`${STORAGE_KEY}_${op.id}_profile`, JSON.stringify(opData.profile));
-              if (opData.habits) localStorage.setItem(`${STORAGE_KEY}_${op.id}_habits`, JSON.stringify(opData.habits));
+              if (opData.habits) localStorage.setItem(`${STORAGE_KEY}_${op.id}_habits`, JSON.stringify(sanitizeHabits(opData.habits)));
               if (opData.weeklyTasks) localStorage.setItem(`${STORAGE_KEY}_${op.id}_weeklyTasks`, JSON.stringify(opData.weeklyTasks));
               if (opData.tasks) localStorage.setItem(`${STORAGE_KEY}_${op.id}_tasks`, JSON.stringify(opData.tasks));
               if (opData.goals) localStorage.setItem(`${STORAGE_KEY}_${op.id}_goals`, JSON.stringify(opData.goals));
@@ -203,8 +203,9 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
             localStorage.setItem(`${STORAGE_KEY}_${targetOp}_profile`, JSON.stringify(targetData.profile));
           }
           if (targetData.habits) {
-            localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(targetData.habits));
-            localStorage.setItem(`${STORAGE_KEY}_${targetOp}_habits`, JSON.stringify(targetData.habits));
+            const sanitized = sanitizeHabits(targetData.habits);
+            localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(sanitized));
+            localStorage.setItem(`${STORAGE_KEY}_${targetOp}_habits`, JSON.stringify(sanitized));
           }
           if (targetData.weeklyTasks) {
             localStorage.setItem(`${STORAGE_KEY}_weeklyTasks`, JSON.stringify(targetData.weeklyTasks));
