@@ -408,67 +408,14 @@ export const MasterDashboard: React.FC = () => {
     });
   }, [today, weeklyTasks]);
 
-  // Weekly Section Interactive State & Telemetry
-  const [activeWeeklyDayIndex, setActiveWeeklyDayIndex] = useState<number>(() => today.dayOfWeekIndex);
-  const [weeklyViewMode, setWeeklyViewMode] = useState<'inspector' | 'grid'>('inspector');
-  const [inlineWeeklyTaskTitle, setInlineWeeklyTaskTitle] = useState('');
-  const [inlineWeeklyTaskPriority, setInlineWeeklyTaskPriority] = useState<'High' | 'Med' | 'Low'>('Med');
-  const [inlineWeeklyTaskCategory, setInlineWeeklyTaskCategory] = useState<AreaOfLife>('Work');
-
-  const activeDay = useMemo(() => {
-    return days.find(d => d.index === activeWeeklyDayIndex) || days[today.dayOfWeekIndex] || days[0];
-  }, [days, activeWeeklyDayIndex, today.dayOfWeekIndex]);
-
-  const activeDayTasks = useMemo(() => {
-    if (!activeDay) return [];
-    return weeklyTasks.filter(t => t.dayIndex === activeDay.index || t.dateStr === today.sprintDays?.[activeDay.index]?.dateStr);
-  }, [weeklyTasks, activeDay, today.sprintDays]);
+  // Weekly Section State
+  const [expandedDayIndex, setExpandedDayIndex] = useState<number | null>(null);
 
   const totalWeeklyTasksCount = weeklyTasks.length;
   const completedWeeklyTasksCount = weeklyTasks.filter(t => t.isCompleted).length;
   const weeklyCompletionRate = totalWeeklyTasksCount > 0 
     ? Math.round((completedWeeklyTasksCount / totalWeeklyTasksCount) * 100) 
     : 0;
-  const pendingWeeklyTasksCount = totalWeeklyTasksCount - completedWeeklyTasksCount;
-
-  const weeklyCategoryDistribution = useMemo(() => {
-    const categories: AreaOfLife[] = ['Work', 'Health', 'Money', 'Personal Growth', 'Spirituality', 'Family'];
-    const categoryColorsMap: Record<AreaOfLife, { color: string; dot: string; bg: string; text: string; border: string }> = {
-      'Work': { color: '#18181B', dot: 'bg-[#18181B]', bg: 'bg-[#F4F4F5]', text: 'text-[#18181B]', border: 'border-[#E2E8F0]' },
-      'Health': { color: '#10B981', dot: 'bg-[#10B981]', bg: 'bg-[#F0FDF4]', text: 'text-[#10B981]', border: 'border-[#10B981]/30' },
-      'Money': { color: '#F59E0B', dot: 'bg-amber-500', bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
-      'Personal Growth': { color: '#6366F1', dot: 'bg-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
-      'Spirituality': { color: '#8B5CF6', dot: 'bg-purple-500', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-      'Family': { color: '#EC4899', dot: 'bg-rose-500', bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
-    };
-
-    return categories.map(cat => {
-      const catTasks = weeklyTasks.filter(t => t.category === cat);
-      const catDone = catTasks.filter(t => t.isCompleted).length;
-      return {
-        category: cat,
-        count: catTasks.length,
-        done: catDone,
-        pct: catTasks.length > 0 ? Math.round((catDone / catTasks.length) * 100) : 0,
-        ...categoryColorsMap[cat],
-      };
-    }).filter(c => c.count > 0);
-  }, [weeklyTasks]);
-
-  const handleAddInlineWeeklyTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inlineWeeklyTaskTitle.trim() || !activeDay) return;
-    addWeeklyTask(
-      activeDay.index,
-      inlineWeeklyTaskTitle.trim(),
-      inlineWeeklyTaskPriority,
-      inlineWeeklyTaskCategory,
-      today.sprintDays?.[activeDay.index]?.dateStr,
-      '30m'
-    );
-    sound.playPop();
-    setInlineWeeklyTaskTitle('');
-  };
 
   const formatIDR = (val: number) => {
     return `Rp ${val.toLocaleString('id-ID')}`;
@@ -1328,117 +1275,85 @@ export const MasterDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* SECONDARY PANEL: WEEKLY DISTRIBUTION & SPRINT WORKLOAD (REDESIGNED) */}
-          <div className="mplt-card p-5 sm:p-6 bg-[#FFFFFF] border border-[#E2E8F0] space-y-5 overflow-hidden">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-[7px] bg-[#18181B] text-white flex items-center justify-center shadow-xs">
-                  <Clock size={16} className="text-[#10B981]" />
+          {/* SECONDARY PANEL: WEEKLY DISTRIBUTION & DAILY PROGRESS */}
+          <div className="mplt-card p-5 bg-[#FFFFFF] border border-[#E2E8F0] space-y-4">
+            {/* Section Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-[#E2E8F0]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[6px] bg-[#18181B] text-white flex items-center justify-center shadow-xs">
+                  <Clock size={15} className="text-[#10B981]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[14px] sm:text-[15px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
-                      WEEKLY DISTRIBUTION & DAILY PROGRESS
+                    <h3 className="text-[14px] font-bold text-[#18181B] font-ui">
+                      Weekly Distribution & Daily Progress
                     </h3>
-                    <span className="text-[10px] font-num font-semibold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-[4px]">
-                      {weeklyCompletionRate}% COMPLETED
+                    <span className="text-[10px] font-num font-semibold text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.2 rounded">
+                      {weeklyCompletionRate}%
                     </span>
                   </div>
-                  <p className="text-[11.5px] text-[#71717A] font-ui mt-0.5">
-                    Sprint Week {today.weekTag} • {today.formattedWeekRange} • {totalWeeklyTasksCount} Active Operational Commitments
+                  <p className="text-[11px] text-[#71717A] -mt-0.5">
+                    Week of {today.formattedWeekRange} • {completedWeeklyTasksCount}/{totalWeeklyTasksCount} tasks completed
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                {/* View Mode Toggle: Day Inspector vs 7-Day Overview */}
-                <div className="flex items-center p-0.5 rounded-[6px] bg-[#F4F4F5] border border-[#E2E8F0] text-[11px] font-ui font-medium">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sound.playClick();
-                      setWeeklyViewMode('inspector');
-                    }}
-                    className={`px-2.5 py-1 rounded-[5px] transition-all cursor-pointer ${
-                      weeklyViewMode === 'inspector'
-                        ? 'bg-white text-[#18181B] font-semibold shadow-xs'
-                        : 'text-[#71717A] hover:text-[#18181B]'
-                    }`}
-                  >
-                    Day Inspector
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sound.playClick();
-                      setWeeklyViewMode('grid');
-                    }}
-                    className={`px-2.5 py-1 rounded-[5px] transition-all cursor-pointer ${
-                      weeklyViewMode === 'grid'
-                        ? 'bg-white text-[#18181B] font-semibold shadow-xs'
-                        : 'text-[#71717A] hover:text-[#18181B]'
-                    }`}
-                  >
-                    7-Day Overview
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => {
-                    sound.playClick();
-                    setCurrentTab('weekly');
-                  }}
-                  className="flex items-center gap-1 text-[11.5px] font-medium text-[#18181B] hover:text-[#10B981] px-2.5 py-1 rounded-[6px] border border-[#E2E8F0] hover:border-[#CBD5E1] transition-all cursor-pointer"
-                >
-                  <span>Full Board</span>
-                  <ChevronRight size={13} />
-                </button>
-              </div>
+              <button
+                onClick={() => setCurrentTab('weekly')}
+                className="flex items-center gap-1 text-[11px] font-medium text-[#18181B] hover:text-[#10B981] transition-colors cursor-pointer self-end sm:self-auto"
+              >
+                <span>Full Board</span>
+                <ChevronRight size={13} />
+              </button>
             </div>
 
-            {/* 7-DAY INTERACTIVE SPRINT RIBBON (RHYTHM BAR) */}
-            <div className="grid grid-cols-7 gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {/* 7-Day Clean Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
               {days.map((d) => {
-                const isSelected = activeDay?.index === d.index;
+                const dayTasks = weeklyTasks.filter(t => t.dayIndex === d.index || t.dateStr === d.dateStr);
+                const isExpanded = expandedDayIndex === d.index;
+                const visibleTasks = isExpanded ? dayTasks : dayTasks.slice(0, 3);
+                const hasMore = dayTasks.length > 3;
+
                 return (
-                  <button
+                  <div
                     key={d.index}
-                    type="button"
-                    onClick={() => {
-                      sound.playPop();
-                      setActiveWeeklyDayIndex(d.index);
-                    }}
-                    className={`relative p-2.5 rounded-[8px] border text-left transition-all cursor-pointer select-none group flex flex-col justify-between min-w-[85px] ${
-                      isSelected
-                        ? 'bg-white border-[#18181B] ring-2 ring-[#18181B]/15 shadow-sm'
-                        : d.isToday
-                        ? 'bg-[#FAFAFA] border-[#18181B]/40 hover:border-[#18181B]'
-                        : 'bg-[#F9FAFB] border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-white'
+                    className={`border rounded-[8px] p-2.5 bg-[#FFFFFF] flex flex-col justify-between transition-all ${
+                      d.isToday 
+                        ? 'border-[#18181B] ring-1 ring-[#18181B] shadow-xs' 
+                        : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
                     }`}
                   >
-                    {/* Day Label & Date */}
                     <div>
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider font-ui ${
-                          isSelected ? 'text-[#18181B]' : d.isToday ? 'text-[#10B981]' : 'text-[#71717A]'
-                        }`}>
-                          {d.name.substring(0, 3)}
-                        </span>
-                        {d.isToday && (
-                          <span className="text-[7.5px] font-bold font-num px-1 py-0.2 rounded bg-[#10B981] text-white">
-                            TODAY
+                      {/* Day Header */}
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider font-ui ${
+                            d.isToday ? 'text-[#18181B]' : 'text-[#71717A]'
+                          }`}>
+                            {d.name.substring(0, 3)}
                           </span>
-                        )}
+                          {d.isToday && (
+                            <span className="text-[7.5px] font-bold font-num px-1 py-0.2 rounded bg-[#10B981] text-white leading-tight">
+                              TODAY
+                            </span>
+                          )}
+                        </div>
+                        
+                        <span className={`text-[9.5px] font-num font-semibold ${
+                          d.pct === 100 ? 'text-[#10B981]' : d.pct > 0 ? 'text-[#18181B]' : 'text-[#A1A1AA]'
+                        }`}>
+                          {d.pct}%
+                        </span>
                       </div>
-                      <div className="text-[12px] font-bold font-num text-[#18181B]">
+
+                      {/* Date */}
+                      <div className="text-[11px] font-num text-[#71717A] mb-1.5">
                         {d.date}
                       </div>
-                    </div>
 
-                    {/* Progress Capsule & Task Count */}
-                    <div className="mt-2.5 space-y-1">
-                      <div className="w-full bg-[#E2E8F0] h-[3px] rounded-full overflow-hidden">
+                      {/* Sleek Hairline Progress Bar */}
+                      <div className="w-full bg-[#F1F5F9] h-[2.5px] rounded-full overflow-hidden mb-2.5">
                         <div
                           className={`h-full transition-all duration-300 ${
                             d.pct === 100 ? 'bg-[#10B981]' : d.pct > 0 ? 'bg-[#18181B]' : 'bg-transparent'
@@ -1446,417 +1361,63 @@ export const MasterDashboard: React.FC = () => {
                           style={{ width: `${d.pct}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-[9px] font-num text-[#71717A]">
-                        <span>{d.done}/{d.total}</span>
-                        <span className={d.pct === 100 ? 'text-[#10B981] font-bold' : ''}>{d.pct}%</span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
 
-            {/* MAIN WORKLOAD BODY */}
-            {weeklyViewMode === 'inspector' ? (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-1">
-                {/* Left (7 Cols): Active Day Tactical Task Deck */}
-                <div className="lg:col-span-7 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] p-4 sm:p-5 flex flex-col justify-between space-y-4">
-                  <div>
-                    {/* Day Header */}
-                    <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-[14px] font-bold text-[#18181B] font-ui">
-                            {activeDay.name}, {activeDay.date}
-                          </h4>
-                          {activeDay.isToday && (
-                            <span className="text-[9px] font-bold font-num text-white bg-[#10B981] px-1.5 py-0.2 rounded-[3px]">
-                              CURRENT FOCUS
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-[#71717A] font-ui mt-0.5">
-                          {activeDayTasks.length} planned items • {activeDay.done} completed ({activeDay.pct}%)
-                        </p>
-                      </div>
-
-                      {/* Quick Cycler */}
-                      <div className="flex items-center gap-1 text-[11px] font-num">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sound.playPop();
-                            setActiveWeeklyDayIndex((activeDay.index + 6) % 7);
-                          }}
-                          className="p-1 rounded-[4px] border border-[#E2E8F0] bg-white text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
-                          title="Previous Day"
-                        >
-                          <ChevronLeft size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sound.playPop();
-                            setActiveWeeklyDayIndex((activeDay.index + 1) % 7);
-                          }}
-                          className="p-1 rounded-[4px] border border-[#E2E8F0] bg-white text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
-                          title="Next Day"
-                        >
-                          <ChevronRight size={13} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Task Checklist for Active Day */}
-                    <div className="mt-3.5 space-y-2 max-h-[310px] overflow-y-auto pr-1">
-                      {activeDayTasks.length > 0 ? (
-                        activeDayTasks.map((task) => {
-                          const catItem = weeklyCategoryDistribution.find(c => c.category === task.category);
-                          const dotClass = catItem?.dot || 'bg-[#18181B]';
-                          const bgClass = catItem?.bg || 'bg-[#F4F4F5]';
-                          const textClass = catItem?.text || 'text-[#18181B]';
-                          const borderClass = catItem?.border || 'border-[#E2E8F0]';
-
-                          return (
-                            <div
-                              key={task.id}
-                              onClick={() => {
-                                sound.playPop();
-                                toggleWeeklyTask(task.id);
-                              }}
-                              className={`flex items-center justify-between p-2.5 rounded-[7px] border transition-all cursor-pointer select-none group ${
-                                task.isCompleted
-                                  ? 'bg-[#F0FDF4] border-[#10B981]/30 text-[#71717A]'
-                                  : 'bg-white border-[#E2E8F0] hover:border-[#CBD5E1] text-[#18181B] shadow-xs'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                                <div className={`w-4 h-4 rounded-[4px] border flex items-center justify-center flex-shrink-0 transition-colors ${
-                                  task.isCompleted
-                                    ? 'bg-[#10B981] border-[#10B981] text-white'
-                                    : 'border-[#CBD5E1] bg-[#FAFAFA] group-hover:border-[#71717A]'
-                                }`}>
-                                  {task.isCompleted && <Check size={10} strokeWidth={3} />}
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                  <p className={`text-[12px] font-ui leading-snug truncate ${
-                                    task.isCompleted ? 'line-through text-[#A1A1AA]' : 'font-medium text-[#18181B]'
-                                  }`}>
-                                    {task.title}
-                                  </p>
-                                  
-                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    {/* Domain Pill */}
-                                    <span className={`inline-flex items-center gap-1 text-[9px] font-ui font-medium px-1.5 py-0.2 rounded border ${bgClass} ${textClass} ${borderClass}`}>
-                                      <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-                                      <span>{task.category}</span>
-                                    </span>
-
-                                    {/* Priority Badge */}
-                                    <span className={`text-[9px] font-num font-semibold px-1.5 py-0.2 rounded ${
-                                      task.priority === 'High' 
-                                        ? 'bg-rose-50 text-[#E11D48]' 
-                                        : task.priority === 'Med' 
-                                        ? 'bg-amber-50 text-amber-700' 
-                                        : 'bg-slate-50 text-slate-600'
-                                    }`}>
-                                      {task.priority}
-                                    </span>
-
-                                    {task.timeEstimate && (
-                                      <span className="text-[9.5px] font-num text-[#71717A] flex items-center gap-0.5">
-                                        <Clock size={10} />
-                                        <span>{task.timeEstimate}</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <span className="font-num text-[10.5px] font-semibold text-[#10B981] flex-shrink-0">
-                                +{task.expReward} EXP
-                              </span>
+                      {/* Daily Task Checklist */}
+                      <div className="space-y-1.5">
+                        {visibleTasks.map((t) => (
+                          <div
+                            key={t.id}
+                            onClick={() => {
+                              sound.playPop();
+                              toggleWeeklyTask(t.id);
+                            }}
+                            className="flex items-start gap-1.5 text-[10.5px] p-1 -mx-0.5 rounded hover:bg-[#F4F4F5] transition-colors cursor-pointer group select-none"
+                          >
+                            <div className={`w-3 h-3 mt-0.5 rounded-[2.5px] border flex items-center justify-center flex-shrink-0 transition-colors ${
+                              t.isCompleted 
+                                ? 'bg-[#18181B] border-[#18181B] text-white' 
+                                : 'border-[#A1A1AA] bg-white group-hover:border-[#18181B]'
+                            }`}>
+                              {t.isCompleted && <Check size={8} strokeWidth={3} />}
                             </div>
-                          );
-                        })
-                      ) : (
-                        <div className="py-8 text-center bg-white rounded-[8px] border border-dashed border-[#E2E8F0] space-y-1">
-                          <p className="text-[12px] font-ui text-[#71717A]">
-                            No operational commitments scheduled for {activeDay.name}.
-                          </p>
-                          <p className="text-[10px] text-[#A1A1AA] font-ui">
-                            Use the quick dispatcher below to allocate tasks to this day.
-                          </p>
-                        </div>
+                            <span className={`leading-snug line-clamp-2 ${
+                              t.isCompleted ? 'line-through text-[#A1A1AA]' : 'text-[#18181B]'
+                            }`}>
+                              {t.title}
+                            </span>
+                          </div>
+                        ))}
+
+                        {dayTasks.length === 0 && (
+                          <div className="text-[9.5px] text-[#A1A1AA] font-ui py-2 text-center">
+                            No tasks
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Footer: Expand or item count */}
+                    <div className="mt-2 pt-1.5 border-t border-[#F1F5F9] flex items-center justify-between text-[9px] font-num text-[#71717A]">
+                      <span>{d.done}/{d.total} Done</span>
+                      
+                      {hasMore && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sound.playClick();
+                            setExpandedDayIndex(isExpanded ? null : d.index);
+                          }}
+                          className="text-[9px] font-ui font-semibold text-[#18181B] hover:text-[#10B981] transition-colors cursor-pointer"
+                        >
+                          {isExpanded ? 'Less' : `+${dayTasks.length - 3} more`}
+                        </button>
                       )}
                     </div>
                   </div>
-
-                  {/* Inline Quick Add Task for Active Day */}
-                  <form onSubmit={handleAddInlineWeeklyTask} className="pt-2.5 border-t border-[#E2E8F0] flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                    <input
-                      type="text"
-                      placeholder={`Add new task to ${activeDay.name}...`}
-                      value={inlineWeeklyTaskTitle}
-                      onChange={(e) => setInlineWeeklyTaskTitle(e.target.value)}
-                      className="flex-1 min-w-[160px] bg-white border border-[#E2E8F0] rounded-[6px] px-3 py-1.5 text-[11.5px] font-ui text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#18181B] transition-colors"
-                    />
-
-                    <select
-                      value={inlineWeeklyTaskCategory}
-                      onChange={(e) => setInlineWeeklyTaskCategory(e.target.value as AreaOfLife)}
-                      className="bg-white border border-[#E2E8F0] rounded-[6px] px-2 py-1.5 text-[10.5px] font-ui text-[#18181B] focus:outline-none focus:border-[#18181B] cursor-pointer"
-                    >
-                      <option value="Work">Work</option>
-                      <option value="Health">Health</option>
-                      <option value="Money">Money</option>
-                      <option value="Personal Growth">Growth</option>
-                      <option value="Spirituality">Spirit</option>
-                      <option value="Family">Family</option>
-                    </select>
-
-                    <select
-                      value={inlineWeeklyTaskPriority}
-                      onChange={(e) => setInlineWeeklyTaskPriority(e.target.value as 'High' | 'Med' | 'Low')}
-                      className="bg-white border border-[#E2E8F0] rounded-[6px] px-2 py-1.5 text-[10.5px] font-ui text-[#18181B] focus:outline-none focus:border-[#18181B] cursor-pointer"
-                    >
-                      <option value="High">High</option>
-                      <option value="Med">Med</option>
-                      <option value="Low">Low</option>
-                    </select>
-
-                    <button
-                      type="submit"
-                      disabled={!inlineWeeklyTaskTitle.trim()}
-                      className="px-3 py-1.5 rounded-[6px] bg-[#18181B] hover:bg-[#27272A] disabled:opacity-40 text-white text-[11px] font-ui font-semibold transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                    >
-                      <Plus size={12} />
-                      <span>Add</span>
-                    </button>
-                  </form>
-                </div>
-
-                {/* Right (5 Cols): Workload Analytics & Distribution */}
-                <div className="lg:col-span-5 space-y-4">
-                  {/* Weekly Density Sparkline / Bar Matrix */}
-                  <div className="p-4 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-1.5">
-                        <Activity size={13} className="text-[#10B981]" />
-                        <span>7-Day Load Balancing</span>
-                      </span>
-                      <span className="text-[10px] font-num text-[#71717A]">
-                        Peak: {Math.max(...days.map(d => d.total))} tasks
-                      </span>
-                    </div>
-
-                    {/* Bar Chart Visualization */}
-                    <div className="grid grid-cols-7 gap-2 items-end h-[75px] pt-2 px-1">
-                      {days.map((d) => {
-                        const maxCount = Math.max(1, ...days.map(x => x.total));
-                        const heightPct = Math.max(16, Math.round((d.total / maxCount) * 100));
-                        const isSelected = activeDay?.index === d.index;
-                        const donePct = d.total > 0 ? (d.done / d.total) * 100 : 0;
-
-                        return (
-                          <div
-                            key={d.index}
-                            onClick={() => {
-                              sound.playPop();
-                              setActiveWeeklyDayIndex(d.index);
-                            }}
-                            className="flex flex-col items-center gap-1.5 h-full justify-end cursor-pointer group"
-                          >
-                            <div className="w-full flex items-end justify-center h-full">
-                              <div
-                                className={`w-full max-w-[24px] rounded-t-[4px] relative overflow-hidden transition-all duration-300 ${
-                                  isSelected 
-                                    ? 'ring-2 ring-[#18181B] ring-offset-1' 
-                                    : 'group-hover:opacity-85'
-                                }`}
-                                style={{ height: `${heightPct}%`, backgroundColor: '#E2E8F0' }}
-                              >
-                                {/* Completed portion filled with green */}
-                                <div
-                                  className="w-full bg-[#10B981] absolute bottom-0 left-0 transition-all duration-300"
-                                  style={{ height: `${donePct}%` }}
-                                />
-                              </div>
-                            </div>
-
-                            <span className={`text-[9px] font-num font-bold uppercase ${
-                              isSelected ? 'text-[#18181B]' : 'text-[#71717A]'
-                            }`}>
-                              {d.name.substring(0, 3)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex items-center justify-between text-[9.5px] font-ui text-[#71717A] pt-1 border-t border-[#E2E8F0]">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-[2px] bg-[#10B981]" />
-                        <span>Done</span>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-[2px] bg-[#E2E8F0]" />
-                        <span>Pending</span>
-                      </span>
-                      <span className="font-num font-semibold text-[#18181B]">
-                        {pendingWeeklyTasksCount} remaining
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Domain Distribution Breakdown */}
-                  <div className="p-4 rounded-[10px] bg-[#FAFAFA] border border-[#E2E8F0] space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-1.5">
-                        <Sparkles size={13} className="text-amber-500" />
-                        <span>Category Commitments</span>
-                      </span>
-                      <span className="text-[10px] font-num text-[#71717A]">
-                        {weeklyCategoryDistribution.length} Active Domains
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      {weeklyCategoryDistribution.map((item) => (
-                        <div key={item.category} className="p-2 rounded-[6px] bg-white border border-[#E2E8F0] space-y-1">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`w-2 h-2 rounded-full ${item.dot}`} />
-                              <span className="font-ui font-semibold text-[#18181B]">{item.category}</span>
-                            </div>
-                            <span className="font-num text-[10px] text-[#71717A]">
-                              {item.done}/{item.count} Done ({item.pct}%)
-                            </span>
-                          </div>
-
-                          <div className="w-full bg-[#E2E8F0] h-[3px] rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-300"
-                              style={{ 
-                                width: `${item.pct}%`,
-                                backgroundColor: item.color
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Mode 2: 7-Day Panoramic Overview (Un-cramped, modern cards) */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2.5 pt-1">
-                {days.map((d) => {
-                  const dayTasks = weeklyTasks.filter(t => t.dayIndex === d.index || t.dateStr === d.dateStr);
-                  const isSelected = activeDay?.index === d.index;
-                  return (
-                    <div
-                      key={d.index}
-                      className={`p-3 rounded-[8px] border transition-all flex flex-col justify-between bg-white ${
-                        isSelected
-                          ? 'border-[#18181B] ring-2 ring-[#18181B]/15 shadow-sm'
-                          : d.isToday
-                          ? 'border-[#18181B]/50'
-                          : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
-                      }`}
-                    >
-                      <div>
-                        {/* Header */}
-                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#F1F5F9]">
-                          <div>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider block leading-none font-ui ${
-                              d.isToday ? 'text-[#10B981]' : 'text-[#18181B]'
-                            }`}>
-                              {d.name.substring(0, 3)}
-                            </span>
-                            <span className="text-[10px] font-num text-[#71717A] block mt-0.5">
-                              {d.date}
-                            </span>
-                          </div>
-                          <span className={`text-[9.5px] font-num font-bold px-1.5 py-0.2 rounded ${
-                            d.pct === 100 ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-[#F4F4F5] text-[#18181B]'
-                          }`}>
-                            {d.pct}%
-                          </span>
-                        </div>
-
-                        {/* Progress bar */}
-                        <div className="w-full bg-[#E2E8F0] h-[3px] rounded-full overflow-hidden mb-2.5">
-                          <div
-                            className={`h-full transition-all duration-300 ${
-                              d.pct === 100 ? 'bg-[#10B981]' : 'bg-[#18181B]'
-                            }`}
-                            style={{ width: `${d.pct}%` }}
-                          />
-                        </div>
-
-                        {/* Task Items */}
-                        <div className="space-y-1.5">
-                          {dayTasks.slice(0, 4).map((t) => (
-                            <div
-                              key={t.id}
-                              onClick={() => {
-                                sound.playPop();
-                                toggleWeeklyTask(t.id);
-                              }}
-                              className="flex items-center gap-1.5 text-[10.5px] p-1 rounded hover:bg-[#F4F4F5] cursor-pointer group"
-                            >
-                              <div className={`w-3 h-3 rounded-[2px] border flex items-center justify-center flex-shrink-0 ${
-                                t.isCompleted ? 'bg-[#10B981] border-[#10B981] text-white' : 'border-[#A1A1AA] bg-white'
-                              }`}>
-                                {t.isCompleted && <Check size={8} strokeWidth={3} />}
-                              </div>
-                              <span className={`truncate leading-none ${
-                                t.isCompleted ? 'line-through text-[#A1A1AA]' : 'text-[#18181B]'
-                              }`}>
-                                {t.title}
-                              </span>
-                            </div>
-                          ))}
-                          {dayTasks.length > 4 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                sound.playPop();
-                                setActiveWeeklyDayIndex(d.index);
-                                setWeeklyViewMode('inspector');
-                              }}
-                              className="text-[9.5px] font-num text-[#10B981] hover:underline block text-center w-full pt-1 cursor-pointer"
-                            >
-                              +{dayTasks.length - 4} more in inspector
-                            </button>
-                          )}
-                          {dayTasks.length === 0 && (
-                            <div className="text-[10px] text-[#A1A1AA] font-ui text-center py-3">
-                              No tasks
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sound.playPop();
-                          setActiveWeeklyDayIndex(d.index);
-                          setWeeklyViewMode('inspector');
-                        }}
-                        className="mt-3 pt-2 border-t border-[#F1F5F9] w-full text-center text-[9.5px] font-ui font-semibold text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
-                      >
-                        Inspect Day →
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
 
           {/* ACTIVE YEARLY GOALS RADAR SPOTLIGHT */}
