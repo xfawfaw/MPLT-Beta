@@ -117,11 +117,11 @@ export const DEMO_PROFILE: UserProfile = {
   joinedDate: '2026.08.01',
 };
 
-// Initial 31-day habit logs generation for demo data
-const generateInitialHabitLogs = (fillRate: number) => {
+// Initial 31-day habit logs generation for demo data with per-habit unique seed
+const generateInitialHabitLogs = (fillRate: number, seed: number = 1) => {
   const logs: Record<number, boolean> = {};
   for (let day = 1; day <= 31; day++) {
-    const pseudoRandom = ((day * 9301 + 49297) % 233280) / 233280;
+    const pseudoRandom = ((day * 9301 + seed * 49297 + 17291) % 233280) / 233280;
     logs[day] = pseudoRandom < fillRate;
   }
   return logs;
@@ -136,7 +136,7 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 25,
     timeOfDay: 'Morning',
     targetFrequency: 'Daily',
-    logs: generateInitialHabitLogs(0.74),
+    logs: generateInitialHabitLogs(0.74, 1),
   },
   {
     id: 'h-4',
@@ -146,7 +146,7 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 25,
     timeOfDay: 'Morning',
     targetFrequency: 'Daily',
-    logs: generateInitialHabitLogs(0.65),
+    logs: generateInitialHabitLogs(0.65, 2),
   },
   {
     id: 'h-2',
@@ -156,7 +156,7 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 35,
     timeOfDay: 'Deep Work',
     targetFrequency: 'Mon-Fri',
-    logs: generateInitialHabitLogs(0.81),
+    logs: generateInitialHabitLogs(0.81, 3),
   },
   {
     id: 'h-3',
@@ -166,7 +166,7 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 20,
     timeOfDay: 'Deep Work',
     targetFrequency: 'Daily',
-    logs: generateInitialHabitLogs(0.68),
+    logs: generateInitialHabitLogs(0.68, 4),
   },
   {
     id: 'h-5',
@@ -176,7 +176,7 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 25,
     timeOfDay: 'Evening',
     targetFrequency: 'Daily',
-    logs: generateInitialHabitLogs(0.71),
+    logs: generateInitialHabitLogs(0.71, 5),
   },
   {
     id: 'h-6',
@@ -186,7 +186,7 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 20,
     timeOfDay: 'Evening',
     targetFrequency: 'Daily',
-    logs: generateInitialHabitLogs(0.61),
+    logs: generateInitialHabitLogs(0.61, 6),
   },
 ];
 
@@ -204,7 +204,7 @@ export const getDemoSprintWeekTasks = (): WeeklyTask[] => {
   return [
     // Monday (Day 0)
     { id: 'wt-1', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Buat plan pengembangan Q1 & milestone focus', priority: 'High', category: 'Work', isCompleted: true, expReward: 30, timeEstimate: '90m' },
-    { id: 'wt-1', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Sprint Kickoff & Weekly Horizon Mapping', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '45m' },
+    { id: 'wt-1b', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Sprint Kickoff & Weekly Horizon Mapping', priority: 'High', category: 'Work', isCompleted: true, expReward: 35, timeEstimate: '45m' },
     { id: 'wt-2', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Deep Work: Core system component refactoring', priority: 'High', category: 'Work', isCompleted: true, expReward: 40, timeEstimate: '90m' },
     { id: 'wt-3', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Lower body gym session (Heavy Squats)', priority: 'Med', category: 'Health', isCompleted: true, expReward: 30, timeEstimate: '60m' },
     { id: 'wt-4', dayIndex: 0, dayName: 'Monday', dateStr: days[0]?.dateStr || '31.08.2026', title: 'Review budget allocations & fixed needs', priority: 'Low', category: 'Money', isCompleted: true, expReward: 20, timeEstimate: '20m' },

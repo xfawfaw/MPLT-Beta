@@ -62,7 +62,20 @@ export const HabitMatrixView: React.FC = () => {
     return groups;
   }, [totalDays]);
 
-  // Mobile / Tablet Matrix Scope: 'week' (fits mobile screen without scrolling) vs 'month' (full 31 days)
+  // Responsive device viewport detection (< 768px = mobile, >= 768px = desktop)
+  const [isMobile, setIsMobile] = useState<boolean>(() => 
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Mobile Week Selection (defaults to current week of month)
   const initialWeekIndex = useMemo(() => {
     const day = today.dayOfMonth;
     if (day <= 7) return 0;
@@ -73,31 +86,37 @@ export const HabitMatrixView: React.FC = () => {
   }, [today.dayOfMonth]);
 
   const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(initialWeekIndex);
-  const [tableScope, setTableScope] = useState<'week' | 'month'>('week');
+  
+  // Desktop mode is ALWAYS full 31-day spreadsheet ('month') — exactly like the desktop model before.
+  // Mobile mode defaults to 'week' (fits phone width without scrolling), with toggle to 'month' if desired.
+  const [mobileScope, setMobileScope] = useState<'week' | 'month'>('week');
+  const effectiveScope: 'week' | 'month' = isMobile ? mobileScope : 'month';
 
   const chartScrollRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chart and table to today on mobile screens
   useEffect(() => {
-    if (chartScrollRef.current && window.innerWidth < 640) {
+    if (chartScrollRef.current && isMobile) {
       const scrollRatio = Math.max(0, (today.dayOfMonth - 3) / totalDays);
       chartScrollRef.current.scrollLeft = Math.max(0, scrollRatio * 380);
     }
-    if (tableScope === 'month' && tableContainerRef.current && window.innerWidth < 640) {
+    if (effectiveScope === 'month' && tableContainerRef.current && isMobile) {
       tableContainerRef.current.scrollLeft = Math.max(0, (today.dayOfMonth - 2) * 30);
     }
-  }, [today.dayOfMonth, totalDays, tableScope]);
+  }, [today.dayOfMonth, totalDays, effectiveScope, isMobile]);
 
-  // Days displayed in current table scope
+  // Days displayed in current table scope:
+  // Desktop (effectiveScope === 'month') ALWAYS shows all 31 days (daysArray).
+  // Mobile (effectiveScope === 'week') shows the 7 days of the active week.
   const activeWeekGroup = weekGroups[selectedWeekIndex] || weekGroups[0];
   const displayedDays = useMemo(() => {
-    if (tableScope === 'week') {
+    if (effectiveScope === 'week') {
       const count = activeWeekGroup.end - activeWeekGroup.start + 1;
       return Array.from({ length: count }, (_, i) => activeWeekGroup.start + i);
     }
     return daysArray;
-  }, [tableScope, activeWeekGroup, daysArray]);
+  }, [effectiveScope, activeWeekGroup, daysArray]);
 
   // Filtered habits for velocity analysis
   const filteredHabits = useMemo(() => {
@@ -573,16 +592,16 @@ export const HabitMatrixView: React.FC = () => {
       {viewMode === 'table' ? (
         <section className="mplt-card bg-[#FFFFFF] border border-[#E2E8F0] overflow-hidden rounded-[10px] shadow-2xs">
           
-          {/* Mobile & Desktop Scope Switcher Header */}
-          <div className="p-3 sm:p-4 bg-[#FAFAFA] border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          {/* Mobile Scope Switcher Header: Visible ONLY on Mobile devices (< md: 768px), Hidden on Desktop */}
+          <div className="md:hidden p-3 bg-[#FAFAFA] border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 flex-wrap">
               <div className="w-2 h-2 rounded-full bg-[#10B981]" />
-              <span className="text-[11.5px] sm:text-[12px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
-                {tableScope === 'week' 
+              <span className="text-[11.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
+                {effectiveScope === 'week' 
                   ? `${activeWeekGroup.name} MATRIX (${activeWeekGroup.start}–${activeWeekGroup.end})` 
                   : `FULL 31-DAY SPREADSHEET MATRIX`}
               </span>
-              <span className="text-[10px] sm:text-[10.5px] font-num text-[#71717A] bg-white px-2 py-0.5 rounded border border-[#E2E8F0]">
+              <span className="text-[10px] font-num text-[#71717A] bg-white px-2 py-0.5 rounded border border-[#E2E8F0]">
                 {habits.length} routines
               </span>
             </div>
@@ -594,11 +613,11 @@ export const HabitMatrixView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setTableScope('week');
+                    setMobileScope('week');
                     sound.playClick();
                   }}
                   className={`px-2.5 py-1 rounded-[4px] text-[10.5px] font-bold font-ui transition-all ${
-                    tableScope === 'week'
+                    effectiveScope === 'week'
                       ? 'bg-white text-[#18181B] shadow-2xs'
                       : 'text-[#71717A] hover:text-[#18181B]'
                   }`}
@@ -608,11 +627,11 @@ export const HabitMatrixView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setTableScope('month');
+                    setMobileScope('month');
                     sound.playClick();
                   }}
                   className={`px-2.5 py-1 rounded-[4px] text-[10.5px] font-bold font-ui transition-all ${
-                    tableScope === 'month'
+                    effectiveScope === 'month'
                       ? 'bg-white text-[#18181B] shadow-2xs'
                       : 'text-[#71717A] hover:text-[#18181B]'
                   }`}
@@ -621,8 +640,8 @@ export const HabitMatrixView: React.FC = () => {
                 </button>
               </div>
 
-              {/* Week Pills (active when tableScope === 'week') */}
-              {tableScope === 'week' && (
+              {/* Week Pills (active when effectiveScope === 'week') */}
+              {effectiveScope === 'week' && (
                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
                   {weekGroups.map((wg, idx) => {
                     const isSelected = selectedWeekIndex === idx;
@@ -657,11 +676,12 @@ export const HabitMatrixView: React.FC = () => {
               
               <thead>
                 <tr className="border-b border-[#E2E8F0] bg-[#F9FAFB]">
-                  <th className="sticky left-0 z-20 bg-[#F9FAFB] w-[125px] sm:w-[260px] min-w-[125px] sm:min-w-[260px] p-2.5 sm:p-3 text-[10px] sm:text-[11px] font-bold text-[#18181B] font-ui uppercase tracking-wider border-r border-[#E2E8F0]">
+                  {/* Sticky Habit Column: 260px on Desktop, 125px on Mobile */}
+                  <th className="sticky left-0 z-20 bg-[#F9FAFB] w-[125px] md:w-[260px] min-w-[125px] md:min-w-[260px] p-2.5 md:p-3 text-[10px] md:text-[11px] font-bold text-[#18181B] font-ui uppercase tracking-wider border-r border-[#E2E8F0]">
                     Routine / Habit Item
                   </th>
                   
-                  {tableScope === 'week' ? (
+                  {effectiveScope === 'week' ? (
                     <th
                       colSpan={displayedDays.length}
                       className="text-center p-2 text-[10px] sm:text-[10.5px] font-bold font-ui text-[#18181B] tracking-wider uppercase border-r border-[#E2E8F0] bg-[#F9FAFB]"
@@ -685,18 +705,18 @@ export const HabitMatrixView: React.FC = () => {
                     })
                   )}
 
-                  <th className="w-[90px] sm:w-[120px] min-w-[90px] sm:min-w-[120px] p-2 text-center text-[9px] sm:text-[10px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
+                  <th className="w-[90px] md:w-[120px] min-w-[90px] md:min-w-[120px] p-2 text-center text-[9px] md:text-[10px] font-bold text-[#18181B] font-ui uppercase tracking-wider">
                     Mastery Tier
                   </th>
-                  <th className="w-[36px] sm:w-[48px] min-w-[36px] sm:min-w-[48px] p-2 text-center text-[9px] sm:text-[10px] font-bold text-[#71717A] font-ui uppercase tracking-wider">
+                  <th className="w-[36px] md:w-[48px] min-w-[36px] md:min-w-[48px] p-2 text-center text-[9px] md:text-[10px] font-bold text-[#71717A] font-ui uppercase tracking-wider">
                     Act
                   </th>
                 </tr>
 
                 <tr className="border-b border-[#E2E8F0] bg-[#FFFFFF]">
-                  <th className="sticky left-0 z-20 bg-[#FFFFFF] p-2 sm:p-2.5 text-[9.5px] sm:text-[11px] font-medium text-[#71717A] border-r border-[#E2E8F0]">
-                    <span className="font-ui text-[9px] sm:text-[10px] uppercase tracking-wider">
-                      {tableScope === 'week' ? activeWeekGroup.name : 'Daily Matrix (31 Days)'}
+                  <th className="sticky left-0 z-20 bg-[#FFFFFF] p-2 md:p-2.5 text-[9.5px] md:text-[11px] font-medium text-[#71717A] border-r border-[#E2E8F0]">
+                    <span className="font-ui text-[9px] md:text-[10px] uppercase tracking-wider">
+                      {effectiveScope === 'week' ? activeWeekGroup.name : 'Daily Matrix (31 Days)'}
                     </span>
                   </th>
                   
@@ -708,10 +728,9 @@ export const HabitMatrixView: React.FC = () => {
                     return (
                       <th
                         key={day}
-                        onClick={() => setHoveredDay(hoveredDay === day ? null : day)}
-                        onMouseEnter={() => setHoveredDay(day)}
-                        onMouseLeave={() => setHoveredDay(null)}
-                        className={`p-0 text-center w-[30px] sm:w-[32px] min-w-[30px] sm:min-w-[32px] border-r border-[#F1F5F9] transition-colors cursor-pointer ${
+                        onMouseEnter={() => !isMobile && setHoveredDay(day)}
+                        onMouseLeave={() => !isMobile && setHoveredDay(null)}
+                        className={`p-0 text-center w-[30px] sm:w-[32px] min-w-[30px] sm:min-w-[32px] border-r border-[#F1F5F9] transition-colors ${
                           isHovered 
                             ? 'bg-[#18181B] text-white' 
                             : isToday 
@@ -731,10 +750,10 @@ export const HabitMatrixView: React.FC = () => {
                     );
                   })}
 
-                  <th className="text-center p-2 text-[9px] sm:text-[10px] font-num text-[#71717A] border-r border-[#E2E8F0]">
+                  <th className="text-center p-2 text-[9px] md:text-[10px] font-num text-[#71717A] border-r border-[#E2E8F0]">
                     Rank & Rate
                   </th>
-                  <th className="text-center p-2 text-[9px] sm:text-[10px] font-num text-[#71717A]">
+                  <th className="text-center p-2 text-[9px] md:text-[10px] font-num text-[#71717A]">
                     -
                   </th>
                 </tr>
@@ -750,28 +769,28 @@ export const HabitMatrixView: React.FC = () => {
                     <tr key={habit.id} className="hover:bg-[#FBFBFC] transition-colors group">
                       
                       {/* Responsive Habit Identity Column: 125px on mobile, 260px on desktop */}
-                      <td className="sticky left-0 z-10 bg-[#FFFFFF] group-hover:bg-[#FBFBFC] p-2 sm:p-3 border-r border-[#E2E8F0]">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
+                      <td className="sticky left-0 z-10 bg-[#FFFFFF] group-hover:bg-[#FBFBFC] p-2 md:p-3 border-r border-[#E2E8F0]">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 md:gap-2">
                           <div className="flex flex-col min-w-0">
                             <span 
-                              className="text-[12px] sm:text-[13px] font-bold text-[#18181B] font-ui leading-tight truncate max-w-[110px] sm:max-w-[170px]" 
+                              className="text-[12px] md:text-[13px] font-bold text-[#18181B] font-ui leading-tight truncate max-w-[110px] md:max-w-[170px]" 
                               title={`${habitIndex + 1}. ${habit.title}`}
                             >
                               {habitIndex + 1}. {habit.title}
                             </span>
-                            <div className="flex items-center gap-1 sm:gap-1.5 mt-0.5 sm:mt-1">
-                              <span className="text-[8.5px] sm:text-[9.5px] uppercase font-ui tracking-wider px-1 sm:px-1.5 py-0.2 rounded bg-[#F1F5F9] text-[#71717A]">
+                            <div className="flex items-center gap-1 md:gap-1.5 mt-0.5 md:mt-1">
+                              <span className="text-[8.5px] md:text-[9.5px] uppercase font-ui tracking-wider px-1 md:px-1.5 py-0.2 rounded bg-[#F1F5F9] text-[#71717A]">
                                 {habit.category}
                               </span>
                               {habit.timeOfDay && (
-                                <span className="text-[8.5px] sm:text-[9px] font-ui text-[#71717A] hidden sm:inline">
+                                <span className="text-[8.5px] md:text-[9px] font-ui text-[#71717A] hidden md:inline">
                                   • {habit.timeOfDay}
                                 </span>
                               )}
                             </div>
                           </div>
                           
-                          <span className="text-[9px] sm:text-[10px] font-num font-bold text-[#18181B] bg-[#F1F5F9] px-1 sm:px-1.5 py-0.5 rounded self-start sm:self-auto flex-shrink-0">
+                          <span className="text-[9px] md:text-[10px] font-num font-bold text-[#18181B] bg-[#F1F5F9] px-1 md:px-1.5 py-0.5 rounded self-start md:self-auto flex-shrink-0">
                             +{habit.expReward} EXP
                           </span>
                         </div>
@@ -785,9 +804,8 @@ export const HabitMatrixView: React.FC = () => {
                         return (
                           <td
                             key={day}
-                            onClick={() => setHoveredDay(hoveredDay === day ? null : day)}
-                            onMouseEnter={() => setHoveredDay(day)}
-                            onMouseLeave={() => setHoveredDay(null)}
+                            onMouseEnter={() => !isMobile && setHoveredDay(day)}
+                            onMouseLeave={() => !isMobile && setHoveredDay(null)}
                             className={`p-1 text-center w-[30px] sm:w-[32px] min-w-[30px] sm:min-w-[32px] border-r border-[#F1F5F9] transition-colors ${
                               isHoveredCol ? 'bg-[#F4F4F5]' : isToday ? 'bg-[#10B981]/5' : ''
                             }`}
@@ -800,7 +818,7 @@ export const HabitMatrixView: React.FC = () => {
                                   toggleHabitLog(habit.id, day);
                                 }}
                                 title={`Day ${day}: ${habit.title} (${isChecked ? 'Completed' : 'Pending'})`}
-                                className={`w-[22px] sm:w-[24px] h-[22px] sm:h-[24px] rounded-[4px] flex items-center justify-center transition-all ${
+                                className={`w-[22px] sm:w-[24px] h-[22px] sm:h-[24px] rounded-[4px] flex items-center justify-center transition-all cursor-pointer ${
                                   isChecked
                                     ? 'bg-[#18181B] border border-[#18181B] text-white shadow-2xs'
                                     : isToday
@@ -815,18 +833,18 @@ export const HabitMatrixView: React.FC = () => {
                         );
                       })}
 
-                      <td className="p-1.5 sm:p-2 text-center border-r border-[#E2E8F0]">
+                      <td className="p-1.5 md:p-2 text-center border-r border-[#E2E8F0]">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className={`text-[8.5px] sm:text-[9px] font-ui font-bold px-1.5 py-0.5 rounded border ${mastery.color}`}>
+                          <span className={`text-[8.5px] md:text-[9px] font-ui font-bold px-1.5 py-0.5 rounded border ${mastery.color}`}>
                             {mastery.tier}
                           </span>
-                          <span className="text-[9.5px] sm:text-[10px] font-num font-semibold text-[#18181B]">
+                          <span className="text-[9.5px] md:text-[10px] font-num font-semibold text-[#18181B]">
                             {habitSuccessRate}% ({completedDaysCount}d)
                           </span>
                         </div>
                       </td>
 
-                      <td className="p-1.5 sm:p-2 text-center">
+                      <td className="p-1.5 md:p-2 text-center">
                         <button
                           onClick={() => {
                             deleteHabit(habit.id);
@@ -867,10 +885,10 @@ export const HabitMatrixView: React.FC = () => {
 
               <tfoot>
                 <tr className="bg-[#18181B] text-white font-ui font-semibold text-[11px]">
-                  <td className="sticky left-0 z-20 bg-[#18181B] p-2 sm:p-3 border-r border-[#3F3F46]">
+                  <td className="sticky left-0 z-20 bg-[#18181B] p-2 md:p-3 border-r border-[#3F3F46]">
                     <div className="flex items-center justify-between">
-                      <span className="tracking-wider uppercase text-[9px] sm:text-[10.5px]">DAILY</span>
-                      <span className="text-[9px] sm:text-[10px] font-num text-[#10B981] font-bold">AVG: {monthCompletionRate}%</span>
+                      <span className="tracking-wider uppercase text-[9px] md:text-[10.5px]">DAILY</span>
+                      <span className="text-[9px] md:text-[10px] font-num text-[#10B981] font-bold">AVG: {monthCompletionRate}%</span>
                     </div>
                   </td>
 
@@ -881,15 +899,14 @@ export const HabitMatrixView: React.FC = () => {
                     return (
                       <td
                         key={day}
-                        onClick={() => setHoveredDay(hoveredDay === day ? null : day)}
-                        onMouseEnter={() => setHoveredDay(day)}
-                        onMouseLeave={() => setHoveredDay(null)}
+                        onMouseEnter={() => !isMobile && setHoveredDay(day)}
+                        onMouseLeave={() => !isMobile && setHoveredDay(null)}
                         className={`p-1 text-center w-[30px] sm:w-[32px] min-w-[30px] sm:min-w-[32px] border-r border-[#3F3F46]/50 transition-colors ${
                           isHoveredCol ? 'bg-[#27272A]' : isToday ? 'bg-[#10B981]/20' : ''
                         }`}
                       >
                         <span 
-                          className={`text-[8.5px] sm:text-[9.5px] font-num font-bold block ${
+                          className={`text-[8.5px] md:text-[9.5px] font-num font-bold block ${
                             pct >= 80 ? 'text-[#10B981]' : pct >= 50 ? 'text-white' : 'text-[#94A3B8]'
                           }`}
                         >
@@ -899,10 +916,10 @@ export const HabitMatrixView: React.FC = () => {
                     );
                   })}
 
-                  <td className="text-center p-1.5 sm:p-2 text-[10px] sm:text-[11px] font-num text-[#10B981] font-bold border-r border-[#3F3F46]">
+                  <td className="text-center p-1.5 md:p-2 text-[10px] md:text-[11px] font-num text-[#10B981] font-bold border-r border-[#3F3F46]">
                     {monthCompletionRate}%
                   </td>
-                  <td className="text-center p-1.5 sm:p-2">
+                  <td className="text-center p-1.5 md:p-2">
                     <Award size={13} className="text-[#10B981] mx-auto" />
                   </td>
                 </tr>
