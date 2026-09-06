@@ -9,7 +9,6 @@ import { BackupModal } from './components/Common/BackupModal';
 import { OnboardingModal } from './components/Common/OnboardingModal';
 import { OperatorProfileModal } from './components/Common/OperatorProfileModal';
 import { DevToolbar } from './components/Common/DevToolbar';
-import { PasscodeGate } from './components/Common/PasscodeGate';
 import { ViewSkeleton } from './components/Common/ViewSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -144,8 +143,6 @@ export const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <PasscodeGate>
-      <AppContent />
-    </PasscodeGate>
+    <AppContent />
   );
 }
