@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Globe, Marker, Arc } from '@/components/ui/cobe-globe';
+import { ExpandableTabs, TabItem } from '@/components/ui/expandable-tabs';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
@@ -395,6 +396,49 @@ export const MasterDashboard: React.FC = () => {
     setSelectedGlobeDomain(domainLifeBalance[nextIdx].domain);
   };
 
+  // 6-Domain Expandable Tabs configuration
+  const domainTabs: TabItem[] = useMemo(() => [
+    {
+      id: 'all',
+      title: 'All Domains',
+      icon: GlobeIcon,
+      badge: `${systemHarmonyScore}%`,
+      iconClassName: selectedGlobeDomain === null ? 'text-[#10B981]' : '',
+    },
+    { type: 'separator' },
+    ...domainLifeBalance.map(d => ({
+      id: d.domain,
+      title: d.domain,
+      icon: d.icon,
+      badge: `${d.score}%`,
+      iconClassName: selectedGlobeDomain === d.domain ? 'text-[#10B981]' : '',
+    }))
+  ], [systemHarmonyScore, domainLifeBalance, selectedGlobeDomain]);
+
+  const selectedDomainTabIndex = useMemo(() => {
+    if (!selectedGlobeDomain) return 0;
+    const idx = domainTabs.findIndex(t => t.id === selectedGlobeDomain);
+    return idx >= 0 ? idx : 0;
+  }, [domainTabs, selectedGlobeDomain]);
+
+  const handleDomainTabChange = (index: number | null) => {
+    if (index === null || index === 0) {
+      sound.playClick();
+      setSelectedGlobeDomain(null);
+      return;
+    }
+    const tab = domainTabs[index];
+    if (!tab || tab.type === 'separator' || !tab.id) return;
+
+    if (selectedGlobeDomain === tab.id) {
+      sound.playPop();
+      setSelectedGlobeDomain(null);
+    } else {
+      sound.playPop();
+      setSelectedGlobeDomain(tab.id);
+    }
+  };
+
   // Dynamic Weekly 7-day groups from sprint days & weekly tasks
   const days = useMemo(() => {
     return today.sprintDays.map(d => {
@@ -665,52 +709,22 @@ export const MasterDashboard: React.FC = () => {
           </button>
         </div>
 
-        {/* 6-Domain Orbital Quick Selector Dock */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar border-b border-[#E2E8F0]/80">
-          <button
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              setSelectedGlobeDomain(null);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[11px] font-ui font-medium border transition-all whitespace-nowrap cursor-pointer ${
-              selectedGlobeDomain === null
-                ? 'bg-[#18181B] text-white border-[#18181B] shadow-xs'
-                : 'bg-[#F9FAFB] text-[#71717A] border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#18181B]'
-            }`}
-          >
-            <GlobeIcon size={12} className={selectedGlobeDomain === null ? 'text-[#10B981]' : ''} />
-            <span>All Domains</span>
-            <span className="font-num text-[10px] opacity-75">({systemHarmonyScore}%)</span>
-          </button>
+        {/* 6-Domain Orbital Quick Selector Dock with Dynamic Expandable Tabs */}
+        <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1 pt-0.5 no-scrollbar border-b border-[#E2E8F0]/80">
+          <ExpandableTabs
+            tabs={domainTabs}
+            selectedIndex={selectedDomainTabIndex}
+            onChange={handleDomainTabChange}
+            activeBgColor="bg-[#18181B]"
+            activeColor="text-white"
+            className="bg-[#FAFAFA] border-[#E2E8F0] shadow-2xs flex-nowrap"
+            size="default"
+          />
 
-          {domainLifeBalance.map((d) => {
-            const DomainIcon = d.icon;
-            const isSelected = selectedGlobeDomain === d.domain;
-            return (
-              <button
-                key={d.domain}
-                type="button"
-                onClick={() => {
-                  sound.playPop();
-                  setSelectedGlobeDomain(isSelected ? null : d.domain);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[11px] font-ui font-medium border transition-all whitespace-nowrap cursor-pointer ${
-                  isSelected
-                    ? 'bg-[#18181B] text-white border-[#18181B] shadow-xs'
-                    : 'bg-[#F9FAFB] text-[#71717A] border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#18181B]'
-                }`}
-              >
-                <DomainIcon size={12} className={isSelected ? 'text-[#10B981]' : ''} />
-                <span>{d.domain}</span>
-                <span className={`font-num text-[9.5px] px-1.5 py-0.2 rounded font-semibold ${
-                  isSelected ? 'bg-white/20 text-white' : d.statusColor
-                }`}>
-                  {d.score}%
-                </span>
-              </button>
-            );
-          })}
+          <div className="hidden sm:flex items-center gap-2 text-[11px] text-[#71717A] font-ui whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+            <span>Interactive telemetry node</span>
+          </div>
         </div>
 
         {/* 2-Column Responsive Layout */}

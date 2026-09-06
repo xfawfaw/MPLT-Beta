@@ -12,6 +12,8 @@ export interface Tab {
   icon: LucideIcon;
   type?: never;
   badge?: string | number;
+  iconClassName?: string;
+  onClick?: () => void;
 }
 
 export interface Separator {
@@ -20,6 +22,8 @@ export interface Separator {
   icon?: never;
   id?: never;
   badge?: never;
+  iconClassName?: never;
+  onClick?: never;
 }
 
 export type TabItem = Tab | Separator;
@@ -32,21 +36,34 @@ export interface ExpandableTabsProps {
   selectedIndex?: number | null;
   defaultIndex?: number | null;
   allowDeselect?: boolean;
+  allowToggle?: boolean;
   size?: "sm" | "default" | "lg";
   onChange?: (index: number | null) => void;
 }
 
 const buttonVariants = {
-  initial: {
-    gap: 0,
-    paddingLeft: ".5rem",
-    paddingRight: ".5rem",
+  initial: (custom: { isSelected: boolean; size: "sm" | "default" | "lg" }) => {
+    const isSm = custom.size === "sm";
+    const isLg = custom.size === "lg";
+    const pad = isSm ? ".4rem" : isLg ? ".6rem" : ".5rem";
+    return {
+      gap: 0,
+      paddingLeft: pad,
+      paddingRight: pad,
+    };
   },
-  animate: (isSelected: boolean) => ({
-    gap: isSelected ? ".5rem" : 0,
-    paddingLeft: isSelected ? "0.85rem" : ".5rem",
-    paddingRight: isSelected ? "0.85rem" : ".5rem",
-  }),
+  animate: (custom: { isSelected: boolean; size: "sm" | "default" | "lg" }) => {
+    const isSm = custom.size === "sm";
+    const isLg = custom.size === "lg";
+    const inactivePad = isSm ? ".4rem" : isLg ? ".6rem" : ".5rem";
+    const activePad = isSm ? ".65rem" : isLg ? "1rem" : ".85rem";
+    const activeGap = isSm ? ".35rem" : isLg ? ".6rem" : ".5rem";
+    return {
+      gap: custom.isSelected ? activeGap : 0,
+      paddingLeft: custom.isSelected ? activePad : inactivePad,
+      paddingRight: custom.isSelected ? activePad : inactivePad,
+    };
+  },
 };
 
 const spanVariants = {
@@ -65,6 +82,7 @@ export function ExpandableTabs({
   selectedIndex: controlledIndex,
   defaultIndex = null,
   allowDeselect = false,
+  allowToggle = false,
   size = "default",
   onChange,
 }: ExpandableTabsProps) {
@@ -87,7 +105,15 @@ export function ExpandableTabs({
   });
 
   const handleSelect = (index: number) => {
-    const nextIndex = (allowDeselect && selected === index) ? null : index;
+    const tab = tabs[index];
+    if (tab && tab.type !== "separator" && tab.onClick) {
+      tab.onClick();
+    }
+
+    const isCurrent = selected === index;
+    const shouldDeselect = (allowToggle || allowDeselect) && isCurrent;
+    const nextIndex = shouldDeselect ? null : index;
+
     if (!isControlled) {
       setInternalSelected(nextIndex);
     }
@@ -95,11 +121,11 @@ export function ExpandableTabs({
   };
 
   const Separator = () => (
-    <div className="mx-1 h-[20px] w-[1px] bg-border/60" aria-hidden="true" />
+    <motion.div layout className="mx-1 h-[20px] w-[1px] bg-border/60 flex-shrink-0" aria-hidden="true" />
   );
 
   const iconSizes = {
-    sm: 15,
+    sm: 14,
     default: 16,
     lg: 18,
   };
@@ -111,7 +137,7 @@ export function ExpandableTabs({
   };
 
   const buttonPadding = {
-    sm: "h-7 text-xs rounded-md",
+    sm: "h-7 text-[11px] font-ui rounded-md",
     default: "h-8.5 text-xs font-ui rounded-lg",
     lg: "h-10 text-sm font-ui rounded-xl",
   };
@@ -136,13 +162,15 @@ export function ExpandableTabs({
         return (
           <motion.button
             key={tab.id || tab.title || index}
+            layout
             type="button"
             variants={buttonVariants}
             initial={false}
             animate="animate"
-            custom={isSelected}
+            custom={{ isSelected, size }}
             onClick={() => handleSelect(index)}
             transition={transition}
+            title={tab.title ? `${tab.title}${tab.badge !== undefined ? ` (${tab.badge})` : ''}` : undefined}
             className={cn(
               "relative flex items-center justify-center font-medium transition-colors duration-200 cursor-pointer",
               buttonPadding[size],
@@ -153,7 +181,7 @@ export function ExpandableTabs({
             aria-selected={isSelected}
             role="tab"
           >
-            <Icon size={iconSizes[size]} className="flex-shrink-0" />
+            <Icon size={iconSizes[size]} className={cn("flex-shrink-0", tab.iconClassName)} />
             <AnimatePresence initial={false}>
               {isSelected && (
                 <motion.span
@@ -166,7 +194,7 @@ export function ExpandableTabs({
                 >
                   <span>{tab.title}</span>
                   {tab.badge !== undefined && (
-                    <span className="text-[9.5px] font-num px-1 py-0.2 rounded-full bg-primary-foreground/20 text-current leading-none">
+                    <span className="text-[9.5px] font-num px-1.5 py-0.5 rounded-full bg-primary-foreground/20 text-current leading-none font-semibold">
                       {tab.badge}
                     </span>
                   )}
