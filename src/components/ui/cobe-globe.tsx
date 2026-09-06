@@ -36,6 +36,8 @@ export interface GlobeProps {
   diffuse?: number
   mapSamples?: number
   focusLocation?: [number, number] | null
+  onMarkerClick?: (marker: Marker) => void
+  onGlobeClick?: () => void
 }
 
 export function Globe({
@@ -57,9 +59,12 @@ export function Globe({
   diffuse = 1.5,
   mapSamples = 16000,
   focusLocation = null,
+  onMarkerClick,
+  onGlobeClick,
 }: GlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pointerInteracting = useRef<{ x: number; y: number } | null>(null)
+  const pointerDownPos = useRef<{ x: number; y: number; time: number } | null>(null)
   const lastPointer = useRef<{ x: number; y: number; t: number } | null>(null)
   const dragOffset = useRef({ phi: 0, theta: 0 })
   const velocity = useRef({ phi: 0, theta: 0 })
@@ -113,6 +118,7 @@ export function Globe({
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     pointerInteracting.current = { x: e.clientX, y: e.clientY }
+    pointerDownPos.current = { x: e.clientX, y: e.clientY, time: Date.now() }
     if (canvasRef.current) canvasRef.current.style.cursor = "grabbing"
     isPausedRef.current = true
   }, [])
@@ -135,17 +141,27 @@ export function Globe({
     }
   }, [])
 
-  const handlePointerUp = useCallback(() => {
+  const handlePointerUp = useCallback((e: PointerEvent) => {
     if (pointerInteracting.current !== null) {
       phiOffsetRef.current += dragOffset.current.phi
       thetaOffsetRef.current += dragOffset.current.theta
       dragOffset.current = { phi: 0, theta: 0 }
       lastPointer.current = null
+
+      if (pointerDownPos.current && onGlobeClick) {
+        const dx = Math.abs(e.clientX - pointerDownPos.current.x)
+        const dy = Math.abs(e.clientY - pointerDownPos.current.y)
+        const dt = Date.now() - pointerDownPos.current.time
+        if (dx < 6 && dy < 6 && dt < 350) {
+          onGlobeClick()
+        }
+      }
+      pointerDownPos.current = null
     }
     pointerInteracting.current = null
     if (canvasRef.current) canvasRef.current.style.cursor = "grab"
     isPausedRef.current = false
-  }, [])
+  }, [onGlobeClick])
 
   useEffect(() => {
     window.addEventListener("pointermove", handlePointerMove, { passive: true })
@@ -298,8 +314,13 @@ export function Globe({
         }}
       />
       {markers.map((m) => (
-        <div
+        <button
           key={m.id}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMarkerClick?.(m);
+          }}
           style={{
             position: "absolute",
             positionAnchor: `--cobe-${m.id}`,
@@ -307,24 +328,31 @@ export function Globe({
             left: "anchor(center)",
             translate: "-50% 0",
             marginBottom: 8,
-            padding: "2px 6px",
+            padding: "3px 7px",
             background: "#18181B",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: "4px",
+            border: "1px solid rgba(255,255,255,0.25)",
+            borderRadius: "5px",
             color: "#fff",
             fontFamily: "var(--font-mono, monospace)",
-            fontSize: "0.6rem",
-            fontWeight: 600,
+            fontSize: "0.62rem",
+            fontWeight: 700,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
             whiteSpace: "nowrap",
-            pointerEvents: "none",
+            pointerEvents: onMarkerClick ? "auto" : "none",
+            cursor: onMarkerClick ? "pointer" : "default",
             opacity: `var(--cobe-visible-${m.id}, 0)`,
             filter: `blur(calc((1 - var(--cobe-visible-${m.id}, 0)) * 8px))`,
-            transition: "opacity 0.8s, filter 0.8s",
+            transition: "opacity 0.8s, filter 0.8s, transform 0.15s, background-color 0.15s",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+            zIndex: 30,
           } as React.CSSProperties}
+          className="hover:scale-110 active:scale-95 hover:border-[#10B981] hover:text-[#10B981] transition-all cursor-pointer select-none"
         >
-          {m.label}
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+            <span>{m.label}</span>
+          </span>
           <span
             style={{
               position: "absolute",
@@ -335,7 +363,7 @@ export function Globe({
               borderTopColor: "#18181B",
             }}
           />
-        </div>
+        </button>
       ))}
       {arcs
         .filter((a) => a.label)

@@ -23,8 +23,12 @@ import {
   Plus,
   X,
   CalendarCheck2,
-  CheckSquare
+  CheckSquare,
+  ChevronLeft,
+  ArrowRight,
+  MapPin
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Globe, Marker, Arc } from '@/components/ui/cobe-globe';
 import { AreaOfLife } from '../../types';
 import { sound } from '../../utils/sound';
@@ -140,18 +144,22 @@ export const MasterDashboard: React.FC = () => {
   const domainLifeBalance = useMemo(() => {
     const domains: { 
       area: AreaOfLife; 
+      cityName: string;
+      coordinatesText: string;
+      nodeCode: string;
       icon: any; 
       location: [number, number]; 
       markerId: string; 
       description: string; 
-      targetTab: 'Tasks' | 'Habits' | 'Goals' | 'Finance' | 'Weekly';
+      targetTab: 'tasks' | 'habits' | 'goals' | 'finance' | 'weekly';
+      targetTabLabel: string;
     }[] = [
-      { area: 'Work', icon: Briefcase, location: [37.7595, -122.4367], markerId: 'work', description: 'Career, Projects & Daily Execution', targetTab: 'Tasks' },
-      { area: 'Health', icon: ShieldCheck, location: [35.6762, 139.6503], markerId: 'health', description: 'Vitality, Fitness & Recovery', targetTab: 'Habits' },
-      { area: 'Money', icon: DollarSign, location: [51.5074, -0.1278], markerId: 'money', description: 'Budget, Net Worth & Savings Rate', targetTab: 'Finance' },
-      { area: 'Personal Growth', icon: BookOpen, location: [48.8566, 2.3522], markerId: 'growth', description: 'Knowledge, Skills & Deep Learning', targetTab: 'Goals' },
-      { area: 'Spirituality', icon: Moon, location: [21.4225, 39.8262], markerId: 'spirit', description: 'Mindfulness, Purpose & Inner Calm', targetTab: 'Habits' },
-      { area: 'Family', icon: HeartHandshake, location: [-6.2088, 106.8456], markerId: 'family', description: 'Relationships, Kin & Social Bonds', targetTab: 'Weekly' },
+      { area: 'Work', cityName: 'San Francisco, USA', coordinatesText: '37.8°N, 122.4°W', nodeCode: 'SF-WRK-01', icon: Briefcase, location: [37.7595, -122.4367], markerId: 'work', description: 'Career, Projects & Daily Execution', targetTab: 'tasks', targetTabLabel: 'Task Manager' },
+      { area: 'Health', cityName: 'Tokyo, Japan', coordinatesText: '35.7°N, 139.7°E', nodeCode: 'TYO-HLT-02', icon: ShieldCheck, location: [35.6762, 139.6503], markerId: 'health', description: 'Vitality, Fitness & Recovery', targetTab: 'habits', targetTabLabel: 'Habit Matrix' },
+      { area: 'Money', cityName: 'London, UK', coordinatesText: '51.5°N, 0.1°W', nodeCode: 'LDN-FIN-03', icon: DollarSign, location: [51.5074, -0.1278], markerId: 'money', description: 'Budget, Net Worth & Savings Rate', targetTab: 'finance', targetTabLabel: 'Money Tracker' },
+      { area: 'Personal Growth', cityName: 'Paris, France', coordinatesText: '48.9°N, 2.4°E', nodeCode: 'PAR-GRW-04', icon: BookOpen, location: [48.8566, 2.3522], markerId: 'growth', description: 'Knowledge, Skills & Deep Learning', targetTab: 'goals', targetTabLabel: 'Goal Tracker' },
+      { area: 'Spirituality', cityName: 'Mecca, Saudi Arabia', coordinatesText: '21.4°N, 39.8°E', nodeCode: 'MEC-SPR-05', icon: Moon, location: [21.4225, 39.8262], markerId: 'spirit', description: 'Mindfulness, Purpose & Inner Calm', targetTab: 'habits', targetTabLabel: 'Habit Matrix' },
+      { area: 'Family', cityName: 'Jakarta, Indonesia', coordinatesText: '6.2°S, 106.8°E', nodeCode: 'JKT-FAM-06', icon: HeartHandshake, location: [-6.2088, 106.8456], markerId: 'family', description: 'Relationships, Kin & Social Bonds', targetTab: 'weekly', targetTabLabel: 'Weekly Planner' },
     ];
 
     return domains.map(d => {
@@ -244,11 +252,15 @@ export const MasterDashboard: React.FC = () => {
 
       return {
         domain,
+        cityName: d.cityName,
+        coordinatesText: d.coordinatesText,
+        nodeCode: d.nodeCode,
         icon: d.icon,
         location: d.location,
         markerId: d.markerId,
         description: d.description,
         targetTab: d.targetTab,
+        targetTabLabel: d.targetTabLabel,
         score: overallHealth,
         statusText,
         statusColor,
@@ -269,6 +281,10 @@ export const MasterDashboard: React.FC = () => {
         milestonesCompleted,
         milestonesTotal: milestones.length,
         markerSize,
+        domainHabitsList: domainHabits,
+        pendingWeeklyList: pendingWeekly,
+        pendingGeneralList: pendingGeneral,
+        domainGoalsList: domainGoals,
       };
     });
   }, [habits, weeklyTasks, tasks, goals, currentDayNum]);
@@ -362,6 +378,15 @@ export const MasterDashboard: React.FC = () => {
   }, [selectedGlobeDomain, domainLifeBalance]);
 
   const globeFocusLocation = activeSelectedDomain ? activeSelectedDomain.location : null;
+
+  const handleCycleDomain = (direction: 1 | -1) => {
+    sound.playPop();
+    const curIdx = domainLifeBalance.findIndex(d => d.domain === selectedGlobeDomain);
+    const nextIdx = curIdx === -1 
+      ? 0 
+      : (curIdx + direction + domainLifeBalance.length) % domainLifeBalance.length;
+    setSelectedGlobeDomain(domainLifeBalance[nextIdx].domain);
+  };
 
   // Dynamic Weekly 7-day groups from sprint days & weekly tasks
   const days = useMemo(() => {
@@ -589,6 +614,54 @@ export const MasterDashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* 6-Domain Orbital Quick Selector Dock */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar border-b border-[#E2E8F0]/80">
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setSelectedGlobeDomain(null);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[11px] font-ui font-medium border transition-all whitespace-nowrap cursor-pointer ${
+              selectedGlobeDomain === null
+                ? 'bg-[#18181B] text-white border-[#18181B] shadow-xs'
+                : 'bg-[#F9FAFB] text-[#71717A] border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#18181B]'
+            }`}
+          >
+            <GlobeIcon size={12} className={selectedGlobeDomain === null ? 'text-[#10B981]' : ''} />
+            <span>All Domains</span>
+            <span className="font-num text-[10px] opacity-75">({systemHarmonyScore}%)</span>
+          </button>
+
+          {domainLifeBalance.map((d) => {
+            const DomainIcon = d.icon;
+            const isSelected = selectedGlobeDomain === d.domain;
+            return (
+              <button
+                key={d.domain}
+                type="button"
+                onClick={() => {
+                  sound.playPop();
+                  setSelectedGlobeDomain(isSelected ? null : d.domain);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[11px] font-ui font-medium border transition-all whitespace-nowrap cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#18181B] text-white border-[#18181B] shadow-xs'
+                    : 'bg-[#F9FAFB] text-[#71717A] border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#18181B]'
+                }`}
+              >
+                <DomainIcon size={12} className={isSelected ? 'text-[#10B981]' : ''} />
+                <span>{d.domain}</span>
+                <span className={`font-num text-[9.5px] px-1.5 py-0.2 rounded font-semibold ${
+                  isSelected ? 'bg-white/20 text-white' : d.statusColor
+                }`}>
+                  {d.score}%
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           
@@ -631,21 +704,42 @@ export const MasterDashboard: React.FC = () => {
                 arcHeight={0.28}
                 speed={0.003}
                 focusLocation={globeFocusLocation}
+                onMarkerClick={(m) => {
+                  sound.playPop();
+                  const match = domainLifeBalance.find(d => d.markerId === m.id);
+                  if (match) setSelectedGlobeDomain(match.domain);
+                }}
+                onGlobeClick={() => {
+                  sound.playPop();
+                  const curIdx = domainLifeBalance.findIndex(d => d.domain === selectedGlobeDomain);
+                  const nextIdx = curIdx === -1 ? 0 : (curIdx + 1) % domainLifeBalance.length;
+                  setSelectedGlobeDomain(domainLifeBalance[nextIdx].domain);
+                }}
               />
             </div>
 
             {/* Clean bottom interaction hint */}
             <div className="w-full pt-2.5 mt-1 border-t border-[#E2E8F0] flex items-center justify-between text-[10px] font-ui text-[#71717A] z-10">
               <span className="truncate">
-                {selectedGlobeDomain ? `Focused on ${selectedGlobeDomain} Domain • Drag to orbit` : 'Drag globe to rotate • Click domain cards to lock node'}
+                {selectedGlobeDomain ? (
+                  <span>Focused on <strong className="text-[#18181B]">{selectedGlobeDomain}</strong> • Click node or canvas to cycle</span>
+                ) : (
+                  <span>Click markers, tap canvas, or drag to orbit</span>
+                )}
               </span>
-              {selectedGlobeDomain && (
+              {selectedGlobeDomain ? (
                 <button
-                  onClick={() => setSelectedGlobeDomain(null)}
-                  className="font-semibold text-[#18181B] hover:text-[#10B981] transition-colors flex-shrink-0"
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setSelectedGlobeDomain(null);
+                  }}
+                  className="font-semibold text-[#18181B] hover:text-[#10B981] transition-colors flex-shrink-0 cursor-pointer"
                 >
                   Reset Focus
                 </button>
+              ) : (
+                <span className="text-[#10B981] font-semibold">6 Active Nodes</span>
               )}
             </div>
 
@@ -786,6 +880,300 @@ export const MasterDashboard: React.FC = () => {
 
         </div>
 
+        {/* Selected Domain Telemetry Inspector HUD */}
+        <AnimatePresence mode="wait">
+          {activeSelectedDomain ? (
+            <motion.div
+              key={activeSelectedDomain.domain}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="p-4 sm:p-5 rounded-[10px] bg-[#FAFAFA] border border-[#18181B]/20 shadow-xs space-y-4"
+            >
+              {/* Telemetry Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-[8px] bg-[#18181B] text-white flex items-center justify-center shadow-xs flex-shrink-0">
+                    {React.createElement(activeSelectedDomain.icon, { size: 18, className: "text-[#10B981]" })}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-[14px] sm:text-[15px] font-bold text-[#18181B] font-ui tracking-tight">
+                        {activeSelectedDomain.domain} Telemetry Node
+                      </h4>
+                      <span className={`text-[10px] font-num font-bold px-2 py-0.5 rounded ${activeSelectedDomain.statusColor}`}>
+                        {activeSelectedDomain.score}% {activeSelectedDomain.statusText}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-[#71717A] font-ui mt-0.5 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <MapPin size={11} className="text-[#10B981]" />
+                        <span>{activeSelectedDomain.cityName}</span>
+                      </span>
+                      <span>•</span>
+                      <span className="font-num text-[10.5px]">{activeSelectedDomain.coordinatesText}</span>
+                      <span>•</span>
+                      <span className="font-num text-[10.5px] text-[#18181B] font-semibold">{activeSelectedDomain.nodeCode}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  {/* Prev / Next Cycle Controls */}
+                  <div className="flex items-center rounded-[6px] border border-[#E2E8F0] bg-white overflow-hidden shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => handleCycleDomain(-1)}
+                      title="Previous Domain"
+                      className="p-1.5 hover:bg-[#F4F4F5] text-[#71717A] hover:text-[#18181B] transition-colors border-r border-[#E2E8F0] cursor-pointer"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCycleDomain(1)}
+                      title="Next Domain"
+                      className="p-1.5 hover:bg-[#F4F4F5] text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+
+                  {/* Reset/Close Inspector */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setSelectedGlobeDomain(null);
+                    }}
+                    className="p-1.5 rounded-[6px] border border-[#E2E8F0] bg-white text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors cursor-pointer"
+                    title="Close Node Telemetry"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 Simplified Telemetry Metric Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* 1. Today's Habits */}
+                <div className="p-3 rounded-[8px] bg-white border border-[#E2E8F0] space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-[#71717A] font-ui">
+                    <span>Today's Habits</span>
+                    <CalendarCheck2 size={13} className="text-[#10B981]" />
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[18px] font-bold text-[#18181B] font-num">
+                      {activeSelectedDomain.habitsCompleted}
+                    </span>
+                    <span className="text-[11px] text-[#71717A] font-num">
+                      / {activeSelectedDomain.domainHabitsCount} Done
+                    </span>
+                  </div>
+                  <div className="w-full bg-[#E2E8F0] h-[3px] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#10B981] transition-all"
+                      style={{ 
+                        width: `${activeSelectedDomain.domainHabitsCount > 0 ? Math.round((activeSelectedDomain.habitsCompleted / activeSelectedDomain.domainHabitsCount) * 100) : 0}%` 
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Sprint & Weekly Tasks */}
+                <div className="p-3 rounded-[8px] bg-white border border-[#E2E8F0] space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-[#71717A] font-ui">
+                    <span>Sprint Tasks</span>
+                    <CheckSquare size={13} className="text-[#18181B]" />
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[18px] font-bold text-[#18181B] font-num">
+                      {activeSelectedDomain.weeklyTasksCompleted}
+                    </span>
+                    <span className="text-[11px] text-[#71717A] font-num">
+                      / {activeSelectedDomain.domainWeeklyCount} Done
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-[#71717A] font-ui truncate">
+                    {activeSelectedDomain.pendingTasksCount} pending execution
+                  </div>
+                </div>
+
+                {/* 3. Strategic Goals */}
+                <div className="p-3 rounded-[8px] bg-white border border-[#E2E8F0] space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-[#71717A] font-ui">
+                    <span>Strategic Goals</span>
+                    <Target size={13} className="text-amber-500" />
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[18px] font-bold text-[#18181B] font-num">
+                      {activeSelectedDomain.goalsAvgProgress}%
+                    </span>
+                    <span className="text-[11px] text-[#71717A] font-ui">
+                      Avg Progress
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-[#71717A] font-ui truncate">
+                    {activeSelectedDomain.milestonesCompleted} / {activeSelectedDomain.milestonesTotal} Milestones
+                  </div>
+                </div>
+
+                {/* 4. Discipline EXP Yield */}
+                <div className="p-3 rounded-[8px] bg-white border border-[#E2E8F0] space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-[#71717A] font-ui">
+                    <span>Discipline Yield</span>
+                    <Sparkles size={13} className="text-violet-500" />
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[18px] font-bold text-[#10B981] font-num">
+                      +{activeSelectedDomain.domainExp}
+                    </span>
+                    <span className="text-[11px] text-[#71717A] font-ui">
+                      EXP
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-[#71717A] font-ui truncate">
+                    {totalCategoryExp > 0 ? Math.round((activeSelectedDomain.domainExp / totalCategoryExp) * 100) : 0}% total matrix share
+                  </div>
+                </div>
+              </div>
+
+              {/* Functional Action Deck: Live Habit Checkoff & Next Directive */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+                {/* Left (7 Cols): Today's Habit Quick Checklist */}
+                <div className="md:col-span-7 p-3.5 rounded-[8px] bg-white border border-[#E2E8F0] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap size={13} className="text-[#10B981]" />
+                      <span>Today's Domain Habits Checklist</span>
+                    </span>
+                    <span className="text-[10px] font-num text-[#71717A]">
+                      Day {currentDayNum}
+                    </span>
+                  </div>
+
+                  {activeSelectedDomain.domainHabitsList.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {activeSelectedDomain.domainHabitsList.map((habit) => {
+                        const isDone = !!habit.logs[currentDayNum];
+                        return (
+                          <div
+                            key={habit.id}
+                            onClick={() => {
+                              sound.playPop();
+                              toggleHabitLog(habit.id, currentDayNum);
+                            }}
+                            className={`flex items-center justify-between p-2 rounded-[6px] border transition-all cursor-pointer select-none ${
+                              isDone
+                                ? 'bg-[#F0FDF4] border-[#10B981]/30 text-[#18181B]'
+                                : 'bg-[#FAFAFA] border-[#E2E8F0] hover:border-[#CBD5E1] text-[#3F3F46]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${
+                                isDone
+                                  ? 'bg-[#10B981] border-[#10B981] text-white'
+                                  : 'border-[#CBD5E1] bg-white'
+                              }`}>
+                                {isDone && <Check size={11} strokeWidth={3} />}
+                              </div>
+                              <span className={`text-[11.5px] font-ui truncate ${isDone ? 'line-through text-[#71717A]' : 'font-medium'}`}>
+                                {habit.title}
+                              </span>
+                            </div>
+
+                            <span className="font-num text-[10.5px] font-semibold text-[#10B981] flex-shrink-0">
+                              +{habit.expReward} EXP
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-[11px] text-[#71717A] bg-[#FAFAFA] rounded-[6px] border border-dashed border-[#E2E8F0]">
+                      No active daily habits configured under {activeSelectedDomain.domain}.
+                    </div>
+                  )}
+                </div>
+
+                {/* Right (5 Cols): Next Action Directive & Direct Hub Portal */}
+                <div className="md:col-span-5 p-3.5 rounded-[8px] bg-white border border-[#E2E8F0] flex flex-col justify-between gap-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11.5px] font-bold text-[#18181B] font-ui uppercase tracking-wider flex items-center gap-1.5">
+                        <Flame size={13} className="text-amber-500" />
+                        <span>Next Directive</span>
+                      </span>
+                      <span className="text-[10px] font-num text-[#71717A]">
+                        Priority Action
+                      </span>
+                    </div>
+
+                    {activeSelectedDomain.nextDirective ? (
+                      <div className="p-2.5 rounded-[6px] bg-[#FAFAFA] border border-[#E2E8F0] space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-semibold text-[#18181B] font-ui uppercase">
+                            {activeSelectedDomain.nextDirective.priority} PRIORITY
+                          </span>
+                          <span className="font-num font-bold text-[#10B981]">
+                            +{activeSelectedDomain.nextDirective.expReward} EXP
+                          </span>
+                        </div>
+                        <p className="text-[11.5px] font-semibold text-[#18181B] font-ui line-clamp-2">
+                          {activeSelectedDomain.nextDirective.title}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="py-3 text-center text-[11px] text-[#71717A] bg-[#FAFAFA] rounded-[6px] border border-dashed border-[#E2E8F0]">
+                        All current operational tasks in {activeSelectedDomain.domain} cleared.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Direct Hub Portal Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setCurrentTab(activeSelectedDomain.targetTab);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-[6px] bg-[#18181B] hover:bg-[#27272A] text-white text-[11.5px] font-ui font-semibold transition-all shadow-xs cursor-pointer group"
+                  >
+                    <span>Open {activeSelectedDomain.targetTabLabel}</span>
+                    <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform text-[#10B981]" />
+                  </button>
+                </div>
+              </div>
+
+            </motion.div>
+          ) : (
+            /* Neutral State Helper HUD */
+            <div className="p-3.5 rounded-[8px] bg-[#FAFAFA] border border-dashed border-[#E2E8F0] flex flex-col sm:flex-row items-center justify-between gap-3 text-[#71717A]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center flex-shrink-0">
+                  <GlobeIcon size={14} />
+                </div>
+                <div className="text-[11.5px] font-ui">
+                  <span className="font-semibold text-[#18181B]">Active Spherical Navigation:</span> Click any 3D node on the globe, domain tag, or selector pill to inspect live telemetry and check off daily actions.
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playPop();
+                    setSelectedGlobeDomain(domainLifeBalance[0].domain);
+                  }}
+                  className="px-2.5 py-1 rounded-[5px] bg-white border border-[#E2E8F0] text-[10.5px] font-ui font-semibold text-[#18181B] hover:bg-[#F4F4F5] transition-colors cursor-pointer"
+                >
+                  Inspect Node 1 ({domainLifeBalance[0].domain}) →
+                </button>
+              </div>
+            </div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* ========================================================
