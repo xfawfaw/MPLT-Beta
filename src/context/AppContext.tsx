@@ -196,6 +196,36 @@ export const CLEAN_HABITS: Habit[] = DEMO_HABITS.map(h => ({
   logs: {},
 }));
 
+export const getCurrentMonthKey = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+/**
+ * Calculates current unbroken streak of days with completed habits,
+ * checking backwards from today (or yesterday if today has no completions yet).
+ */
+export const calculateStreak = (habits: Habit[], currentDay: number): number => {
+  if (!Array.isArray(habits) || habits.length === 0 || currentDay < 1) return 0;
+  
+  const hasHabitOnDay = (day: number) => habits.some(h => !!h.logs?.[day]);
+  
+  const todayDone = hasHabitOnDay(currentDay);
+  let streak = 0;
+  let checkDay = todayDone ? currentDay : currentDay - 1;
+  
+  while (checkDay >= 1) {
+    if (hasHabitOnDay(checkDay)) {
+      streak++;
+      checkDay--;
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+};
+
 /**
  * Defensive sanitizer to guarantee every habit has a strictly unique ID,
  * an independent logs dictionary (preventing shared reference mutations),
@@ -206,6 +236,7 @@ export const sanitizeHabits = (rawList: any[]): Habit[] => {
     return DEMO_HABITS.map(h => ({
       ...h,
       logs: { ...h.logs },
+      monthlyLogs: h.monthlyLogs ? { ...h.monthlyLogs } : undefined,
     }));
   }
 
@@ -246,6 +277,22 @@ export const sanitizeHabits = (rawList: any[]): Habit[] => {
       });
     }
 
+    // Deep clone monthlyLogs if present
+    const monthlyLogsCopy: Record<string, Record<number, boolean>> = {};
+    if (item.monthlyLogs && typeof item.monthlyLogs === 'object') {
+      Object.keys(item.monthlyLogs).forEach(mKey => {
+        if (typeof item.monthlyLogs[mKey] === 'object' && item.monthlyLogs[mKey] !== null) {
+          monthlyLogsCopy[mKey] = {};
+          Object.keys(item.monthlyLogs[mKey]).forEach(dKey => {
+            const dNum = Number(dKey);
+            if (!isNaN(dNum) && dNum >= 1 && dNum <= 31) {
+              monthlyLogsCopy[mKey][dNum] = Boolean(item.monthlyLogs[mKey][dKey]);
+            }
+          });
+        }
+      });
+    }
+
     return {
       id: rawId,
       title: item.title ? String(item.title) : `Habit ${index + 1}`,
@@ -255,6 +302,7 @@ export const sanitizeHabits = (rawList: any[]): Habit[] => {
       timeOfDay: item.timeOfDay || 'Morning',
       targetFrequency: item.targetFrequency || 'Daily',
       logs: logsCopy,
+      monthlyLogs: Object.keys(monthlyLogsCopy).length > 0 ? monthlyLogsCopy : undefined,
     };
   });
 };
@@ -516,19 +564,41 @@ export const getInitialProfile = (): UserProfile => {
 };
 
 export const getInitialHabits = (): Habit[] => {
+  const currentMonthKey = getCurrentMonthKey();
+  const lastActiveMonth = localStorage.getItem('mplt_active_month_key');
   const saved = localStorage.getItem(`${STORAGE_KEY}_habits`) || 
                 localStorage.getItem(`${STORAGE_KEY}_user-1_habits`);
+
+  let loadedHabits: Habit[] = sanitizeHabits(CLEAN_HABITS);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return sanitizeHabits(parsed);
+        loadedHabits = sanitizeHabits(parsed);
       }
     } catch {
       // fallback
     }
   }
-  return sanitizeHabits(CLEAN_HABITS);
+
+  // Handle month rollover: if user entered a new month, archive previous logs into monthlyLogs
+  if (lastActiveMonth && lastActiveMonth !== currentMonthKey) {
+    loadedHabits = loadedHabits.map(h => {
+      const archivedLogs = { ...(h.monthlyLogs || {}) };
+      if (Object.keys(h.logs).length > 0) {
+        archivedLogs[lastActiveMonth] = { ...h.logs };
+      }
+      return {
+        ...h,
+        logs: {},
+        monthlyLogs: archivedLogs,
+      };
+    });
+    localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(loadedHabits));
+  }
+
+  localStorage.setItem('mplt_active_month_key', currentMonthKey);
+  return loadedHabits;
 };
 
 export const getInitialWeeklyTasks = (): WeeklyTask[] => {
@@ -662,6 +732,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [budget, setBudget] = useState<BudgetConfig>(() => getInitialBudget());
   const [transactions, setTransactions] = useState<TransactionItem[]>(() => getInitialTransactions());
 
+  // Synchronized state refs for atomic access outside React setState updaters
+  const habitsRef = useRef(habits);
+  habitsRef.current = habits;
+  const weeklyTasksRef = useRef(weeklyTasks);
+  weeklyTasksRef.current = weeklyTasks;
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
+  const goalsRef = useRef(goals);
+  goalsRef.current = goals;
+
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -708,37 +788,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // LocalStorage Persistence for current personal device
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(profile));
-    localStorage.setItem(`${STORAGE_KEY}_user-1_profile`, JSON.stringify(profile));
   }, [profile]);
 
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(habits));
-    localStorage.setItem(`${STORAGE_KEY}_user-1_habits`, JSON.stringify(habits));
   }, [habits]);
 
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_weeklyTasks`, JSON.stringify(weeklyTasks));
-    localStorage.setItem(`${STORAGE_KEY}_user-1_weeklyTasks`, JSON.stringify(weeklyTasks));
   }, [weeklyTasks]);
 
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_tasks`, JSON.stringify(tasks));
-    localStorage.setItem(`${STORAGE_KEY}_user-1_tasks`, JSON.stringify(tasks));
   }, [tasks]);
 
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_goals`, JSON.stringify(goals));
-    localStorage.setItem(`${STORAGE_KEY}_user-1_goals`, JSON.stringify(goals));
   }, [goals]);
 
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_budget`, JSON.stringify(budget));
-    localStorage.setItem(`${STORAGE_KEY}_user-1_budget`, JSON.stringify(budget));
   }, [budget]);
 
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(transactions));
-    localStorage.setItem(`${STORAGE_KEY}_user-1_transactions`, JSON.stringify(transactions));
   }, [transactions]);
 
   const triggerToast = (message: string, exp: number = 0) => {
@@ -813,38 +886,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLevelUpModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Habit Actions: Atomic single-index toggle to guarantee isolation
+  // Habit Actions: Atomic single-index toggle with decoupled side-effects & auto-streak calculation
   const toggleHabitLog = (habitId: string, day: number) => {
     if (!habitId) return;
+
+    const targetHabit = habitsRef.current.find(h => String(h.id) === String(habitId));
+    if (!targetHabit) return;
+
+    const currentVal = !!targetHabit.logs?.[day];
+    const nextVal = !currentVal;
+
+    // Decoupled side effects: fire strictly outside setState updaters
+    if (nextVal) {
+      addExp(targetHabit.expReward || 25, `Habit Check: ${targetHabit.title}`);
+      addPoints(targetHabit.ptsReward || 10);
+      sound.playPop();
+    } else {
+      removeExp(targetHabit.expReward || 25, `Reverted: ${targetHabit.title}`);
+      removePoints(targetHabit.ptsReward || 10);
+      sound.playClick();
+    }
+
+    const currentMonthKey = getCurrentMonthKey();
 
     setHabits(prev => {
       const targetIndex = prev.findIndex(h => String(h.id) === String(habitId));
       if (targetIndex === -1) return prev;
 
-      const targetHabit = prev[targetIndex];
-      const currentVal = !!targetHabit.logs?.[day];
-      const nextVal = !currentVal;
+      const current = prev[targetIndex];
+      const updatedLogs = {
+        ...(current.logs || {}),
+        [day]: nextVal,
+      };
 
-      if (nextVal) {
-        addExp(targetHabit.expReward || 25, `Habit Check: ${targetHabit.title}`);
-        addPoints(targetHabit.ptsReward || 10);
-        sound.playPop();
-      } else {
-        removeExp(targetHabit.expReward || 25, `Reverted: ${targetHabit.title}`);
-        removePoints(targetHabit.ptsReward || 10);
-        sound.playClick();
-      }
-
-      const updatedHabit: Habit = {
-        ...targetHabit,
-        logs: {
-          ...(targetHabit.logs || {}),
+      const updatedMonthlyLogs = {
+        ...(current.monthlyLogs || {}),
+        [currentMonthKey]: {
+          ...((current.monthlyLogs && current.monthlyLogs[currentMonthKey]) || {}),
           [day]: nextVal,
         },
       };
 
+      const updatedHabit: Habit = {
+        ...current,
+        logs: updatedLogs,
+        monthlyLogs: updatedMonthlyLogs,
+      };
+
       const nextList = [...prev];
       nextList[targetIndex] = updatedHabit;
+
+      // Dynamically calculate and update unbroken streak
+      const today = dateUtils.getTodayInfo();
+      const newStreak = calculateStreak(nextList, today.dayOfMonth);
+      setProfile(p => ({ ...p, streakDays: newStreak }));
+
       return nextList;
     });
   };
@@ -868,25 +964,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setHabits(prev => prev.filter(h => h.id !== habitId));
   };
 
-  // Weekly Task Actions
+  // Weekly Task Actions: Decoupled side-effects
   const toggleWeeklyTask = (taskId: string) => {
     if (!taskId) return;
+    const target = weeklyTasksRef.current.find(t => String(t.id) === String(taskId));
+    if (!target) return;
+    const nextCompleted = !target.isCompleted;
+
+    if (nextCompleted) {
+      addExp(target.expReward || 25, `Weekly Task: ${target.title}`);
+      sound.playPop();
+    } else {
+      removeExp(target.expReward || 25, `Reverted: ${target.title}`);
+      sound.playClick();
+    }
+
     setWeeklyTasks(prev => {
       const targetIndex = prev.findIndex(t => String(t.id) === String(taskId));
       if (targetIndex === -1) return prev;
-
-      const target = prev[targetIndex];
-      const nextCompleted = !target.isCompleted;
-      if (nextCompleted) {
-        addExp(target.expReward || 25, `Weekly Task: ${target.title}`);
-        sound.playPop();
-      } else {
-        removeExp(target.expReward || 25, `Reverted: ${target.title}`);
-        sound.playClick();
-      }
-
       const nextList = [...prev];
-      nextList[targetIndex] = { ...target, isCompleted: nextCompleted };
+      nextList[targetIndex] = { ...prev[targetIndex], isCompleted: nextCompleted };
       return nextList;
     });
   };
@@ -922,28 +1019,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setWeeklyTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  // General Task Manager Actions
+  // General Task Manager Actions: Decoupled side-effects
   const toggleTaskStatus = (taskId: string) => {
     if (!taskId) return;
+    const target = tasksRef.current.find(t => String(t.id) === String(taskId));
+    if (!target) return;
+
+    let nextStatus: TaskItem['status'] = 'Not Started';
+    if (target.status === 'Not Started') nextStatus = 'In Progress';
+    else if (target.status === 'In Progress') {
+      nextStatus = 'Completed';
+      addExp(target.expReward || 20, `Task Completed: ${target.title}`);
+      sound.playPop();
+    } else {
+      nextStatus = 'Not Started';
+      removeExp(target.expReward || 20, `Reverted: ${target.title}`);
+      sound.playClick();
+    }
+
     setTasks(prev => {
       const targetIndex = prev.findIndex(t => String(t.id) === String(taskId));
       if (targetIndex === -1) return prev;
-
-      const target = prev[targetIndex];
-      let nextStatus: TaskItem['status'] = 'Not Started';
-      if (target.status === 'Not Started') nextStatus = 'In Progress';
-      else if (target.status === 'In Progress') {
-        nextStatus = 'Completed';
-        addExp(target.expReward || 20, `Task Completed: ${target.title}`);
-        sound.playPop();
-      } else {
-        nextStatus = 'Not Started';
-        removeExp(target.expReward || 20, `Reverted: ${target.title}`);
-        sound.playClick();
-      }
-
       const nextList = [...prev];
-      nextList[targetIndex] = { ...target, status: nextStatus };
+      nextList[targetIndex] = { ...prev[targetIndex], status: nextStatus };
       return nextList;
     });
   };
@@ -961,28 +1059,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  // Goal Actions & Milestones
+  // Goal Actions & Milestones: Decoupled side-effects
   const toggleGoalStatus = (goalId: string) => {
     if (!goalId) return;
+    const target = goalsRef.current.find(g => String(g.id) === String(goalId));
+    if (!target) return;
+
+    const nextStatus = target.status === 'Achieved' ? 'In Progress' : 'Achieved';
+    if (nextStatus === 'Achieved') {
+      addExp(150, `Goal Milestone Achieved: ${target.title}`);
+      sound.playLevelUp();
+    } else {
+      removeExp(150, `Reverted Goal: ${target.title}`);
+      sound.playClick();
+    }
+
     setGoals(prev => {
       const targetIndex = prev.findIndex(g => String(g.id) === String(goalId));
       if (targetIndex === -1) return prev;
-
-      const target = prev[targetIndex];
-      const nextStatus = target.status === 'Achieved' ? 'In Progress' : 'Achieved';
-      if (nextStatus === 'Achieved') {
-        addExp(150, `Goal Milestone Achieved: ${target.title}`);
-        sound.playLevelUp();
-      } else {
-        removeExp(150, `Reverted Goal: ${target.title}`);
-        sound.playClick();
-      }
-
+      const targetGoal = prev[targetIndex];
       const nextList = [...prev];
       nextList[targetIndex] = {
-        ...target,
+        ...targetGoal,
         status: nextStatus,
-        progressPercent: nextStatus === 'Achieved' ? 100 : target.progressPercent,
+        progressPercent: nextStatus === 'Achieved' ? 100 : targetGoal.progressPercent,
       };
       return nextList;
     });
@@ -1005,35 +1105,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleGoalMilestone = (goalId: string, milestoneId: string) => {
+    const goal = goalsRef.current.find(g => g.id === goalId);
+    if (!goal || !goal.milestones) return;
+    const milestone = goal.milestones.find(m => m.id === milestoneId);
+    if (!milestone) return;
+
+    const nextDone = !milestone.isCompleted;
+    if (nextDone) {
+      addExp(milestone.expReward, `Milestone: ${milestone.title}`);
+      sound.playPop();
+    } else {
+      removeExp(milestone.expReward, `Reverted Milestone: ${milestone.title}`);
+      sound.playClick();
+    }
+
+    const updatedMilestones = goal.milestones.map(m =>
+      m.id === milestoneId ? { ...m, isCompleted: nextDone } : m
+    );
+
+    const completedCount = updatedMilestones.filter(m => m.isCompleted).length;
+    const newPercent = Math.round((completedCount / updatedMilestones.length) * 100);
+    const isAchieved = newPercent >= 100;
+
+    if (isAchieved && goal.status !== 'Achieved') {
+      addExp(100, `Major Goal Completed: ${goal.title}`);
+      sound.playLevelUp();
+    } else if (!isAchieved && goal.status === 'Achieved') {
+      removeExp(100, `Reverted Goal Completion: ${goal.title}`);
+    }
+
     setGoals(prev =>
       prev.map(g => {
-        if (g.id === goalId && g.milestones) {
-          const updatedMilestones = g.milestones.map(m => {
-            if (m.id === milestoneId) {
-              const nextDone = !m.isCompleted;
-              if (nextDone) {
-                addExp(m.expReward, `Milestone: ${m.title}`);
-                sound.playPop();
-              } else {
-                removeExp(m.expReward, `Reverted Milestone: ${m.title}`);
-                sound.playClick();
-              }
-              return { ...m, isCompleted: nextDone };
-            }
-            return m;
-          });
-
-          const completedCount = updatedMilestones.filter(m => m.isCompleted).length;
-          const newPercent = Math.round((completedCount / updatedMilestones.length) * 100);
-          const isAchieved = newPercent >= 100;
-
-          if (isAchieved && g.status !== 'Achieved') {
-            addExp(100, `Major Goal Completed: ${g.title}`);
-            sound.playLevelUp();
-          } else if (!isAchieved && g.status === 'Achieved') {
-            removeExp(100, `Reverted Goal Completion: ${g.title}`);
-          }
-
+        if (g.id === goalId) {
           return {
             ...g,
             milestones: updatedMilestones,
@@ -1155,7 +1258,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProfile(prev => {
       const updated = { ...prev, ...updates };
       localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(updated));
-      localStorage.setItem(`${STORAGE_KEY}_user-1_profile`, JSON.stringify(updated));
       return updated;
     });
     sound.playClick();

@@ -9,7 +9,10 @@ import {
   Award,
   Upload,
   Trash2,
-  Camera
+  Camera,
+  Target,
+  BarChart3,
+  Download
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 import { processAvatarImage } from '../../utils/image';
@@ -18,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface OperatorProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenBackup?: () => void;
 }
 
 const AVATAR_OPTIONS = [
@@ -29,8 +33,8 @@ const AVATAR_OPTIONS = [
   { id: 'operator-matrix', label: 'Grid', glyph: '📊', bg: 'bg-[#18181B] text-[#FFFFFF]' },
 ];
 
-export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOpen, onClose }) => {
-  const { profile, habits, tasks, goals, budget, updateProfile } = useApp();
+export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOpen, onClose, onOpenBackup }) => {
+  const { profile, habits, tasks, goals, budget, updateProfile, setCurrentTab } = useApp();
 
   const [callsign, setCallsign] = useState(profile.callsign || 'Sovereign Operator');
   const [bio, setBio] = useState(profile.bio || 'Building discipline through quantified daily execution.');
@@ -291,6 +295,51 @@ export const OperatorProfileModal: React.FC<OperatorProfileModalProps> = ({ isOp
                 <p className="text-[10px] font-bold text-[#71717A] uppercase font-ui">Target Inflow</p>
                 <p className="text-[16px] font-bold text-[#10B981] mt-0.5">{budget.incomeGoal > 0 ? `${(budget.incomeGoal / 1000000).toFixed(1)}M` : '0M'}</p>
               </div>
+            </div>
+          </div>
+
+          {/* Quick Workstation Jump (Mobile Ergonomics) */}
+          <div className="space-y-1.5 pt-1">
+            <h4 className="text-[11px] font-bold text-[#71717A] uppercase font-ui tracking-wider">
+              Quick System Navigation
+            </h4>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTab('goals');
+                  onClose();
+                  sound.playClick();
+                }}
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-[6px] bg-[#F9FAFB] hover:bg-[#F4F4F5] border border-[#E2E8F0] text-[11.5px] font-medium text-[#18181B] transition-all cursor-pointer"
+              >
+                <Target size={13} className="text-[#10B981]" />
+                <span>Goals</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTab('yearly');
+                  onClose();
+                  sound.playClick();
+                }}
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-[6px] bg-[#F9FAFB] hover:bg-[#F4F4F5] border border-[#E2E8F0] text-[11.5px] font-medium text-[#18181B] transition-all cursor-pointer"
+              >
+                <BarChart3 size={13} className="text-[#10B981]" />
+                <span>Yearly Stats</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenBackup?.();
+                  sound.playClick();
+                }}
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-[6px] bg-[#F9FAFB] hover:bg-[#F4F4F5] border border-[#E2E8F0] text-[11.5px] font-medium text-[#18181B] transition-all cursor-pointer"
+              >
+                <Download size={13} className="text-[#10B981]" />
+                <span>Data Vault</span>
+              </button>
             </div>
           </div>
 

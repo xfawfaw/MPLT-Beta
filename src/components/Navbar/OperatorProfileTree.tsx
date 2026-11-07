@@ -13,7 +13,11 @@ import {
   Activity, 
   Layers, 
   Terminal,
-  RotateCcw
+  RotateCcw,
+  BarChart3,
+  Download,
+  Command,
+  Workflow
 } from 'lucide-react';
 import { 
   TreeView, 
@@ -28,6 +32,8 @@ interface OperatorProfileTreeProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenEditModal: () => void;
+  onOpenBackup?: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 const AVATARS = [
@@ -42,7 +48,9 @@ const AVATARS = [
 export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({ 
   isOpen, 
   onClose, 
-  onOpenEditModal 
+  onOpenEditModal,
+  onOpenBackup,
+  onOpenCommandPalette
 }) => {
   const { 
     isDevMode, 
@@ -53,7 +61,8 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
     goals, 
     budget, 
     updateProfile,
-    resetAllData
+    resetAllData,
+    setCurrentTab
   } = useApp();
 
   const rankTitle = getUserRankTitle(profile.level);
@@ -210,8 +219,69 @@ export const OperatorProfileTree: React.FC<OperatorProfileTreeProps> = ({
                   </TreeFolder>
                 </TreeSection>
 
-                {/* 2. PROGRESSION & KINETICS */}
-                <TreeSection title="Progression & Kinetics" defaultExpanded={true}>
+                {/* 2. WORKSTATION MODULES (Enables 100% reachability on mobile & desktop) */}
+                <TreeSection title="Workstation Modules" defaultExpanded={true}>
+                  <TreeItem 
+                    id="nav-goals" 
+                    label="Strategic Goals & Roadmaps" 
+                    icon={Target} 
+                    badge={`${goals.length} Goals`}
+                    onClick={() => {
+                      setCurrentTab('goals');
+                      onClose();
+                      sound.playClick();
+                    }}
+                  />
+                  <TreeItem 
+                    id="nav-yearly" 
+                    label="Yearly Consistency & Heatmap" 
+                    icon={BarChart3} 
+                    badge="365D"
+                    onClick={() => {
+                      setCurrentTab('yearly');
+                      onClose();
+                      sound.playClick();
+                    }}
+                  />
+                  <TreeItem 
+                    id="nav-backup" 
+                    label="Data Vault & Backup Center" 
+                    icon={Download} 
+                    badge="JSON"
+                    onClick={() => {
+                      onOpenBackup?.();
+                      onClose();
+                      sound.playClick();
+                    }}
+                  />
+                  <TreeItem 
+                    id="nav-cmd" 
+                    label="Command Palette" 
+                    icon={Command} 
+                    badge="Quick Action"
+                    onClick={() => {
+                      onOpenCommandPalette?.();
+                      onClose();
+                      sound.playClick();
+                    }}
+                  />
+                  {isDevMode && (
+                    <TreeItem 
+                      id="nav-automations" 
+                      label="Life Automations & Pipelines" 
+                      icon={Workflow} 
+                      badge="DEV"
+                      onClick={() => {
+                        setCurrentTab('automations');
+                        onClose();
+                        sound.playClick();
+                      }}
+                    />
+                  )}
+                </TreeSection>
+
+                {/* 3. PROGRESSION & KINETICS */}
+                <TreeSection title="Progression & Kinetics" defaultExpanded={false}>
                   <TreeItem 
                     id="stat-streak" 
                     label="Discipline Streak" 

@@ -112,6 +112,7 @@ export const AppContent: React.FC = () => {
       <OperatorProfileModal 
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
+        onOpenBackup={() => setIsBackupModalOpen(true)}
       />
 
       {/* First-Time User Onboarding Setup Wizard */}

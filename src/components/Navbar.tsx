@@ -257,6 +257,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
               isOpen={isProfileTreeOpen}
               onClose={() => setIsProfileTreeOpen(false)}
               onOpenEditModal={onOpenProfile}
+              onOpenBackup={onOpenBackup}
+              onOpenCommandPalette={onOpenCommandPalette}
             />
           </div>
 

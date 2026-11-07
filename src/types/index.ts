@@ -117,8 +117,10 @@ export interface Habit {
   expReward: number;
   timeOfDay?: 'Morning' | 'Deep Work' | 'Evening' | 'Anytime';
   targetFrequency?: string; // e.g. "Daily", "5x / Week"
-  // Logs keyed by Day number (1-31)
+  // Logs keyed by Day number (1-31) for active month
   logs: Record<number, boolean>;
+  // Historical logs keyed by 'YYYY-MM' e.g. '2026-11': { 1: true, ... }
+  monthlyLogs?: Record<string, Record<number, boolean>>;
 }
 
 export interface WeeklyTask {

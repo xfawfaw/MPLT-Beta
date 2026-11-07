@@ -152,8 +152,17 @@ export const YearlyStatsView: React.FC = () => {
       let tasksDone = 0;
       let dayExp = 0;
 
-      if (monthIdx === today.monthIndex && totalHabits > 0) {
-        const doneHabits = habits.filter(h => !!h.logs[dateNum]);
+      const monthKey = `${today.year}-${String(monthIdx + 1).padStart(2, '0')}`;
+      if (totalHabits > 0) {
+        const doneHabits = habits.filter(h => {
+          if (h.monthlyLogs && h.monthlyLogs[monthKey]) {
+            return !!h.monthlyLogs[monthKey][dateNum];
+          }
+          if (monthIdx === today.monthIndex) {
+            return !!h.logs[dateNum];
+          }
+          return false;
+        });
         if (doneHabits.length > 0) {
           habitPct = Math.round((doneHabits.length / totalHabits) * 100);
           tasksDone = doneHabits.length;
