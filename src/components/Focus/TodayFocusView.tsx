@@ -15,12 +15,15 @@ import {
   Clock, 
   Target, 
   Edit3, 
-  AlertCircle
+  AlertCircle,
+  Wallet,
+  CheckSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sound } from '../../utils/sound';
 import { dateUtils } from '../../utils/date';
 import { AreaOfLife } from '../../types';
+import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 
 export const TodayFocusView: React.FC = () => {
   const { 
@@ -762,26 +765,23 @@ export const TodayFocusView: React.FC = () => {
                 </button>
               </div>
 
-              {/* Tab Selector */}
-              <div className="flex rounded-[6px] bg-[#F4F4F5] p-1 gap-1">
-                <button
-                  type="button"
-                  onClick={() => setCaptureTab('task')}
-                  className={`flex-1 py-1 text-[11.5px] font-bold rounded-[5px] transition-all ${
-                    captureTab === 'task' ? 'bg-white text-[#18181B] shadow-2xs' : 'text-[#71717A]'
-                  }`}
-                >
-                  Task Deliverable
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCaptureTab('expense')}
-                  className={`flex-1 py-1 text-[11.5px] font-bold rounded-[5px] transition-all ${
-                    captureTab === 'expense' ? 'bg-white text-[#18181B] shadow-2xs' : 'text-[#71717A]'
-                  }`}
-                >
-                  Quick Expense
-                </button>
+              {/* Tab Selector via ExpandableTabs */}
+              <div className="flex justify-center">
+                <ExpandableTabs
+                  size="sm"
+                  tabs={[
+                    { id: 'task', title: 'Task Deliverable', icon: CheckSquare },
+                    { id: 'expense', title: 'Quick Expense', icon: Wallet },
+                  ]}
+                  selectedIndex={captureTab === 'task' ? 0 : 1}
+                  onChange={(idx) => {
+                    sound.playClick();
+                    if (idx !== null) setCaptureTab(idx === 0 ? 'task' : 'expense');
+                  }}
+                  activeBgColor="bg-[#18181B]"
+                  activeColor="text-white"
+                  className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+                />
               </div>
 
               {/* Form Body */}

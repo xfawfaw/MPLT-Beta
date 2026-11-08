@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/animated-file-tree';
 import { OperatorProfileTree } from './Navbar/OperatorProfileTree';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ExpandableTabs, TabItem } from '@/components/ui/expandable-tabs';
 
 interface NavbarProps {
   onOpenCommandPalette: () => void;
@@ -68,6 +69,27 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
 
   const expPercentage = Math.min(100, Math.round((profile.currentExp / profile.nextLevelExp) * 100));
   const activeGoalsCount = goals.filter(g => g.status !== 'Achieved').length;
+
+  const desktopNavTabs: TabItem[] = useMemo(() => [
+    { id: 'today', title: 'Today', icon: LayoutGrid },
+    { id: 'system', title: 'System', icon: CalendarCheck2 },
+    { id: 'finance', title: 'Finance', icon: Wallet },
+  ], []);
+
+  const desktopSelectedIndex = useMemo(() => {
+    if (currentTab === 'today' || currentTab === 'dashboard') return 0;
+    if (['system', 'habits', 'weekly', 'tasks', 'goals', 'yearly', 'automations'].includes(currentTab)) return 1;
+    if (currentTab === 'finance') return 2;
+    return 0;
+  }, [currentTab]);
+
+  const handleDesktopNavChange = (idx: number | null) => {
+    if (idx === null) return;
+    const tab = desktopNavTabs[idx];
+    if (!tab || !tab.id) return;
+    sound.playClick();
+    setCurrentTab(tab.id as any);
+  };
 
   const toggleSound = () => {
     const muted = sound.toggleMute();
@@ -208,55 +230,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
         </div>
 
         {/* Center: 3 Focused Navigation Pillars (Desktop) */}
-        <nav className="hidden md:flex items-center gap-1 bg-[#F4F4F5] p-1 rounded-[9px] border border-[#E2E8F0]">
-          <button
-            type="button"
-            onClick={() => {
-              setCurrentTab('today');
-              sound.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-bold font-ui transition-all cursor-pointer ${
-              currentTab === 'today' || currentTab === 'dashboard'
-                ? 'bg-white text-[#18181B] shadow-2xs border border-[#E2E8F0]'
-                : 'text-[#71717A] hover:text-[#18181B]'
-            }`}
-          >
-            <LayoutGrid size={13} className={currentTab === 'today' || currentTab === 'dashboard' ? 'text-[#10B981]' : ''} />
-            <span>Today</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setCurrentTab('system');
-              sound.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-bold font-ui transition-all cursor-pointer ${
-              ['system', 'habits', 'weekly', 'tasks', 'goals', 'yearly', 'automations'].includes(currentTab)
-                ? 'bg-white text-[#18181B] shadow-2xs border border-[#E2E8F0]'
-                : 'text-[#71717A] hover:text-[#18181B]'
-            }`}
-          >
-            <CalendarCheck2 size={13} className={['system', 'habits', 'weekly', 'tasks', 'goals', 'yearly', 'automations'].includes(currentTab) ? 'text-[#10B981]' : ''} />
-            <span>System</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setCurrentTab('finance');
-              sound.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-bold font-ui transition-all cursor-pointer ${
-              currentTab === 'finance'
-                ? 'bg-white text-[#18181B] shadow-2xs border border-[#E2E8F0]'
-                : 'text-[#71717A] hover:text-[#18181B]'
-            }`}
-          >
-            <Wallet size={13} className={currentTab === 'finance' ? 'text-[#10B981]' : ''} />
-            <span>Finance</span>
-          </button>
-        </nav>
+        <div className="hidden md:flex items-center">
+          <ExpandableTabs
+            tabs={desktopNavTabs}
+            selectedIndex={desktopSelectedIndex}
+            onChange={handleDesktopNavChange}
+            activeBgColor="bg-[#18181B]"
+            activeColor="text-white"
+            className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+            size="sm"
+          />
+        </div>
 
         {/* Right: Operator Profile & Workstation Container */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">

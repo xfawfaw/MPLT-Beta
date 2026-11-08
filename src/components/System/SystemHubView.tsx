@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   CalendarCheck2, 
@@ -13,6 +13,7 @@ import { GoalTrackerView } from '../Goals/GoalTrackerView';
 import { TaskManagerView } from '../Tasks/TaskManagerView';
 import { YearlyStatsView } from '../Analytics/YearlyStatsView';
 import { sound } from '../../utils/sound';
+import { ExpandableTabs, TabItem } from '@/components/ui/expandable-tabs';
 
 type SystemSubTab = 'habits' | 'goals' | 'tasks' | 'yearly';
 
@@ -35,37 +36,45 @@ export const SystemHubView: React.FC = () => {
     else if (currentTab === 'habits') setActiveSubTab('habits');
   }, [currentTab]);
 
-  const handleTabChange = (tab: SystemSubTab) => {
-    sound.playClick();
-    setActiveSubTab(tab);
-  };
-
-  const tabs = [
+  const tabs: TabItem[] = useMemo(() => [
     { 
-      id: 'habits' as SystemSubTab, 
-      label: '31-Day Habit Matrix', 
+      id: 'habits', 
+      title: '31-Day Habit Matrix', 
       icon: CalendarCheck2, 
       badge: `${habits.length} Routines` 
     },
     { 
-      id: 'goals' as SystemSubTab, 
-      label: 'Strategic Roadmaps', 
+      id: 'goals', 
+      title: 'Strategic Roadmaps', 
       icon: Target, 
       badge: `${goals.length} Goals` 
     },
     { 
-      id: 'tasks' as SystemSubTab, 
-      label: 'Task Backlog', 
+      id: 'tasks', 
+      title: 'Task Backlog', 
       icon: CheckSquare, 
       badge: `${tasks.filter(t => t.status !== 'Completed').length} Pending` 
     },
     { 
-      id: 'yearly' as SystemSubTab, 
-      label: '365D Heatmap', 
+      id: 'yearly', 
+      title: '365D Heatmap', 
       icon: BarChart3, 
       badge: 'Annual' 
     },
-  ];
+  ], [habits.length, goals.length, tasks]);
+
+  const selectedIndex = useMemo(() => {
+    const idx = tabs.findIndex(t => t.id === activeSubTab);
+    return idx >= 0 ? idx : 0;
+  }, [tabs, activeSubTab]);
+
+  const handleTabChange = (idx: number | null) => {
+    if (idx === null) return;
+    const tab = tabs[idx];
+    if (!tab || !tab.id) return;
+    sound.playClick();
+    setActiveSubTab(tab.id as SystemSubTab);
+  };
 
   return (
     <div className="max-w-[1440px] mx-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
@@ -83,33 +92,16 @@ export const SystemHubView: React.FC = () => {
           </div>
         </div>
 
-        {/* Tactile Tab Selector */}
-        <div className="flex rounded-[8px] bg-[#F4F4F5] p-1 gap-1 overflow-x-auto scrollbar-none">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeSubTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleTabChange(tab.id)}
-                className={`flex items-center gap-1.5 py-1.5 px-2.5 sm:px-3 rounded-[6px] text-[11.5px] sm:text-[12px] font-bold font-ui transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-[#18181B] shadow-2xs border border-[#E2E8F0]'
-                    : 'text-[#71717A] hover:text-[#18181B]'
-                }`}
-              >
-                <Icon size={13} className={isActive ? 'text-[#10B981]' : 'text-[#71717A]'} />
-                <span>{tab.label}</span>
-                <span className={`text-[9.5px] font-num px-1.5 py-0.2 rounded border transition-colors ${
-                  isActive ? 'bg-zinc-100 text-zinc-800 border-zinc-200' : 'bg-transparent text-zinc-400 border-transparent'
-                }`}>
-                  {tab.badge}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Tactile Tab Selector via ExpandableTabs */}
+        <ExpandableTabs
+          tabs={tabs}
+          selectedIndex={selectedIndex}
+          onChange={handleTabChange}
+          activeBgColor="bg-[#18181B]"
+          activeColor="text-white"
+          className="bg-[#F9FAFB] border-[#E2E8F0] rounded-[8px]"
+          size="sm"
+        />
       </div>
 
       {/* Dynamic View Container */}
