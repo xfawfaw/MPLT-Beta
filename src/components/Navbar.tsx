@@ -207,6 +207,57 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCommandPalette, onOpenBack
           </div>
         </div>
 
+        {/* Center: 3 Focused Navigation Pillars (Desktop) */}
+        <nav className="hidden md:flex items-center gap-1 bg-[#F4F4F5] p-1 rounded-[9px] border border-[#E2E8F0]">
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('today');
+              sound.playClick();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-bold font-ui transition-all cursor-pointer ${
+              currentTab === 'today' || currentTab === 'dashboard'
+                ? 'bg-white text-[#18181B] shadow-2xs border border-[#E2E8F0]'
+                : 'text-[#71717A] hover:text-[#18181B]'
+            }`}
+          >
+            <LayoutGrid size={13} className={currentTab === 'today' || currentTab === 'dashboard' ? 'text-[#10B981]' : ''} />
+            <span>Today</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('system');
+              sound.playClick();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-bold font-ui transition-all cursor-pointer ${
+              ['system', 'habits', 'weekly', 'tasks', 'goals', 'yearly', 'automations'].includes(currentTab)
+                ? 'bg-white text-[#18181B] shadow-2xs border border-[#E2E8F0]'
+                : 'text-[#71717A] hover:text-[#18181B]'
+            }`}
+          >
+            <CalendarCheck2 size={13} className={['system', 'habits', 'weekly', 'tasks', 'goals', 'yearly', 'automations'].includes(currentTab) ? 'text-[#10B981]' : ''} />
+            <span>System</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('finance');
+              sound.playClick();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-bold font-ui transition-all cursor-pointer ${
+              currentTab === 'finance'
+                ? 'bg-white text-[#18181B] shadow-2xs border border-[#E2E8F0]'
+                : 'text-[#71717A] hover:text-[#18181B]'
+            }`}
+          >
+            <Wallet size={13} className={currentTab === 'finance' ? 'text-[#10B981]' : ''} />
+            <span>Finance</span>
+          </button>
+        </nav>
+
         {/* Right: Operator Profile & Workstation Container */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {/* Operator Profile Trigger Button & Floating Tree Container */}

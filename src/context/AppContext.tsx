@@ -38,7 +38,9 @@ interface AppContextType {
   
   // Feature Actions
   toggleHabitLog: (habitId: string, day: number) => void;
-  addHabit: (title: string, category: Habit['category'], timeOfDay?: Habit['timeOfDay']) => void;
+  toggleHabitGateway: (habitId: string, day: number) => void;
+  recordDeepWorkSession: (minutes: number, skillName: string) => void;
+  addHabit: (title: string, category: Habit['category'], timeOfDay?: Habit['timeOfDay'], twoMinuteRuleGateway?: string) => void;
   deleteHabit: (habitId: string) => void;
   
   toggleWeeklyTask: (taskId: string) => void;
@@ -136,7 +138,9 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 25,
     timeOfDay: 'Morning',
     targetFrequency: 'Daily',
+    twoMinuteRuleGateway: 'Put on running shoes & step outside for 2 mins',
     logs: generateInitialHabitLogs(0.74, 1),
+    gatewayLogs: {},
   },
   {
     id: 'h-4',
@@ -146,7 +150,9 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 25,
     timeOfDay: 'Morning',
     targetFrequency: 'Daily',
+    twoMinuteRuleGateway: 'Drink 1 full glass of water & prepare whole snack',
     logs: generateInitialHabitLogs(0.65, 2),
+    gatewayLogs: {},
   },
   {
     id: 'h-2',
@@ -156,7 +162,9 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 35,
     timeOfDay: 'Deep Work',
     targetFrequency: 'Mon-Fri',
+    twoMinuteRuleGateway: 'Open IDE/Editor & write the first 3 lines',
     logs: generateInitialHabitLogs(0.81, 3),
+    gatewayLogs: {},
   },
   {
     id: 'h-3',
@@ -166,7 +174,9 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 20,
     timeOfDay: 'Deep Work',
     targetFrequency: 'Daily',
+    twoMinuteRuleGateway: 'Open book & read just 1 page',
     logs: generateInitialHabitLogs(0.68, 4),
+    gatewayLogs: {},
   },
   {
     id: 'h-5',
@@ -176,7 +186,9 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 25,
     timeOfDay: 'Evening',
     targetFrequency: 'Daily',
+    twoMinuteRuleGateway: 'Check today balance & log 1 transaction',
     logs: generateInitialHabitLogs(0.71, 5),
+    gatewayLogs: {},
   },
   {
     id: 'h-6',
@@ -186,7 +198,9 @@ export const DEMO_HABITS: Habit[] = [
     expReward: 20,
     timeOfDay: 'Evening',
     targetFrequency: 'Daily',
+    twoMinuteRuleGateway: 'Read 2 verses with translation & take 3 deep breaths',
     logs: generateInitialHabitLogs(0.61, 6),
+    gatewayLogs: {},
   },
 ];
 
@@ -293,6 +307,17 @@ export const sanitizeHabits = (rawList: any[]): Habit[] => {
       });
     }
 
+    // Deep clone gatewayLogs if present
+    const gatewayLogsCopy: Record<number, boolean> = {};
+    if (item.gatewayLogs && typeof item.gatewayLogs === 'object') {
+      Object.keys(item.gatewayLogs).forEach(key => {
+        const dayNum = Number(key);
+        if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+          gatewayLogsCopy[dayNum] = Boolean(item.gatewayLogs[key]);
+        }
+      });
+    }
+
     return {
       id: rawId,
       title: item.title ? String(item.title) : `Habit ${index + 1}`,
@@ -301,7 +326,9 @@ export const sanitizeHabits = (rawList: any[]): Habit[] => {
       expReward: typeof item.expReward === 'number' ? item.expReward : 25,
       timeOfDay: item.timeOfDay || 'Morning',
       targetFrequency: item.targetFrequency || 'Daily',
+      twoMinuteRuleGateway: item.twoMinuteRuleGateway || defaultHabits[index]?.twoMinuteRuleGateway || 'Take 2 minutes to start',
       logs: logsCopy,
+      gatewayLogs: gatewayLogsCopy,
       monthlyLogs: Object.keys(monthlyLogsCopy).length > 0 ? monthlyLogsCopy : undefined,
     };
   });
@@ -945,7 +972,85 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const addHabit = (title: string, category: Habit['category'], timeOfDay: Habit['timeOfDay'] = 'Morning') => {
+  // ⚡ 2-Minute Rule Gateway Action (Hack #2 & Hack #5: Breaks limbic friction, protects unbroken streak)
+  const toggleHabitGateway = (habitId: string, day: number) => {
+    if (!habitId) return;
+
+    const targetHabit = habitsRef.current.find(h => String(h.id) === String(habitId));
+    if (!targetHabit) return;
+
+    const isCurrentlyDone = !!targetHabit.logs?.[day];
+    const isCurrentlyGateway = !!targetHabit.gatewayLogs?.[day];
+    const currentMonthKey = getCurrentMonthKey();
+
+    if (isCurrentlyDone && isCurrentlyGateway) {
+      // Revert gateway rep
+      removeExp(10, `Reverted Gateway: ${targetHabit.title}`);
+      removePoints(5);
+      sound.playClick();
+
+      setHabits(prev => {
+        const targetIndex = prev.findIndex(h => String(h.id) === String(habitId));
+        if (targetIndex === -1) return prev;
+        const current = prev[targetIndex];
+        const nextList = [...prev];
+        nextList[targetIndex] = {
+          ...current,
+          logs: { ...(current.logs || {}), [day]: false },
+          gatewayLogs: { ...(current.gatewayLogs || {}), [day]: false },
+        };
+        const today = dateUtils.getTodayInfo();
+        const newStreak = calculateStreak(nextList, today.dayOfMonth);
+        setProfile(p => ({ ...p, streakDays: newStreak }));
+        return nextList;
+      });
+      return;
+    }
+
+    // Mark as 2-Minute Gateway (+10 EXP, protects streak on low-energy days)
+    addExp(10, `⚡ 2-Min Gateway: ${targetHabit.title}`);
+    addPoints(5);
+    sound.playPop();
+
+    setHabits(prev => {
+      const targetIndex = prev.findIndex(h => String(h.id) === String(habitId));
+      if (targetIndex === -1) return prev;
+      const current = prev[targetIndex];
+      const nextList = [...prev];
+      nextList[targetIndex] = {
+        ...current,
+        logs: { ...(current.logs || {}), [day]: true },
+        gatewayLogs: { ...(current.gatewayLogs || {}), [day]: true },
+        monthlyLogs: {
+          ...(current.monthlyLogs || {}),
+          [currentMonthKey]: {
+            ...((current.monthlyLogs && current.monthlyLogs[currentMonthKey]) || {}),
+            [day]: true,
+          },
+        },
+      };
+      const today = dateUtils.getTodayInfo();
+      const newStreak = calculateStreak(nextList, today.dayOfMonth);
+      setProfile(p => ({ ...p, streakDays: newStreak }));
+      return nextList;
+    });
+  };
+
+  // Record Deep Work Session (18-25 High-Value Skill Focus from Video 2)
+  const recordDeepWorkSession = (minutes: number, skillName: string) => {
+    const expEarned = Math.max(15, Math.round(minutes * 0.8));
+    const ptsEarned = Math.max(10, Math.round(minutes * 0.4));
+    addExp(expEarned, `Deep Work (${minutes}m): ${skillName}`);
+    addPoints(ptsEarned);
+    sound.playLevelUp();
+  };
+
+  const addHabit = (
+    title: string, 
+    category: Habit['category'], 
+    timeOfDay: Habit['timeOfDay'] = 'Morning',
+    twoMinuteRuleGateway?: string
+  ) => {
     const newHabit: Habit = {
       id: `h-${Date.now()}`,
       title,
@@ -954,7 +1059,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       expReward: 25,
       timeOfDay,
       targetFrequency: 'Daily',
+      twoMinuteRuleGateway: twoMinuteRuleGateway || 'Take 2 minutes to start',
       logs: {},
+      gatewayLogs: {},
     };
     setHabits(prev => [...prev, newHabit]);
     addExp(20, 'New Habit Formed');
@@ -1358,6 +1465,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addPoints,
         updateProfile,
         toggleHabitLog,
+        toggleHabitGateway,
+        recordDeepWorkSession,
         addHabit,
         deleteHabit,
         toggleWeeklyTask,

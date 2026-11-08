@@ -3,8 +3,6 @@ import { useApp } from '../../context/AppContext';
 import { 
   LayoutGrid, 
   CalendarCheck2, 
-  CalendarRange, 
-  CheckSquare, 
   Wallet, 
   User 
 } from 'lucide-react';
@@ -19,10 +17,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenProfile 
   const { currentTab, setCurrentTab } = useApp();
 
   const tabs: TabItem[] = useMemo(() => [
-    { id: 'dashboard', title: 'Overview', icon: LayoutGrid },
-    { id: 'habits', title: 'Habits', icon: CalendarCheck2 },
-    { id: 'weekly', title: 'Sprint', icon: CalendarRange },
-    { id: 'tasks', title: 'Tasks', icon: CheckSquare },
+    { id: 'today', title: 'Today', icon: LayoutGrid },
+    { id: 'system', title: 'System', icon: CalendarCheck2 },
     { id: 'finance', title: 'Finance', icon: Wallet },
     { type: 'separator' },
     { 
@@ -36,10 +32,17 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenProfile 
     },
   ], [onOpenProfile]);
 
+  const normalizedTab = useMemo(() => {
+    if (currentTab === 'dashboard' || currentTab === 'today') return 'today';
+    if (['system', 'habits', 'weekly', 'tasks', 'goals', 'yearly', 'automations'].includes(currentTab)) return 'system';
+    if (currentTab === 'finance') return 'finance';
+    return 'today';
+  }, [currentTab]);
+
   const selectedIndex = useMemo(() => {
-    const idx = tabs.findIndex(t => t.id === currentTab);
-    return idx >= 0 ? idx : null;
-  }, [tabs, currentTab]);
+    const idx = tabs.findIndex(t => t.id === normalizedTab);
+    return idx >= 0 ? idx : 0;
+  }, [tabs, normalizedTab]);
 
   const handleChange = (index: number | null) => {
     if (index === null) return;

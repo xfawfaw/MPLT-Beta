@@ -117,8 +117,11 @@ export interface Habit {
   expReward: number;
   timeOfDay?: 'Morning' | 'Deep Work' | 'Evening' | 'Anytime';
   targetFrequency?: string; // e.g. "Daily", "5x / Week"
+  twoMinuteRuleGateway?: string; // 2-min gateway version (e.g. "Open IDE & write 3 lines", "Put on shoes & walk 2 mins")
   // Logs keyed by Day number (1-31) for active month
   logs: Record<number, boolean>;
+  // Gateway logs keyed by Day number (1-31) indicating 2-minute gateway completion
+  gatewayLogs?: Record<number, boolean>;
   // Historical logs keyed by 'YYYY-MM' e.g. '2026-11': { 1: true, ... }
   monthlyLogs?: Record<string, Record<number, boolean>>;
 }

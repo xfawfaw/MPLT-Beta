@@ -13,14 +13,9 @@ import { ViewSkeleton } from './components/Common/ViewSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Code-splitting via React.lazy for sub-100kB chunks and instant LCP
-const MasterDashboard = lazy(() => import('./components/Dashboard/MasterDashboard').then(m => ({ default: m.MasterDashboard })));
-const HabitMatrixView = lazy(() => import('./components/Habits/HabitMatrixView').then(m => ({ default: m.HabitMatrixView })));
-const WeeklyPlannerView = lazy(() => import('./components/Weekly/WeeklyPlannerView').then(m => ({ default: m.WeeklyPlannerView })));
-const TaskManagerView = lazy(() => import('./components/Tasks/TaskManagerView').then(m => ({ default: m.TaskManagerView })));
-const GoalTrackerView = lazy(() => import('./components/Goals/GoalTrackerView').then(m => ({ default: m.GoalTrackerView })));
+const TodayFocusView = lazy(() => import('./components/Focus/TodayFocusView').then(m => ({ default: m.TodayFocusView })));
+const SystemHubView = lazy(() => import('./components/System/SystemHubView').then(m => ({ default: m.SystemHubView })));
 const MoneyTrackerView = lazy(() => import('./components/Finance/MoneyTrackerView').then(m => ({ default: m.MoneyTrackerView })));
-const YearlyStatsView = lazy(() => import('./components/Analytics/YearlyStatsView').then(m => ({ default: m.YearlyStatsView })));
-const LifeAutomationView = lazy(() => import('./components/Automations/LifeAutomationView').then(m => ({ default: m.LifeAutomationView })));
 
 export const AppContent: React.FC = () => {
   const { currentTab, activeOperatorId } = useApp();
@@ -74,14 +69,9 @@ export const AppContent: React.FC = () => {
               exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(10px)' }}
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             >
-              {currentTab === 'dashboard' && <MasterDashboard />}
-              {currentTab === 'habits' && <HabitMatrixView />}
-              {currentTab === 'weekly' && <WeeklyPlannerView />}
-              {currentTab === 'tasks' && <TaskManagerView />}
-              {currentTab === 'goals' && <GoalTrackerView />}
+              {(currentTab === 'today' || currentTab === 'dashboard') && <TodayFocusView />}
+              {['system', 'habits', 'weekly', 'tasks', 'goals', 'yearly', 'automations'].includes(currentTab) && <SystemHubView />}
               {currentTab === 'finance' && <MoneyTrackerView />}
-              {currentTab === 'yearly' && <YearlyStatsView />}
-              {currentTab === 'automations' && <LifeAutomationView />}
             </motion.div>
           </AnimatePresence>
         </Suspense>
