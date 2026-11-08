@@ -190,3 +190,42 @@ export interface TransactionItem {
   type: 'expense' | 'income';
   categoryTag?: string; // e.g. "Groceries", "Rent", "Investments", "Subscriptions"
 }
+
+export interface WeeklyEvaluation {
+  id: string; // e.g. "eval-2026-W36"
+  weekNumber: number; // e.g. 36
+  year: number; // e.g. 2026
+  startDate: string; // "2026-08-31"
+  endDate: string; // "2026-09-06"
+  weekRangeStr: string; // e.g. "31.08 — 06.09.2026"
+  createdAt: string; // ISO string
+
+  // Calculated Objective Telemetry
+  metrics: {
+    habitAdherencePct: number;
+    habitsCompleted: number;
+    habitsTarget: number;
+    deepWorkMinutesTotal: number;
+    tasksCompletedCount: number;
+    totalSpending: number;
+    performanceScore: number; // 0 - 100
+    performanceGrade: 'S' | 'A' | 'B' | 'C' | 'D';
+  };
+
+  // Self-Reflection Questionnaire (Video Mindset Prompts)
+  reflection: {
+    wins: string;
+    biggestObstacle: string;
+    energyLeaks: string;
+    coreSkillProgress: string;
+    nextWeekOneThing: string;
+    mentalClarityRating: number; // 1 - 5
+    energyRating: number; // 1 - 5
+  };
+
+  aiSynthesis?: {
+    summary: string;
+    strengths: string[];
+    criticalFix: string;
+  };
+}

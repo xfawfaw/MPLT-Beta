@@ -8,6 +8,7 @@ import {
   GoalMilestone,
   BudgetConfig, 
   TransactionItem,
+  WeeklyEvaluation,
   OperatorId
 } from '../types';
 import { sound } from '../utils/sound';
@@ -62,6 +63,11 @@ interface AppContextType {
   setBudgetConfig: React.Dispatch<React.SetStateAction<BudgetConfig>>;
   addTransaction: (tx: Omit<TransactionItem, 'id'>) => void;
   deleteTransaction: (txId: string) => void;
+
+  // Weekly Performance Evaluation & Self-Reflection
+  weeklyEvaluations: WeeklyEvaluation[];
+  saveWeeklyEvaluation: (evaluation: WeeklyEvaluation) => void;
+  deleteWeeklyEvaluation: (evalId: string) => void;
   
   // Level up modal state
   levelUpModal: { isOpen: boolean; newLevel: number };
@@ -693,6 +699,55 @@ export const getInitialTransactions = (): TransactionItem[] => {
   return []; // Clean slate for new users
 };
 
+export const getDemoWeeklyEvaluations = (): WeeklyEvaluation[] => [
+  {
+    id: 'eval-demo-w35',
+    weekNumber: 35,
+    year: 2026,
+    startDate: '2026-08-24',
+    endDate: '2026-08-30',
+    weekRangeStr: '24.08 — 30.08.2026',
+    createdAt: '2026-08-30T20:30:00.000Z',
+    metrics: {
+      habitAdherencePct: 83,
+      habitsCompleted: 35,
+      habitsTarget: 42,
+      deepWorkMinutesTotal: 480, // 8 hours
+      tasksCompletedCount: 6,
+      totalSpending: 620000,
+      performanceScore: 86,
+      performanceGrade: 'A',
+    },
+    reflection: {
+      wins: 'Consistently logged 50-minute deep work blocks for full-stack architecture every morning without touching phone before noon.',
+      biggestObstacle: 'Late night YouTube rabbit hole on Thursday that caused brain fog and missed Friday 6 AM gateway routine.',
+      energyLeaks: 'Checking messaging notifications during flow state. Multitasking between emails and coding.',
+      coreSkillProgress: 'Built complete responsive file-tree animation component and mastered spring physics interpolation.',
+      nextWeekOneThing: 'Strict physical phone lockout in another room from 08:00 to 12:00 every single weekday.',
+      mentalClarityRating: 4,
+      energyRating: 4,
+    },
+    aiSynthesis: {
+      summary: 'Strong compounding velocity in core software architecture. Main constraint is evening dopamine discipline.',
+      strengths: ['Morning flow state discipline', 'High habit consistency rate (83%)'],
+      criticalFix: 'Enforce 22:30 digital curfew to protect circadian rhythm and Friday morning momentum.',
+    },
+  },
+];
+
+export const getInitialWeeklyEvaluations = (): WeeklyEvaluation[] => {
+  const saved = localStorage.getItem(`${STORAGE_KEY}_weeklyEvaluations`) ||
+                localStorage.getItem(`${STORAGE_KEY}_user-1_weeklyEvaluations`);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      // fallback
+    }
+  }
+  return getDemoWeeklyEvaluations();
+};
+
 // Backwards compatibility helper for existing references
 export const getInitialOperatorProfile = (opId: OperatorId): UserProfile => {
   if (opId === 'dev') return { ...DEMO_PROFILE, operatorId: 'dev' };
@@ -758,6 +813,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [goals, setGoals] = useState<GoalItem[]>(() => getInitialGoals());
   const [budget, setBudget] = useState<BudgetConfig>(() => getInitialBudget());
   const [transactions, setTransactions] = useState<TransactionItem[]>(() => getInitialTransactions());
+  const [weeklyEvaluations, setWeeklyEvaluations] = useState<WeeklyEvaluation[]>(() => getInitialWeeklyEvaluations());
 
   // Synchronized state refs for atomic access outside React setState updaters
   const habitsRef = useRef(habits);
@@ -840,6 +896,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(transactions));
   }, [transactions]);
+
+  useEffect(() => {
+    localStorage.setItem(`${STORAGE_KEY}_weeklyEvaluations`, JSON.stringify(weeklyEvaluations));
+  }, [weeklyEvaluations]);
+
+  const saveWeeklyEvaluation = (evaluation: WeeklyEvaluation) => {
+    setWeeklyEvaluations(prev => {
+      const idx = prev.findIndex(e => e.id === evaluation.id || (e.year === evaluation.year && e.weekNumber === evaluation.weekNumber));
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = evaluation;
+        return updated;
+      }
+      return [evaluation, ...prev];
+    });
+    addExp(100, `Weekly Evaluation: W${String(evaluation.weekNumber).padStart(2, '0')}`);
+    addPoints(50);
+    sound.playLevelUp();
+    triggerToast(`Weekly Reflection W${String(evaluation.weekNumber).padStart(2, '0')} Recorded! +100 EXP`, 100);
+  };
+
+  const deleteWeeklyEvaluation = (evalId: string) => {
+    setWeeklyEvaluations(prev => prev.filter(e => e.id !== evalId));
+    sound.playClick();
+  };
 
   const triggerToast = (message: string, exp: number = 0) => {
     setExpToast({ visible: true, message, exp });
@@ -1334,6 +1415,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const demoProfile = { ...DEMO_PROFILE, operatorId: activeOperatorId };
     const demoHabits = sanitizeHabits(DEMO_HABITS);
     const demoWeekly = getDemoSprintWeekTasks();
+    const demoEvaluations = getDemoWeeklyEvaluations();
     const demoTasks = getDemoTasks();
     const demoGoals = [...DEMO_GOALS];
     const demoBudget = { ...DEMO_BUDGET };
@@ -1342,6 +1424,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(`${STORAGE_KEY}_profile`, JSON.stringify(demoProfile));
     localStorage.setItem(`${STORAGE_KEY}_habits`, JSON.stringify(demoHabits));
     localStorage.setItem(`${STORAGE_KEY}_weeklyTasks`, JSON.stringify(demoWeekly));
+    localStorage.setItem(`${STORAGE_KEY}_weeklyEvaluations`, JSON.stringify(demoEvaluations));
     localStorage.setItem(`${STORAGE_KEY}_tasks`, JSON.stringify(demoTasks));
     localStorage.setItem(`${STORAGE_KEY}_goals`, JSON.stringify(demoGoals));
     localStorage.setItem(`${STORAGE_KEY}_budget`, JSON.stringify(demoBudget));
@@ -1350,6 +1433,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProfile(demoProfile);
     setHabits(demoHabits);
     setWeeklyTasks(demoWeekly);
+    setWeeklyEvaluations(demoEvaluations);
     setTasks(demoTasks);
     setGoals(demoGoals);
     setBudget(demoBudget);
@@ -1375,6 +1459,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem(`${STORAGE_KEY}_profile`);
     localStorage.removeItem(`${STORAGE_KEY}_habits`);
     localStorage.removeItem(`${STORAGE_KEY}_weeklyTasks`);
+    localStorage.removeItem(`${STORAGE_KEY}_weeklyEvaluations`);
     localStorage.removeItem(`${STORAGE_KEY}_tasks`);
     localStorage.removeItem(`${STORAGE_KEY}_goals`);
     localStorage.removeItem(`${STORAGE_KEY}_budget`);
@@ -1396,6 +1481,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProfile(cleanProfile);
     setHabits(sanitizeHabits(CLEAN_HABITS));
     setWeeklyTasks([]);
+    setWeeklyEvaluations([]);
     setTasks([]);
     setGoals([]);
     setBudget({ ...CLEAN_BUDGET });
@@ -1485,6 +1571,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setBudgetConfig: setBudget,
         addTransaction,
         deleteTransaction,
+        weeklyEvaluations,
+        saveWeeklyEvaluation,
+        deleteWeeklyEvaluation,
         levelUpModal,
         closeLevelUpModal,
         expToast,

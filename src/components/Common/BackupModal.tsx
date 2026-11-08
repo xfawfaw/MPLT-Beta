@@ -31,6 +31,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
     goals, 
     budget, 
     transactions,
+    weeklyEvaluations,
     triggerToast,
     loadDemoData,
     resetAllData
@@ -58,6 +59,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
         goals,
         budget,
         transactions,
+        weeklyEvaluations,
       }
     };
 
@@ -226,6 +228,10 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
           if (targetData.transactions) {
             localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(targetData.transactions));
             localStorage.setItem(`${STORAGE_KEY}_${targetOp}_transactions`, JSON.stringify(targetData.transactions));
+          }
+          if (targetData.weeklyEvaluations) {
+            localStorage.setItem(`${STORAGE_KEY}_weeklyEvaluations`, JSON.stringify(targetData.weeklyEvaluations));
+            localStorage.setItem(`${STORAGE_KEY}_${targetOp}_weeklyEvaluations`, JSON.stringify(targetData.weeklyEvaluations));
           }
 
           sound.playLevelUp();

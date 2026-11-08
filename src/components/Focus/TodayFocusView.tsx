@@ -17,7 +17,9 @@ import {
   Edit3, 
   AlertCircle,
   Wallet,
-  CheckSquare
+  CheckSquare,
+  ArrowRight,
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sound } from '../../utils/sound';
@@ -39,11 +41,17 @@ export const TodayFocusView: React.FC = () => {
     toggleWeeklyTask,
     addWeeklyTask,
     addTransaction,
+    weeklyEvaluations,
     setCurrentTab
   } = useApp();
 
   const today = useMemo(() => dateUtils.getTodayInfo(), []);
   const currentDayNum = today.dayOfMonth;
+
+  const lastWeekInfo = useMemo(() => dateUtils.getSprintWeekInfo(-1), []);
+  const hasEvaluatedLastWeek = useMemo(() => {
+    return weeklyEvaluations.some(e => e.weekNumber === lastWeekInfo.currentWeekNumber && e.year === lastWeekInfo.mondayDate.getFullYear());
+  }, [weeklyEvaluations, lastWeekInfo]);
 
   // --- 1. CORE SKILL FOCUS STATE (Video 2: 18-25 High-Value Skill Compounding) ---
   const [coreSkill, setCoreSkill] = useState(() => {
@@ -303,6 +311,45 @@ export const TodayFocusView: React.FC = () => {
             </span>
           </div>
         )}
+      </section>
+
+      {/* Weekly Evaluation Telemetry Banner */}
+      <section className="bg-gradient-to-r from-[#18181B] to-[#27272A] text-white rounded-[12px] p-3.5 sm:p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-[8px] bg-emerald-500/20 text-[#10B981] flex items-center justify-center flex-shrink-0">
+            <TrendingUp size={16} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] font-bold font-ui">
+                {hasEvaluatedLastWeek 
+                  ? `Weekly Retrospective Recorded (W${String(lastWeekInfo.currentWeekNumber).padStart(2, '0')})`
+                  : `Weekly Performance Debrief Available (W${String(lastWeekInfo.currentWeekNumber).padStart(2, '0')})`}
+              </span>
+              <span className={`text-[9.5px] font-num font-bold px-1.5 py-0.2 rounded ${
+                hasEvaluatedLastWeek ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#10B981] text-white'
+              }`}>
+                {hasEvaluatedLastWeek ? 'Evaluated' : '+100 EXP'}
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-300 font-ui mt-0.5">
+              {hasEvaluatedLastWeek
+                ? 'Review your past week score, deep work metrics, and protect your #1 focus.'
+                : 'Evaluate habit consistency, deep work on your core skill, and lock in next week\'s single focus.'}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            sound.playClick();
+            setCurrentTab('weekly');
+          }}
+          className="self-start sm:self-auto px-3.5 py-1.5 rounded-[6px] bg-white text-[#18181B] hover:bg-zinc-100 text-[11.5px] font-bold font-ui transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
+        >
+          <span>{hasEvaluatedLastWeek ? 'View Debrief' : 'Start Evaluation'}</span>
+          <ArrowRight size={12} />
+        </button>
       </section>
 
       {/* ========================================================

@@ -5,23 +5,28 @@ import {
   Target, 
   CheckSquare, 
   BarChart3, 
-  Layers 
+  Layers,
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HabitMatrixView } from '../Habits/HabitMatrixView';
+import { WeeklyEvaluationView } from '../Weekly/WeeklyEvaluationView';
 import { GoalTrackerView } from '../Goals/GoalTrackerView';
 import { TaskManagerView } from '../Tasks/TaskManagerView';
 import { YearlyStatsView } from '../Analytics/YearlyStatsView';
 import { sound } from '../../utils/sound';
+import { dateUtils } from '../../utils/date';
 import { ExpandableTabs, TabItem } from '@/components/ui/expandable-tabs';
 
-type SystemSubTab = 'habits' | 'goals' | 'tasks' | 'yearly';
+type SystemSubTab = 'habits' | 'weekly' | 'goals' | 'tasks' | 'yearly';
 
 export const SystemHubView: React.FC = () => {
   const { currentTab, habits, goals, tasks } = useApp();
+  const currentWeekInfo = useMemo(() => dateUtils.getSprintWeekInfo(0), []);
 
   // Initialize active subtab based on currentTab if user navigated directly to one
   const [activeSubTab, setActiveSubTab] = useState<SystemSubTab>(() => {
+    if (currentTab === 'weekly') return 'weekly';
     if (currentTab === 'goals') return 'goals';
     if (currentTab === 'tasks') return 'tasks';
     if (currentTab === 'yearly') return 'yearly';
@@ -30,7 +35,8 @@ export const SystemHubView: React.FC = () => {
 
   // Sync subtab if external navigation triggers a specific sub-route
   useEffect(() => {
-    if (currentTab === 'goals') setActiveSubTab('goals');
+    if (currentTab === 'weekly') setActiveSubTab('weekly');
+    else if (currentTab === 'goals') setActiveSubTab('goals');
     else if (currentTab === 'tasks') setActiveSubTab('tasks');
     else if (currentTab === 'yearly') setActiveSubTab('yearly');
     else if (currentTab === 'habits') setActiveSubTab('habits');
@@ -42,6 +48,12 @@ export const SystemHubView: React.FC = () => {
       title: '31-Day Habit Matrix', 
       icon: CalendarCheck2, 
       badge: `${habits.length} Routines` 
+    },
+    { 
+      id: 'weekly', 
+      title: 'Weekly Evaluation', 
+      icon: TrendingUp, 
+      badge: `W${String(currentWeekInfo.currentWeekNumber).padStart(2, '0')}` 
     },
     { 
       id: 'goals', 
@@ -61,7 +73,7 @@ export const SystemHubView: React.FC = () => {
       icon: BarChart3, 
       badge: 'Annual' 
     },
-  ], [habits.length, goals.length, tasks]);
+  ], [habits.length, goals.length, tasks, currentWeekInfo.currentWeekNumber]);
 
   const selectedIndex = useMemo(() => {
     const idx = tabs.findIndex(t => t.id === activeSubTab);
@@ -114,6 +126,7 @@ export const SystemHubView: React.FC = () => {
           transition={{ duration: 0.16 }}
         >
           {activeSubTab === 'habits' && <HabitMatrixView />}
+          {activeSubTab === 'weekly' && <WeeklyEvaluationView />}
           {activeSubTab === 'goals' && <GoalTrackerView />}
           {activeSubTab === 'tasks' && <TaskManagerView />}
           {activeSubTab === 'yearly' && <YearlyStatsView />}

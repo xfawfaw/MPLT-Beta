@@ -18,6 +18,7 @@ import {
   Sparkles,
   ArrowRight,
   Workflow,
+  TrendingUp,
   User,
   LucideIcon
 } from 'lucide-react';
@@ -108,10 +109,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
       {
         id: 'nav-weekly',
-        title: 'Go to Weekly To-Do',
-        subtitle: '7-Day Sprint Board & Day Spotlight',
+        title: 'Weekly Performance Evaluation & Reflection',
+        subtitle: 'Audit consistency, deep work & lock in next week',
         category: 'Navigation',
-        icon: CalendarRange,
+        icon: TrendingUp,
         action: () => { setCurrentTab('weekly'); sound.playClick(); onClose(); }
       },
       {
